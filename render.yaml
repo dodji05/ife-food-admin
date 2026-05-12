@@ -1,0 +1,47 @@
+## ifè FOOD — Render Blueprint
+## Déploiement : Admin Dashboard (site statique)
+
+services:
+  - type: web
+    name: ife-food-admin
+    runtime: static
+    region: frankfurt
+    repo: https://github.com/dodji05/ife-food-admin
+
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-XSS-Protection
+        value: "1; mode=block"
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000; includeSubDomains"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=(), payment=()"
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://ife-food-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    envVars:
+      - key: VITE_API_URL
+        value: https://ife-food-api.onrender.com
