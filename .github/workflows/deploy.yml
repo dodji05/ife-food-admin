@@ -1,0 +1,109 @@
+name: 🚀 CI/CD - Deploy Admin to VPS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # TEST & BUILD — vérifie que le projet compile (npm + vite build)
+  # Exécuté sur push main + PR. Bloque le deploy si erreur de compilation.
+  # ────────────────────────────────────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    name: 🧪 Test & Build
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: 🏗️ Build production (tsc + vite build)
+        run: npm run build
+
+      - name: ✅ Build successful
+        run: echo "✅ Build admin completed successfully — dist/ ready to deploy"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # DEPLOY TO VPS — uniquement sur push main (pas sur PR)
+  # SSH au VPS -> git pull -> npm install -> npm run build
+  # Nginx sert directement dist/ (pas de pm2 ni restart nécessaire pour
+  # un site statique React + Vite)
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    name: 🌐 Deploy to VPS
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "================================"
+            echo "🔄 Starting Admin Deployment..."
+            echo "================================"
+
+            cd /home/debian/PROJETS/Mouka/ife-food-admin
+
+            echo "📥 Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "📦 Installing dependencies..."
+            npm install --legacy-peer-deps
+
+            echo "🏗️ Building production bundle (tsc + vite build)..."
+            # Le build produit dist/ qui est servi directement par Nginx.
+            # Pas besoin de copier ailleurs si la config nginx pointe sur
+            # /home/debian/PROJETS/Mouka/ife-food-admin/dist
+            npm run build
+
+            echo "✅ Vérification dist/ existe..."
+            if [ ! -d "dist" ]; then
+              echo "❌ Erreur : dist/ introuvable après build"
+              exit 1
+            fi
+
+            # Nginx sert les fichiers statiques sans recharger. Si jamais le
+            # cache navigateur pose problème, decommenter le reload nginx
+            # (nécessite sudoers nopasswd pour 'systemctl reload nginx') :
+            # sudo systemctl reload nginx
+
+            echo "✅ Deployment completed!"
+            echo "📊 Build size:"
+            du -sh dist/
+
+      - name: ✅ Deployment Success
+        if: success()
+        run: echo "🎉 Admin deployment successful on VPS!"
+
+      - name: ❌ Deployment Failed
+        if: failure()
+        run: echo "⚠️ Admin deployment failed. Check logs above."
