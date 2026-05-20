@@ -96,7 +96,7 @@ export const Sidebar: React.FC = () => {
               <span className="text-brand-green font-black text-xs">{user?.firstName?.[0] || 'A'}</span>
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-bold text-slate-200 truncate">{user?.firstName} {user?.name}</div>
+              <div className="text-sm font-bold text-slate-200 truncate">{[user?.firstName, user?.name].filter(Boolean).join(' ') || 'Admin'}</div>
               <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{user?.admin?.level || 'SUPER_ADMIN'}</div>
             </div>
           </div>

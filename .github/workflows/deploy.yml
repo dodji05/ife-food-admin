@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🚀 Deploy via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -75,6 +75,9 @@ jobs:
             echo "📥 Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
+
+            echo "⚙️ Inject env vars (not committed to git)..."
+            echo "VITE_API_URL=https://ifeapi.associationireni.org" > .env.production
 
             echo "📦 Installing dependencies..."
             npm install --legacy-peer-deps

@@ -10,7 +10,9 @@ export function DataTable<T extends { id?: string }>({ columns, data, loading, p
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
 
-  useEffect(() => { setPage(0) }, [data])
+  // Réinitialise la page quand le nombre de lignes change (filtre, changement de source)
+  // mais PAS à chaque refetch React Query (nouvelle référence tableau, même contenu).
+  useEffect(() => { setPage(0) }, [data.length])
 
   const filtered = query
     ? data.filter(row =>

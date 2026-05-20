@@ -31,7 +31,12 @@ export const Login: React.FC = () => {
     setLoading(true)
     try {
       const res: any = await api.post('/auth/admin/login', { email, password })
-      setUser(res.data ?? res)
+      const userData = res.data ?? res
+      if (userData?.role !== 'ADMIN') {
+        toast.error('Accès refusé — compte administrateur requis')
+        return
+      }
+      setUser(userData)
       nav('/dashboard')
     } catch (e: any) {
       toast.error(e.message)

@@ -26,7 +26,7 @@ export const formatRelative = (date: string | Date | null | undefined): string =
   return formatDate(date)
 }
 export const statusColor = (s: string): string => ({
-  PENDING:'yellow', PAID:'yellow', ACCEPTED:'blue', IN_PREPARATION:'blue',
+  PENDING:'yellow', PAID:'green', ACCEPTED:'blue', IN_PREPARATION:'blue',
   READY_FOR_PICKUP:'blue', DRIVER_ASSIGNED:'blue', IN_DELIVERY:'blue',
   DELIVERED:'green', CANCELLED:'red', REFUNDED:'gray',
   VALIDATED:'green', REJECTED:'red', SUSPENDED:'yellow', BANNED:'red',

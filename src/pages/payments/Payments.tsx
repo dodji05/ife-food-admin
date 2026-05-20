@@ -23,11 +23,15 @@ export const Payments: React.FC = () => {
   const { data: commConfig } = useQuery({
     queryKey: ['commission-config'],
     queryFn: () => api.get('/admin/config/commission').then((r: any) => r.data).catch(() => null),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   const { data: gatewayConfig } = useQuery({
     queryKey: ['gateway-config'],
     queryFn: () => api.get('/admin/config/platform').then((r: any) => r.data).catch(() => null),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export const Payments: React.FC = () => {
 
   const saveCommission = async () => {
     const value = Number(commValue)
-    if (isNaN(value) || value < 0) { toast.error('Valeur de commission invalide'); return }
+    if (!commValue.trim() || isNaN(value) || value < 0) { toast.error('Valeur de commission invalide'); return }
     if (commType === 'PERCENTAGE' && value > 100) { toast.error('Le taux ne peut pas dépasser 100%'); return }
     try {
       await api.put('/admin/config/commission', { type: commType, value })

@@ -29,6 +29,7 @@ const ERROR_MESSAGES: Record<number, string> = {
 
 // Queue de requêtes en attente pendant un refresh en cours
 let _isRefreshing = false
+let _isRedirecting = false
 let _pendingQueue: Array<{ resolve: () => void; reject: (e: unknown) => void }> = []
 
 function processPendingQueue(error: unknown) {
@@ -66,8 +67,11 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         processPendingQueue(refreshError)
-        useAuthStore.getState().logout()
-        window.location.replace('/login')
+        if (!_isRedirecting) {
+          _isRedirecting = true
+          useAuthStore.getState().logout()
+          window.location.replace('/login')
+        }
         return Promise.reject(refreshError)
       } finally {
         _isRefreshing = false
