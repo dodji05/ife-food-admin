@@ -30,8 +30,8 @@ export const Login: React.FC = () => {
     if (!email || !password) return
     setLoading(true)
     try {
-      const user: any = await api.post('/auth/admin/login', { email, password })
-      setUser(user)
+      const res: any = await api.post('/auth/admin/login', { email, password })
+      setUser(res.data ?? res)
       nav('/dashboard')
     } catch (e: any) {
       toast.error(e.message)

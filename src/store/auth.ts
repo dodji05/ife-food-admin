@@ -36,8 +36,8 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   initialize: async () => {
     try {
-      const user = (await api.get('/auth/admin/me')) as unknown as AdminUser
-      set({ user, initializing: false })
+      const res = (await api.get('/auth/admin/me')) as any
+      set({ user: res.data ?? res, initializing: false })
     } catch {
       set({ user: null, initializing: false })
     }
