@@ -22,7 +22,7 @@ export const Professionals: React.FC = () => {
 
   const { data: allPros, isLoading: allLoading } = useQuery({
     queryKey: ['all-professionals'],
-    queryFn: () => api.get('/admin/professionals').then((r: any) => r.data ?? r ?? []),
+    queryFn: () => api.get('/admin/professionals').then((r: any) => r?.data?.data ?? r?.data ?? []),
     enabled: tab === 'all',
   })
 
@@ -96,10 +96,21 @@ export const Professionals: React.FC = () => {
         {tab === 'pending'
           ? <DataTable columns={pendingColumns} data={pending || []} loading={pendingLoading} onRowClick={setSelected}/>
           : <DataTable columns={[
-              { key: 'businessName', label: 'Établissement', render: (r: any) => <span className="font-semibold text-slate-200">{r.businessName || '—'}</span> },
-              { key: 'category', label: 'Type', render: (r: any) => <span className="text-sm text-slate-400">{r.category || '—'}</span> },
-              { key: 'city', label: 'Ville' },
+              { key: 'businessName', label: 'Établissement', render: (r: any) => (
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
+                    <Building2 size={12} className="text-brand-green"/>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-200 text-sm">{r.businessName || '—'}</div>
+                    <div className="text-xs text-slate-500">{r.user?.name || '—'} · {r.user?.phone || '—'}</div>
+                  </div>
+                </div>
+              )},
+              { key: 'category', label: 'Type', render: (r: any) => <span className="text-xs font-bold text-slate-400 bg-navy-700 px-2 py-1 rounded-lg">{r.category || '—'}</span> },
+              { key: 'city', label: 'Ville', render: (r: any) => <span className="text-sm text-slate-300">{r.city}, {r.country}</span> },
               { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status || 'ACTIVE'}/> },
+              { key: 'createdAt', label: 'Inscription', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
             ]} data={allPros || []} loading={allLoading}/>
         }
       </div>
