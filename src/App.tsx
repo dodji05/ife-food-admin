@@ -14,6 +14,7 @@ import { Content } from './pages/content/Content'
 import { Settings } from './pages/settings/Settings'
 import { Analytics } from './pages/analytics/Analytics'
 import { PromoCodes } from './pages/promos/PromoCodes'
+import { Referrals } from './pages/referrals/Referrals'
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, initializing, initialize } = useAuthStore()
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="payments"      element={<Payments/>}/>
         <Route path="content"       element={<Content/>}/>
         <Route path="promo-codes"   element={<PromoCodes/>}/>
+        <Route path="referrals"     element={<Referrals/>}/>
         <Route path="settings"      element={<Settings/>}/>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace/>}/>
