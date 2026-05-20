@@ -34,7 +34,7 @@ export const Dashboard: React.FC = () => {
 
   const { data: liveOrders = [], isLoading: liveLoading } = useQuery({
     queryKey: ['live-orders'],
-    queryFn: () => api.get('/admin/orders?status=PAID,IN_PREPARATION,IN_DELIVERY&limit=5').then((r: any) => Array.isArray(r) ? r : r?.data ?? []),
+    queryFn: () => api.get('/admin/orders?status=PAID,IN_PREPARATION,IN_DELIVERY&limit=5').then((r: any) => r?.data?.data ?? r?.data ?? []),
     refetchInterval: 15000,
   })
 

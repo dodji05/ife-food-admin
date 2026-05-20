@@ -11,7 +11,7 @@ export const Users: React.FC = () => {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users'],
-    queryFn: () => api.get('/admin/users?role=CLIENT').then((r: any) => Array.isArray(r) ? r : r?.data ?? []),
+    queryFn: () => api.get('/admin/users?role=CLIENT').then((r: any) => r?.data?.data ?? r?.data ?? []),
   })
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/admin/users/${id}/status`, { status }),

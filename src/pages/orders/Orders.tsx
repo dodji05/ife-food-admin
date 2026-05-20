@@ -24,7 +24,7 @@ export const Orders: React.FC = () => {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-orders', statusFilter],
-    queryFn: () => api.get(`/admin/orders${statusFilter ? `?status=${statusFilter}` : ''}`).then((r: any) => Array.isArray(r) ? r : r?.data ?? []),
+    queryFn: () => api.get(`/admin/orders${statusFilter ? `?status=${statusFilter}` : ''}`).then((r: any) => r?.data?.data ?? r?.data ?? []),
     refetchInterval: 15000,
   })
 
