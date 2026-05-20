@@ -42,14 +42,22 @@ export const Dashboard: React.FC = () => {
 
   const revenueData: any[] = stats?.chartData ?? []
 
+  const pct = (cur: number, prev: number) => prev > 0 ? Math.round((cur - prev) / prev * 100) : undefined
+  const ordersTrend = pct(stats?.orders?.count ?? 0, stats?.prev?.orders?.count ?? 0)
+  const revenueTrend = pct(stats?.orders?.revenue ?? 0, stats?.prev?.orders?.revenue ?? 0)
+  const commissionsTrend = pct(stats?.commissions ?? 0, stats?.prev?.commissions ?? 0)
+  const usersTrend = pct(stats?.newUsers ?? 0, stats?.prev?.newUsers ?? 0)
+
+  const periodLabel = period === 'day' ? "Aujourd'hui" : period === 'month' ? '30 derniers jours' : '7 derniers jours'
+
   return (
     <div className="space-y-6">
       {/* KPI Grid */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title="Commandes (semaine)" value={stats?.orders?.count ?? '—'} sub="vs. semaine précédente" icon={ShoppingCart} color="brand-green" trend={12} loading={isLoading}/>
-        <StatCard title="Chiffre d'affaires" value={isLoading ? '—' : formatCFA(stats?.orders?.revenue ?? 0)} icon={TrendingUp} color="yellow" trend={8} loading={isLoading}/>
-        <StatCard title="Commissions perçues" value={isLoading ? '—' : formatCFA(stats?.commissions ?? 0)} icon={AlertCircle} color="purple" trend={10} loading={isLoading}/>
-        <StatCard title="Nouveaux clients" value={stats?.newUsers ?? '—'} icon={Users} color="blue" trend={-3} loading={isLoading}/>
+        <StatCard title={`Commandes — ${periodLabel}`} value={stats?.orders?.count ?? '—'} sub="vs. période précédente" icon={ShoppingCart} color="brand-green" trend={ordersTrend} loading={isLoading}/>
+        <StatCard title="Chiffre d'affaires" value={isLoading ? '—' : formatCFA(stats?.orders?.revenue ?? 0)} icon={TrendingUp} color="yellow" trend={revenueTrend} loading={isLoading}/>
+        <StatCard title="Commissions perçues" value={isLoading ? '—' : formatCFA(stats?.commissions ?? 0)} icon={AlertCircle} color="purple" trend={commissionsTrend} loading={isLoading}/>
+        <StatCard title="Nouveaux clients" value={stats?.newUsers ?? '—'} icon={Users} color="blue" trend={usersTrend} loading={isLoading}/>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">

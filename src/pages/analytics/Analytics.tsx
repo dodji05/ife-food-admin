@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCFA } from '../../utils/format'
+import { useFiltersStore } from '../../store/filters'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts'
 import { TrendingUp, Users, Package, Truck } from 'lucide-react'
 
@@ -19,9 +20,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const Analytics: React.FC = () => {
+  const { period, country } = useFiltersStore()
+  const params = new URLSearchParams({ period, ...(country ? { country } : {}) })
+
   const { data, isLoading } = useQuery({
-    queryKey: ['analytics'],
-    queryFn: () => api.get('/admin/analytics').then((r: any) => r.data),
+    queryKey: ['analytics', period, country],
+    queryFn: () => api.get(`/admin/analytics?${params}`).then((r: any) => r.data),
   })
 
   const countryData: any[] = data?.byCountry ?? []
