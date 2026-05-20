@@ -32,22 +32,28 @@ export const Professionals: React.FC = () => {
     queryFn: () => api.get('/admin/professionals').then((r: any) => r?.data?.data ?? r?.data ?? []),
   })
 
+  // Helpers pour unwrapper les réponses backend qui retournent { data: X }
+  // après le TransformInterceptor : HTTP = { success, data: { data: X } }
+  // → après axios interceptor r = { success, data: { data: X } }
+  // → r?.data?.data = X
+  const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
+
   const { data: proDetail } = useQuery({
     queryKey: ['pro-detail', selectedId],
-    queryFn: () => api.get(`/admin/professionals/${selectedId}`).then((r: any) => r?.data ?? r),
+    queryFn: () => api.get(`/admin/professionals/${selectedId}`).then(unwrap),
     enabled: !!selectedId,
   })
 
   const { data: catalogueData } = useQuery({
     queryKey: ['pro-catalogue', selectedId],
-    queryFn: () => api.get(`/admin/catalogue/${selectedId}`).then((r: any) => r?.data ?? r),
-    enabled: !!selectedId && detailTab === 'catalogue',
+    queryFn: () => api.get(`/admin/catalogue/${selectedId}`).then(unwrap),
+    enabled: !!selectedId,
   })
 
   const { data: ordersData } = useQuery({
     queryKey: ['pro-orders', selectedId],
-    queryFn: () => api.get(`/admin/professionals/${selectedId}/orders`).then((r: any) => r?.data ?? r),
-    enabled: !!selectedId && detailTab === 'orders',
+    queryFn: () => api.get(`/admin/professionals/${selectedId}/orders`).then(unwrap),
+    enabled: !!selectedId,
   })
 
   const validateMutation = useMutation({

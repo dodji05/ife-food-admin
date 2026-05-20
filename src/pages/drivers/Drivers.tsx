@@ -36,18 +36,19 @@ export const Drivers: React.FC = () => {
     }),
   })
 
+  const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
+
   const { data: driverDetail } = useQuery({
     queryKey: ['driver-detail', selectedId],
-    queryFn: () => api.get(`/admin/drivers/${selectedId}`).then((r: any) => r?.data ?? r),
+    queryFn: () => api.get(`/admin/drivers/${selectedId}`).then(unwrap),
     enabled: !!selectedId,
   })
 
   const { data: missions = [], isLoading: missionsLoading } = useQuery({
     queryKey: ['driver-missions', selectedId],
     queryFn: () => api.get(`/admin/drivers/${selectedId}/missions`).then((r: any) => {
-      if (Array.isArray(r?.data)) return r.data
-      if (Array.isArray(r?.data?.data)) return r.data.data
-      return []
+      const payload = unwrap(r)
+      return Array.isArray(payload) ? payload : []
     }),
     enabled: !!selectedId && detailTab === 'missions',
   })
