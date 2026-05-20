@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { StatCard } from '../../components/ui/StatCard'
 import { Badge } from '../../components/ui/Badge'
 import { formatCFA } from '../../utils/format'
+import { useFiltersStore } from '../../store/filters'
 import { ShoppingCart, Users, Briefcase, Truck, TrendingUp, Clock, Star, AlertCircle } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts'
 
@@ -24,11 +25,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const Dashboard: React.FC = () => {
-  const [period, setPeriod] = useState<'week' | 'month'>('week')
+  const { period, country } = useFiltersStore()
 
+  const params = new URLSearchParams({ period, ...(country ? { country } : {}) })
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard', period],
-    queryFn: () => api.get(`/admin/dashboard?period=${period}`).then((r: any) => r.data),
+    queryKey: ['dashboard', period, country],
+    queryFn: () => api.get(`/admin/dashboard?${params}`).then((r: any) => r.data),
     refetchInterval: 30000,
   })
 
@@ -64,12 +66,10 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-base font-black text-slate-100">Revenus & Commandes</h3>
-              <p className="text-xs text-slate-500 font-semibold">{period === 'week' ? '7 derniers jours' : '30 derniers jours'}</p>
+              <p className="text-xs text-slate-500 font-semibold">
+                {period === 'day' ? "Aujourd'hui" : period === 'month' ? '30 derniers jours' : '7 derniers jours'}
+              </p>
             </div>
-            <select value={period} onChange={e => setPeriod(e.target.value as 'week' | 'month')} className="input h-8 text-xs w-36">
-              <option value="week">Cette semaine</option>
-              <option value="month">Ce mois</option>
-            </select>
           </div>
           {revenueData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -97,7 +97,9 @@ export const Dashboard: React.FC = () => {
         {/* Orders by day */}
         <div className="card p-5">
           <h3 className="text-base font-black text-slate-100 mb-1">Commandes / jour</h3>
-          <p className="text-xs text-slate-500 font-semibold mb-5">{period === 'week' ? '7 derniers jours' : '30 derniers jours'}</p>
+          <p className="text-xs text-slate-500 font-semibold mb-5">
+            {period === 'day' ? "Aujourd'hui" : period === 'month' ? '30 derniers jours' : '7 derniers jours'}
+          </p>
           {revenueData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={revenueData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>

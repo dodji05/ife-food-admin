@@ -5,6 +5,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { formatCFA, formatDateTime } from '../../utils/format'
+import { useFiltersStore } from '../../store/filters'
 import { RefreshCw, Filter, User, MapPin, Package, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -21,10 +22,17 @@ export const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const qc = useQueryClient()
+  const { country } = useFiltersStore()
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['admin-orders', statusFilter],
-    queryFn: () => api.get(`/admin/orders${statusFilter ? `?status=${statusFilter}` : ''}`).then((r: any) => r?.data?.data ?? r?.data ?? []),
+    queryKey: ['admin-orders', statusFilter, country],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (statusFilter) params.set('status', statusFilter)
+      if (country) params.set('country', country)
+      const qs = params.toString()
+      return api.get(`/admin/orders${qs ? `?${qs}` : ''}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
+    },
     refetchInterval: 15000,
   })
 

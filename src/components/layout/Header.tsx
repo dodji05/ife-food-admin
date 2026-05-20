@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bell } from 'lucide-react'
 import api from '../../services/api'
+import { GlobalFilters } from '../ui/GlobalFilters'
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Tableau de bord',
@@ -38,6 +39,7 @@ export const Header: React.FC = () => {
         </p>
       </div>
       <div className="flex-1"/>
+      <GlobalFilters/>
       <button
         onClick={() => navigate('/orders')}
         className="relative p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-xl transition-colors"

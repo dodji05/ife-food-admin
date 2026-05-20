@@ -4,14 +4,21 @@ import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { formatDateTime } from '../../utils/format'
+import { useFiltersStore } from '../../store/filters'
 import { UserX, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export const Users: React.FC = () => {
   const qc = useQueryClient()
+  const { country } = useFiltersStore()
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: () => api.get('/admin/users?role=CLIENT').then((r: any) => r?.data?.data ?? r?.data ?? []),
+    queryKey: ['admin-users', country],
+    queryFn: () => {
+      const params = new URLSearchParams({ role: 'CLIENT' })
+      if (country) params.set('country', country)
+      return api.get(`/admin/users?${params}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
+    },
   })
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/admin/users/${id}/status`, { status }),
