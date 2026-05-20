@@ -1,16 +1,20 @@
-import axios from 'axios'
+import axios, { AxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../store/auth'
 
 const baseURL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api/v1`
   : '/api/v1'
 
-// Validation en production
 if (!import.meta.env.VITE_API_URL && import.meta.env.PROD) {
   console.error('[API] VITE_API_URL must be defined in production')
 }
 
-const api = axios.create({ baseURL, timeout: 15000, headers: { 'Content-Type': 'application/json' } })
+const api = axios.create({
+  baseURL,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // Envoie les cookies HttpOnly automatiquement
+})
 
 const ERROR_MESSAGES: Record<number, string> = {
   400: 'Requête invalide',
@@ -23,25 +27,56 @@ const ERROR_MESSAGES: Record<number, string> = {
   503: 'Service temporairement indisponible',
 }
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+// Queue de requêtes en attente pendant un refresh en cours
+let _isRefreshing = false
+let _pendingQueue: Array<{ resolve: () => void; reject: (e: unknown) => void }> = []
+
+function processPendingQueue(error: unknown) {
+  _pendingQueue.forEach(({ resolve, reject }) => (error ? reject(error) : resolve()))
+  _pendingQueue = []
+}
 
 api.interceptors.response.use(
   (res) => res.data,
-  (err) => {
+  async (err) => {
     const status: number = err.response?.status
-    // FIX: Utiliser logout() du store + replace() au lieu de href direct
-    // Évite le bug du flag _redirecting jamais réinitialisé
-    if (status === 401 && window.location.pathname !== '/login') {
-      useAuthStore.getState().logout()
-      window.location.replace('/login')
+    const originalRequest: AxiosRequestConfig & { _retry?: boolean } = err.config
+
+    if (
+      status === 401 &&
+      !originalRequest._retry &&
+      window.location.pathname !== '/login' &&
+      originalRequest.url !== '/auth/admin/refresh'
+    ) {
+      if (_isRefreshing) {
+        return new Promise((resolve, reject) => {
+          _pendingQueue.push({
+            resolve: () => resolve(api(originalRequest)),
+            reject,
+          })
+        })
+      }
+
+      originalRequest._retry = true
+      _isRefreshing = true
+
+      try {
+        await api.post('/auth/admin/refresh')
+        processPendingQueue(null)
+        return api(originalRequest)
+      } catch (refreshError) {
+        processPendingQueue(refreshError)
+        useAuthStore.getState().logout()
+        window.location.replace('/login')
+        return Promise.reject(refreshError)
+      } finally {
+        _isRefreshing = false
+      }
     }
-    const message = ERROR_MESSAGES[status] ?? err.response?.data?.message ?? 'Une erreur est survenue'
+
+    const message = ERROR_MESSAGES[status] ?? 'Une erreur est survenue'
     return Promise.reject(new Error(message))
-  }
+  },
 )
 
 export default api
