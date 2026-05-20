@@ -9,7 +9,7 @@ import { CheckCircle, XCircle, Eye, Building2, AlertTriangle } from 'lucide-reac
 import toast from 'react-hot-toast'
 
 export const Professionals: React.FC = () => {
-  const [tab, setTab] = useState<'pending' | 'all'>('pending')
+  const [tab, setTab] = useState<'pending' | 'all'>('all')
   const [selected, setSelected] = useState<any>(null)
   const [rejectNote, setRejectNote] = useState('')
   const qc = useQueryClient()
@@ -23,7 +23,6 @@ export const Professionals: React.FC = () => {
   const { data: allPros, isLoading: allLoading } = useQuery({
     queryKey: ['all-professionals'],
     queryFn: () => api.get('/admin/professionals').then((r: any) => r?.data?.data ?? r?.data ?? []),
-    enabled: tab === 'all',
   })
 
   const validateMutation = useMutation({

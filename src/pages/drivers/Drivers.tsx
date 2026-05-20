@@ -8,7 +8,7 @@ import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export const Drivers: React.FC = () => {
-  const [tab, setTab] = useState<'pending' | 'all'>('pending')
+  const [tab, setTab] = useState<'pending' | 'all'>('all')
   const qc = useQueryClient()
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
@@ -30,7 +30,6 @@ export const Drivers: React.FC = () => {
       if (Array.isArray(r?.data)) return r.data
       return []
     }),
-    enabled: tab === 'all',
   })
 
   const validateMutation = useMutation({
@@ -104,7 +103,7 @@ export const Drivers: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {pending.length > 0 && tab === 'pending' && (
+      {pending.length > 0 && (
         <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
           <AlertTriangle size={18} className="text-yellow-400 flex-shrink-0"/>
           <span className="text-sm font-bold text-yellow-400">
