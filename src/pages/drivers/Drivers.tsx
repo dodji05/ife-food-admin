@@ -72,7 +72,7 @@ export const Drivers: React.FC = () => {
     setRejectNote('')
   }
 
-  const columns = [
+  const baseColumns = [
     {
       key: 'user', label: 'Livreur',
       render: (r: any) => (
@@ -86,6 +86,27 @@ export const Drivers: React.FC = () => {
     { key: 'zoneCity', label: 'Zone', render: (r: any) => <span className="text-sm text-slate-400">{r.zoneCity || '—'}</span> },
     { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
     { key: 'createdAt', label: 'Inscription', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+  ]
+
+  const pendingColumns = [
+    ...baseColumns,
+    {
+      key: 'actions', label: '', width: '90px',
+      render: (r: any) => (
+        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+          <button
+            title="Valider"
+            onClick={() => { if (window.confirm(`Valider ${r.user?.name ?? r.user?.phone ?? 'ce livreur'} ?`)) validateMutation.mutate({ id: r.id, status: 'VALIDATED' }) }}
+            className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+          ><CheckCircle size={15}/></button>
+          <button
+            title="Refuser"
+            onClick={() => openDetail(r)}
+            className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          ><XCircle size={15}/></button>
+        </div>
+      ),
+    },
   ]
 
   const selected = driverDetail
@@ -112,8 +133,8 @@ export const Drivers: React.FC = () => {
 
       <div className="card p-5">
         {tab === 'pending'
-          ? <DataTable columns={columns} data={pending} loading={pendingLoading} onRowClick={openDetail}/>
-          : <DataTable columns={columns} data={allDrivers} loading={allLoading} onRowClick={openDetail}/>
+          ? <DataTable columns={pendingColumns} data={pending} loading={pendingLoading} onRowClick={openDetail}/>
+          : <DataTable columns={baseColumns} data={allDrivers} loading={allLoading} onRowClick={openDetail}/>
         }
       </div>
 

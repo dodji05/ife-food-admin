@@ -5,7 +5,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
-import { CheckCircle, XCircle, AlertTriangle, Building2, Phone, Mail, MapPin, FileText, ShoppingCart, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, Building2, Phone, Mail, MapPin, FileText, ShoppingCart, Package, ChevronDown, ChevronRight, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export const Professionals: React.FC = () => {
@@ -82,7 +82,7 @@ export const Professionals: React.FC = () => {
     return next
   })
 
-  const columns = [
+  const baseColumns = [
     {
       key: 'businessName', label: 'Établissement',
       render: (r: any) => (
@@ -101,6 +101,32 @@ export const Professionals: React.FC = () => {
     { key: 'city', label: 'Ville', render: (r: any) => <span className="text-sm text-slate-300">{r.city}, {r.country}</span> },
     { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
     { key: 'createdAt', label: 'Inscription', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+  ]
+
+  const pendingColumns = [
+    ...baseColumns,
+    {
+      key: 'actions', label: '', width: '100px',
+      render: (r: any) => (
+        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+          <button
+            title="Voir le dossier"
+            onClick={() => openDetail(r)}
+            className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+          ><Eye size={14}/></button>
+          <button
+            title="Valider"
+            onClick={() => { if (window.confirm(`Valider ${r.businessName} ?`)) validateMutation.mutate({ id: r.id, status: 'VALIDATED' }) }}
+            className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+          ><CheckCircle size={14}/></button>
+          <button
+            title="Refuser"
+            onClick={() => openDetail(r)}
+            className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          ><XCircle size={14}/></button>
+        </div>
+      ),
+    },
   ]
 
   const selected = proDetail
@@ -130,8 +156,8 @@ export const Professionals: React.FC = () => {
 
       <div className="card p-5">
         {tab === 'pending'
-          ? <DataTable columns={columns} data={pending} loading={pendingLoading} onRowClick={openDetail}/>
-          : <DataTable columns={columns} data={allPros} loading={allLoading} onRowClick={openDetail}/>
+          ? <DataTable columns={pendingColumns} data={pending} loading={pendingLoading} onRowClick={openDetail}/>
+          : <DataTable columns={baseColumns} data={allPros} loading={allLoading} onRowClick={openDetail}/>
         }
       </div>
 
