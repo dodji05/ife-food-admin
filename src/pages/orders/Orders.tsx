@@ -4,9 +4,10 @@ import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
+import { LocationPeriodFilters } from '../../components/ui/LocationPeriodFilters'
 import { formatCFA, formatDateTime } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
-import { RefreshCw, Filter, User, MapPin, Package, ExternalLink } from 'lucide-react'
+import { RefreshCw, MapPin, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const statusFilters = [
@@ -21,15 +22,19 @@ const statusFilters = [
 export const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [region, setRegion] = useState('')
+  const [city, setCity] = useState('')
   const qc = useQueryClient()
-  const { country } = useFiltersStore()
+  const { country, period } = useFiltersStore()
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['admin-orders', statusFilter, country],
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['admin-orders', statusFilter, country, city, period],
     queryFn: () => {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
-      if (country) params.set('country', country)
+      if (country)      params.set('country', country)
+      if (city)         params.set('city', city)
+      if (period)       params.set('period', period)
       const qs = params.toString()
       return api.get(`/admin/orders${qs ? `?${qs}` : ''}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
     },
@@ -94,6 +99,13 @@ export const Orders: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      {/* Bloc filtres globaux (pays / région / ville / période + reset) */}
+      <LocationPeriodFilters
+        region={region} onRegionChange={setRegion}
+        city={city}     onCityChange={setCity}
+      />
+
+      {/* Filtres statut existants + Actualiser (conservés) */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex gap-1.5 flex-wrap">
           {statusFilters.map(f => (
@@ -103,8 +115,8 @@ export const Orders: React.FC = () => {
             </button>
           ))}
         </div>
-        <button onClick={() => refetch()} className="btn-secondary">
-          <RefreshCw size={14}/> Actualiser
+        <button onClick={() => refetch()} disabled={isFetching} className="btn-secondary disabled:opacity-50">
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/> Actualiser
         </button>
       </div>
 

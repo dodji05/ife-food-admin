@@ -1,14 +1,15 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { StatCard } from '../../components/ui/StatCard'
 import { Badge } from '../../components/ui/Badge'
+import { LocationPeriodFilters } from '../../components/ui/LocationPeriodFilters'
 import { formatCFA } from '../../utils/format'
-import { useFiltersStore, Period } from '../../store/filters'
+import { useFiltersStore } from '../../store/filters'
 import {
   ShoppingCart, TrendingUp, AlertCircle, Truck, CheckCircle2, ChefHat, XCircle,
-  Coins, Receipt, Wallet, Gift, Briefcase, Globe, MapPin,
-  RotateCcw, RefreshCw, Trophy, User as UserIcon,
+  Coins, Receipt, Wallet, Gift, Briefcase, Globe,
+  Trophy, User as UserIcon,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar,
@@ -22,35 +23,11 @@ const CHART_COLORS = {
   purple: '#8B5CF6', red: '#EF4444', teal: '#14B8A6',
 }
 
-const COUNTRIES = [
-  { code: '',   name: 'Tous pays' },
+const COUNTRIES_FOR_RANKINGS = [
   { code: 'BJ', name: 'Bénin' },
   { code: 'SN', name: 'Sénégal' },
   { code: 'CI', name: "Côte d'Ivoire" },
   { code: 'TG', name: 'Togo' },
-]
-
-// Départements du Bénin (région = département administratif local).
-// Sert à filtrer dynamiquement la liste des villes disponibles.
-const BJ_REGIONS: Record<string, { name: string; cities: string[] }> = {
-  AT: { name: 'Atlantique',  cities: ['Allada', 'Abomey-Calavi', 'Kpomassè', 'Ouidah', 'Sô-Ava', 'Toffo', 'Tori-Bossito', 'Zè'] },
-  LI: { name: 'Littoral',    cities: ['Cotonou'] },
-  OU: { name: 'Ouémé',       cities: ['Porto-Novo', 'Adjarra', 'Adjohoun', 'Aguégués', 'Akpro-Missérété', 'Avrankou', 'Bonou', 'Dangbo', 'Sèmè-Kpodji'] },
-  PL: { name: 'Plateau',     cities: ['Pobè', 'Adja-Ouèrè', 'Ifangni', 'Kétou', 'Sakété'] },
-  ZO: { name: 'Zou',         cities: ['Abomey', 'Agbangnizoun', 'Bohicon', 'Covè', 'Djidja', 'Ouinhi', 'Zagnanado', 'Za-Kpota', 'Zogbodomey'] },
-  MO: { name: 'Mono',        cities: ['Lokossa', 'Athiémé', 'Bopa', 'Comè', 'Grand-Popo', 'Houéyogbé'] },
-  CO: { name: 'Couffo',      cities: ['Aplahoué', 'Djakotomey', 'Dogbo', 'Klouékanmè', 'Lalo', 'Toviklin'] },
-  BO: { name: 'Borgou',      cities: ['Parakou', 'Bembéréké', 'Kalalé', "N'Dali", 'Nikki', 'Pèrèrè', 'Sinendé', 'Tchaourou'] },
-  AL: { name: 'Alibori',     cities: ['Kandi', 'Banikoara', 'Gogounou', 'Karimama', 'Malanville', 'Ségbana'] },
-  AK: { name: 'Atacora',     cities: ['Natitingou', 'Boukoumbé', 'Cobly', 'Kérou', 'Kouandé', 'Matéri', 'Péhonko', 'Tanguiéta', 'Toucountouna'] },
-  DO: { name: 'Donga',       cities: ['Djougou', 'Bassila', 'Copargo', 'Ouaké'] },
-  CL: { name: 'Collines',    cities: ['Dassa-Zoumè', 'Bantè', 'Glazoué', 'Ouèssè', 'Savalou', 'Savè'] },
-}
-
-const PERIODS: { label: string; value: Period }[] = [
-  { label: "Auj.", value: 'day' },
-  { label: '7 jours', value: 'week' },
-  { label: '30 jours', value: 'month' },
 ]
 
 // ─── Tooltip charts ──────────────────────────────────────────────────────────
@@ -72,7 +49,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 export const Dashboard: React.FC = () => {
-  const { period, country, setPeriod, setCountry, reset: resetGlobal } = useFiltersStore()
+  const { period, country } = useFiltersStore()
   const [region, setRegion] = useState('')
   const [city, setCity]     = useState('')
 
@@ -99,88 +76,19 @@ export const Dashboard: React.FC = () => {
   const topPros      = stats?.topPros ?? []
   const distinctCities: string[] = stats?.distinctCities ?? []
 
-  // Villes disponibles dans le dropdown : si une région BJ est sélectionnée,
-  // on intersecte avec sa liste statique de communes ; sinon on prend toutes
-  // les villes que le backend connaît.
-  const availableCities = useMemo(() => {
-    if (region && country === 'BJ' && BJ_REGIONS[region]) {
-      const allowed = new Set(BJ_REGIONS[region].cities)
-      return distinctCities.filter(c => allowed.has(c))
-    }
-    return distinctCities
-  }, [distinctCities, region, country])
-
-  // Détecte si l'un des filtres locaux est actif (pour afficher Reset)
-  const filtersDirty = period !== 'week' || country !== '' || region !== '' || city !== ''
-
-  const resetFilters = () => {
-    resetGlobal()
-    setRegion('')
-    setCity('')
-  }
-
   const periodLabel = period === 'day' ? "Aujourd'hui" : period === 'month' ? '30 derniers jours' : '7 derniers jours'
 
   return (
     <div className="space-y-6">
 
       {/* ═══ Bloc 1 — Filtres globaux ═══════════════════════════════════════ */}
-      <div className="card p-4 flex items-end gap-3 flex-wrap">
-        <FilterField label="Pays" icon={Globe}>
-          <select value={country} onChange={e => { setCountry(e.target.value); setRegion(''); setCity('') }}
-            className="input h-9 text-sm pr-8 appearance-none cursor-pointer">
-            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-          </select>
-        </FilterField>
-
-        <FilterField label="Région / Département" icon={MapPin}>
-          <select value={region} onChange={e => { setRegion(e.target.value); setCity('') }}
-            disabled={country !== 'BJ'}
-            title={country !== 'BJ' ? 'Disponible uniquement pour le Bénin' : ''}
-            className="input h-9 text-sm pr-8 appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-            <option value="">{country === 'BJ' ? 'Toutes régions' : '—'}</option>
-            {country === 'BJ' && Object.entries(BJ_REGIONS).map(([code, r]) =>
-              <option key={code} value={code}>{r.name}</option>
-            )}
-          </select>
-        </FilterField>
-
-        <FilterField label="Ville" icon={MapPin}>
-          <select value={city} onChange={e => setCity(e.target.value)}
-            className="input h-9 text-sm pr-8 appearance-none cursor-pointer">
-            <option value="">Toutes villes</option>
-            {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </FilterField>
-
-        <FilterField label="Période">
-          <div className="flex rounded-xl overflow-hidden border border-navy-600 h-9">
-            {PERIODS.map(p => (
-              <button key={p.value} onClick={() => setPeriod(p.value)}
-                className={`px-3 text-xs font-bold transition-colors ${period === p.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 hover:text-slate-200'}`}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </FilterField>
-
-        <div className="flex-1"/>
-
-        {filtersDirty && (
-          <button onClick={resetFilters}
-            className="btn-secondary h-9 text-xs px-3"
-            title="Réinitialiser tous les filtres">
-            <RotateCcw size={13}/> Réinitialiser
-          </button>
-        )}
-        <button onClick={() => refetch()}
-          disabled={isFetching}
-          className="btn-primary h-9 text-xs px-3 disabled:opacity-50"
-          title="Recharger les statistiques">
-          <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''}/>
-          Actualiser
-        </button>
-      </div>
+      <LocationPeriodFilters
+        region={region} onRegionChange={setRegion}
+        city={city}     onCityChange={setCity}
+        cities={distinctCities}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
+      />
 
       {/* ═══ Bloc 2 — Stats principales (12 cards) ══════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -278,7 +186,7 @@ export const Dashboard: React.FC = () => {
           title="Top 5 pays" subtitle="Par commandes livrées"
           icon={Globe} accent="brand-green"
           items={topCountries.map((c: any) => ({
-            label: COUNTRIES.find(x => x.code === c.country)?.name ?? c.country,
+            label: COUNTRIES_FOR_RANKINGS.find(x => x.code === c.country)?.name ?? c.country,
             value: `${c.ordersCount} cmd`,
             sub: formatCFA(c.revenue),
           }))}
@@ -350,15 +258,6 @@ export const Dashboard: React.FC = () => {
 }
 
 // ─── Sous-composants ─────────────────────────────────────────────────────────
-
-const FilterField: React.FC<{ label: string; icon?: any; children: React.ReactNode }> = ({ label, icon: Icon, children }) => (
-  <div className="flex flex-col gap-1 min-w-[140px]">
-    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-      {Icon && <Icon size={11}/>} {label}
-    </span>
-    {children}
-  </div>
-)
 
 const ChartHeader: React.FC<{ title: string; subtitle: string }> = ({ title, subtitle }) => (
   <div className="mb-5">
