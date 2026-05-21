@@ -18,7 +18,7 @@ export const StatCard: React.FC<Props> = ({ title, value, sub, icon: Icon, color
   const c = colorMap[color] || colorMap['brand-green']
 
   return (
-    <div className="card p-5 flex flex-col gap-4">
+    <div className="card p-5 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-500">
       <div className="flex items-start justify-between">
         <div className={`w-11 h-11 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center`}>
           <Icon size={20} className={c.text}/>
