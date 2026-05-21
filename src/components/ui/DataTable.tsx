@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import {
+  Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown,
+  Download, ChevronDown, FileText, FileSpreadsheet, File,
+} from 'lucide-react'
 
 interface Column<T> {
   key: string
@@ -10,8 +13,8 @@ interface Column<T> {
   sortable?: boolean
   /** Extracteur de valeur de tri custom. Fallback : row[key]. */
   sortValue?: (row: T) => string | number | Date | null | undefined
-  /** Extracteur de valeur pour l'export CSV. Fallback : row[key]. */
-  exportValue?: (row: T) => string | number | null | undefined
+  /** Extracteur de valeur pour l'export (CSV, Excel, PDF). Fallback : row[key]. */
+  exportValue?: (row: T) => string | number | Date | null | undefined
   /** Cache la colonne en dessous de sm (640px). */
   hideOnMobile?: boolean
 }
@@ -25,13 +28,15 @@ interface Props<T> {
   onRowClick?: (row: T) => void
   /** Filtres custom rendus à gauche de la search bar. */
   toolbar?: React.ReactNode
-  /** Affiche le bouton "Exporter CSV". */
+  /** Affiche le bouton "Exporter" (menu déroulant : CSV / Excel / PDF). */
   exportable?: boolean
   /** Nom de fichier (sans extension ni date). Défaut: "export". */
   exportFilename?: string
   /** Message affiché quand le tableau est vide. */
   emptyMessage?: string
 }
+
+type ExportFormat = 'csv' | 'xlsx' | 'pdf'
 
 const SEARCHABLE_KEYS = new Set(['id','name','firstName','phone','email','businessName','status','vehicleType','zoneCity','code','title'])
 
@@ -53,28 +58,82 @@ function escapeCsv(v: any): string {
   return s
 }
 
-function downloadCsv<T>(rows: T[], columns: Column<T>[], filename: string) {
-  // Exclut les colonnes sans label (convention : "actions" et autres colonnes UI).
-  const exportCols = columns.filter(c => c.label && c.label.trim() !== '')
-  const headers = exportCols.map(c => escapeCsv(c.label)).join(',')
-  const lines = rows.map(row =>
-    exportCols.map(col => {
+/** Prépare les données d'export : enlève les colonnes sans label (actions), extrait les valeurs. */
+function buildExportRows<T>(rows: T[], columns: Column<T>[]) {
+  const cols = columns.filter(c => c.label && c.label.trim() !== '')
+  const headers = cols.map(c => c.label)
+  const data = rows.map(row =>
+    cols.map(col => {
       const raw = col.exportValue ? col.exportValue(row) : (row as any)[col.key]
-      return escapeCsv(raw)
-    }).join(',')
+      return raw ?? ''
+    })
   )
-  // BOM UTF-8 pour qu'Excel détecte l'encodage
-  const csv = '﻿' + [headers, ...lines].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  return { headers, data }
+}
+
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
-  const today = new Date().toISOString().slice(0, 10)
   link.href = url
-  link.download = `${filename}-${today}.csv`
+  link.download = filename
   document.body.appendChild(link)
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+}
+
+function exportCsv(headers: string[], data: any[][], filename: string) {
+  const headerLine = headers.map(escapeCsv).join(',')
+  const lines = data.map(row => row.map(escapeCsv).join(','))
+  // BOM UTF-8 pour qu'Excel détecte l'encodage
+  const csv = '﻿' + [headerLine, ...lines].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  triggerDownload(blob, `${filename}.csv`)
+}
+
+async function exportXlsx(headers: string[], data: any[][], filename: string) {
+  // Dynamic import pour éviter d'alourdir le bundle initial (~440KB).
+  const XLSX = await import('xlsx')
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data])
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Données')
+  XLSX.writeFile(wb, `${filename}.xlsx`)
+}
+
+async function exportPdf(headers: string[], data: any[][], filename: string, title: string) {
+  // Dynamic import — jspdf + autotable pèsent ~250KB combinés.
+  const jsPDFModule = await import('jspdf')
+  const autoTableModule = await import('jspdf-autotable')
+  const jsPDF = jsPDFModule.default
+  const autoTable = autoTableModule.default
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+
+  // Titre
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text(title, 40, 32)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(120)
+  doc.text(new Date().toLocaleDateString('fr-FR', { dateStyle: 'long' }), 40, 48)
+
+  autoTable(doc, {
+    head: [headers],
+    body: data.map(row => row.map(cell => {
+      if (cell == null) return ''
+      if (cell instanceof Date) return cell.toLocaleDateString('fr-FR')
+      return String(cell)
+    })),
+    startY: 60,
+    margin: { left: 40, right: 40 },
+    styles: { fontSize: 8.5, cellPadding: 5 },
+    headStyles: { fillColor: [26, 107, 60], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 247, 245] },
+    columnStyles: {},
+  })
+
+  doc.save(`${filename}.pdf`)
 }
 
 export function DataTable<T extends { id?: string }>({
@@ -92,9 +151,28 @@ export function DataTable<T extends { id?: string }>({
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const [sort, setSort] = useState<SortState>(null)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [exporting, setExporting] = useState<ExportFormat | null>(null)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
 
-  // Reset page quand la source change réellement (taille). Pas à chaque refetch.
   useEffect(() => { setPage(0) }, [data.length])
+
+  // Fermeture du menu export au clic extérieur ou à la touche Échap.
+  useEffect(() => {
+    if (!exportMenuOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExportMenuOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [exportMenuOpen])
 
   const filtered = useMemo(() => {
     if (!query) return data
@@ -134,11 +212,25 @@ export function DataTable<T extends { id?: string }>({
     setPage(0)
   }
 
-  const handleExport = () => {
-    downloadCsv(sorted, columns, exportFilename)
+  const handleExport = async (format: ExportFormat) => {
+    setExportMenuOpen(false)
+    setExporting(format)
+    try {
+      const { headers, data: exportData } = buildExportRows(sorted, columns)
+      const today = new Date().toISOString().slice(0, 10)
+      const fname = `${exportFilename}-${today}`
+      if (format === 'csv') exportCsv(headers, exportData, fname)
+      else if (format === 'xlsx') await exportXlsx(headers, exportData, fname)
+      else if (format === 'pdf') await exportPdf(headers, exportData, fname, exportFilename)
+    } catch (e) {
+      console.error('[Export]', e)
+    } finally {
+      setExporting(null)
+    }
   }
 
   const hasToolbar = !!toolbar || searchable || exportable
+  const exportDisabled = loading || sorted.length === 0 || !!exporting
 
   return (
     <div className="flex flex-col gap-4">
@@ -157,14 +249,48 @@ export function DataTable<T extends { id?: string }>({
             </div>
           )}
           {exportable && (
-            <button
-              onClick={handleExport}
-              disabled={loading || sorted.length === 0}
-              className="btn-secondary text-xs h-9 disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Exporter en CSV"
-            >
-              <Download size={14}/> Exporter
-            </button>
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                onClick={() => setExportMenuOpen(o => !o)}
+                disabled={exportDisabled}
+                className="btn-secondary text-xs h-9 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Exporter"
+                aria-haspopup="menu"
+                aria-expanded={exportMenuOpen}
+              >
+                <Download size={14}/>
+                <span>{exporting ? 'Export…' : 'Exporter'}</span>
+                <ChevronDown size={12} className={`transition-transform ${exportMenuOpen ? 'rotate-180' : ''}`}/>
+              </button>
+              {exportMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-1 z-30 bg-navy-800 border border-navy-600 rounded-xl overflow-hidden shadow-xl min-w-[140px]"
+                >
+                  <button
+                    role="menuitem"
+                    onClick={() => handleExport('csv')}
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-navy-700 transition-colors"
+                  >
+                    <FileText size={13} className="text-slate-400"/> CSV
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => handleExport('xlsx')}
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-navy-700 transition-colors border-t border-navy-700"
+                  >
+                    <FileSpreadsheet size={13} className="text-green-400"/> Excel
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => handleExport('pdf')}
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-navy-700 transition-colors border-t border-navy-700"
+                  >
+                    <File size={13} className="text-red-400"/> PDF
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
