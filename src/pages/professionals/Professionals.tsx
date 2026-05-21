@@ -5,6 +5,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
+import { useConfirm } from '../../hooks/useConfirm'
 import { CheckCircle, XCircle, AlertTriangle, Building2, Phone, Mail, MapPin, FileText, ShoppingCart, Package, ChevronDown, ChevronRight, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -15,6 +16,7 @@ export const Professionals: React.FC = () => {
   const [rejectNote, setRejectNote] = useState('')
   const [openCats, setOpenCats] = useState<Set<string>>(new Set())
   const qc = useQueryClient()
+  const confirm = useConfirm()
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
     queryKey: ['pending-professionals'],
@@ -133,7 +135,15 @@ export const Professionals: React.FC = () => {
           ><Eye size={14}/></button>
           <button
             title="Valider"
-            onClick={() => { if (window.confirm(`Valider ${r.businessName} ?`)) validateMutation.mutate({ id: r.id, status: 'VALIDATED' }) }}
+            onClick={async () => {
+              const ok = await confirm({
+                title: 'Valider cet établissement ?',
+                message: `${r.businessName} pourra immédiatement publier son catalogue et recevoir des commandes.`,
+                variant: 'info',
+                confirmLabel: 'Valider',
+              })
+              if (ok) validateMutation.mutate({ id: r.id, status: 'VALIDATED' })
+            }}
             className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
           ><CheckCircle size={14}/></button>
           <button

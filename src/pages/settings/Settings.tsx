@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Save, Bell, Clock, Shield } from 'lucide-react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
+import { useConfirm } from '../../hooks/useConfirm'
 
 export const Settings: React.FC = () => {
+  const confirm = useConfirm()
   const [otpChannel, setOtpChannel] = useState('SMS')
   const [cancelDelay, setCancelDelay] = useState('5')
   const [missionDelay, setMissionDelay] = useState('30')
@@ -25,8 +27,16 @@ export const Settings: React.FC = () => {
     }
   }, [config])
 
-  const handleMaintenanceToggle = (next: boolean) => {
-    if (next && !window.confirm('Activer le mode maintenance suspendra l\'accès à toute la plateforme. Confirmer ?')) return
+  const handleMaintenanceToggle = async (next: boolean) => {
+    if (next) {
+      const ok = await confirm({
+        title: 'Activer le mode maintenance ?',
+        message: 'L\'accès à la plateforme sera suspendu pour tous les clients, livreurs et professionnels. Seul l\'admin restera connecté. À utiliser uniquement pour les opérations critiques.',
+        variant: 'danger',
+        confirmLabel: 'Activer',
+      })
+      if (!ok) return
+    }
     setMaintenanceMode(next)
   }
 

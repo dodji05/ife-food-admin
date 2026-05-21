@@ -5,6 +5,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
+import { useConfirm } from '../../hooks/useConfirm'
 import { CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail, MapPin, FileText, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -14,6 +15,7 @@ export const Drivers: React.FC = () => {
   const [detailTab, setDetailTab] = useState<'info' | 'missions'>('info')
   const [rejectNote, setRejectNote] = useState('')
   const qc = useQueryClient()
+  const confirm = useConfirm()
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
     queryKey: ['pending-drivers'],
@@ -112,7 +114,15 @@ export const Drivers: React.FC = () => {
         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
           <button
             title="Valider"
-            onClick={() => { if (window.confirm(`Valider ${r.user?.name ?? r.user?.phone ?? 'ce livreur'} ?`)) validateMutation.mutate({ id: r.id, status: 'VALIDATED' }) }}
+            onClick={async () => {
+              const ok = await confirm({
+                title: 'Valider ce livreur ?',
+                message: `${r.user?.name ?? r.user?.phone ?? 'Ce livreur'} pourra immédiatement recevoir des missions de livraison.`,
+                variant: 'info',
+                confirmLabel: 'Valider',
+              })
+              if (ok) validateMutation.mutate({ id: r.id, status: 'VALIDATED' })
+            }}
             className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
           ><CheckCircle size={15}/></button>
           <button

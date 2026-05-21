@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { formatDateTime, formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
+import { useConfirm } from '../../hooks/useConfirm'
 import { UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -17,6 +18,7 @@ const TX_LABELS: Record<string, string> = {
 
 export const Users: React.FC = () => {
   const qc = useQueryClient()
+  const confirm = useConfirm()
   const { country } = useFiltersStore()
   const [selected, setSelected] = useState<any>(null)
   const [userTab, setUserTab] = useState<'info' | 'wallet'>('info')
@@ -99,7 +101,16 @@ export const Users: React.FC = () => {
           <ExternalLink size={14}/>
         </button>
         {r.status === 'ACTIVE'
-          ? <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Suspendre ${r.firstName ?? ''} ${r.name ?? r.phone} ?`)) statusMutation.mutate({ id: r.id, status: 'SUSPENDED' }) }}
+          ? <button onClick={async (e) => {
+              e.stopPropagation()
+              const ok = await confirm({
+                title: 'Suspendre ce compte ?',
+                message: `${[r.firstName, r.name].filter(Boolean).join(' ') || r.phone} ne pourra plus se connecter tant que le compte sera suspendu.`,
+                variant: 'warning',
+                confirmLabel: 'Suspendre',
+              })
+              if (ok) statusMutation.mutate({ id: r.id, status: 'SUSPENDED' })
+            }}
               className="p-1.5 text-yellow-400 hover:bg-yellow-500/10 rounded-lg"><UserX size={14}/></button>
           : <button onClick={(e) => { e.stopPropagation(); statusMutation.mutate({ id: r.id, status: 'ACTIVE' }) }}
               className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg"><UserCheck size={14}/></button>
@@ -169,7 +180,15 @@ export const Users: React.FC = () => {
                 </div>
                 <div className="flex gap-3 pt-1">
                   {selected.status === 'ACTIVE'
-                    ? <button onClick={() => { if (window.confirm(`Suspendre ce compte ?`)) statusMutation.mutate({ id: selected.id, status: 'SUSPENDED' }) }}
+                    ? <button onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Suspendre ce compte ?',
+                          message: 'L\'utilisateur ne pourra plus se connecter tant que le compte sera suspendu. Vous pourrez le réactiver à tout moment.',
+                          variant: 'warning',
+                          confirmLabel: 'Suspendre',
+                        })
+                        if (ok) statusMutation.mutate({ id: selected.id, status: 'SUSPENDED' })
+                      }}
                         disabled={statusMutation.isPending} className="btn-secondary flex-1 justify-center text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10">
                         <UserX size={15}/> Suspendre
                       </button>
@@ -178,9 +197,14 @@ export const Users: React.FC = () => {
                         <UserCheck size={15}/> Réactiver
                       </button>
                   }
-                  <button onClick={() => {
-                    if (window.confirm(`Supprimer définitivement le compte de ${selected.firstName ?? ''} ${selected.name ?? selected.phone} ?\n\nCette action est irréversible.`))
-                      deleteMutation.mutate(selected.id)
+                  <button onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Supprimer définitivement ce compte ?',
+                      message: `Le compte de ${[selected.firstName, selected.name].filter(Boolean).join(' ') || selected.phone} sera effacé. Cette action est irréversible.`,
+                      variant: 'danger',
+                      confirmLabel: 'Supprimer',
+                    })
+                    if (ok) deleteMutation.mutate(selected.id)
                   }} disabled={deleteMutation.isPending} className="btn-danger justify-center px-4">
                     <Trash2 size={15}/>
                   </button>

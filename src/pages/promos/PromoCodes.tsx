@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
+import { useConfirm } from '../../hooks/useConfirm'
 import { Modal } from '../../components/ui/Modal'
 import { formatDate, formatCFA } from '../../utils/format'
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
@@ -42,6 +43,7 @@ const COUNTRY_OPTIONS = [
 
 export const PromoCodes: React.FC = () => {
   const qc = useQueryClient()
+  const confirm = useConfirm()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PromoCode | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
@@ -212,10 +214,15 @@ export const PromoCodes: React.FC = () => {
             <Pencil size={14}/>
           </button>
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation()
-              if (window.confirm(`Supprimer le code ${r.code} ?`))
-                deleteMutation.mutate(r.id)
+              const ok = await confirm({
+                title: 'Supprimer ce code promo ?',
+                message: `Le code « ${r.code} » sera désactivé et supprimé. Les commandes déjà utilisant ce code ne sont pas affectées.`,
+                variant: 'danger',
+                confirmLabel: 'Supprimer',
+              })
+              if (ok) deleteMutation.mutate(r.id)
             }}
             className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg"
           >

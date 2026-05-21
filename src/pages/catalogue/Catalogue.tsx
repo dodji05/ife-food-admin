@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { formatCFA } from '../../utils/format'
 import { Search, Plus, Pencil, Trash2, Eye, EyeOff, FolderPlus, ChevronDown, ChevronRight, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useConfirm } from '../../hooks/useConfirm'
 
 // ─── Sélecteur de professionnel ──────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) =
 
 const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack }) => {
   const qc = useQueryClient()
+  const confirm = useConfirm()
   const qKey = ['admin-catalogue', pro.id]
 
   const [openCats, setOpenCats] = useState<Set<string>>(new Set())
@@ -190,7 +192,16 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
                   className="p-1.5 text-brand-green hover:bg-brand-green/10 rounded-lg" title="Ajouter un produit">
                   <Plus size={14}/>
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Supprimer la catégorie "${cat.name?.fr}" ? Les produits ne seront pas supprimés.`)) deleteCatMutation.mutate(cat.id) }}
+                <button onClick={async (e) => {
+                  e.stopPropagation()
+                  const ok = await confirm({
+                    title: 'Supprimer cette catégorie ?',
+                    message: `« ${cat.name?.fr ?? cat.name} » sera supprimée. Les produits qu'elle contient ne seront pas supprimés mais resteront sans catégorie.`,
+                    variant: 'danger',
+                    confirmLabel: 'Supprimer',
+                  })
+                  if (ok) deleteCatMutation.mutate(cat.id)
+                }}
                   className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg" title="Supprimer la catégorie">
                   <Trash2 size={14}/>
                 </button>
@@ -226,7 +237,15 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
                         <button onClick={() => openEditProduct(product)} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg">
                           <Pencil size={14}/>
                         </button>
-                        <button onClick={() => { if (window.confirm(`Supprimer "${product.name?.fr}" ?`)) deleteProductMutation.mutate(product.id) }}
+                        <button onClick={async () => {
+                          const ok = await confirm({
+                            title: 'Supprimer ce produit ?',
+                            message: `« ${product.name?.fr ?? product.name} » sera retiré du catalogue. Les commandes existantes ne sont pas affectées.`,
+                            variant: 'danger',
+                            confirmLabel: 'Supprimer',
+                          })
+                          if (ok) deleteProductMutation.mutate(product.id)
+                        }}
                           className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg">
                           <Trash2 size={14}/>
                         </button>
