@@ -64,7 +64,11 @@ export const Users: React.FC = () => {
   })
 
   const columns = [
-    { key: 'name', label: 'Nom', render: (r: any) => (
+    { key: 'name', label: 'Nom',
+      sortable: true,
+      sortValue: (r: any) => `${r.firstName ?? ''} ${r.name ?? ''}`.trim().toLowerCase(),
+      exportValue: (r: any) => `${r.firstName ?? ''} ${r.name ?? ''}`.trim(),
+      render: (r: any) => (
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
           <span className="text-brand-green font-black text-[10px]">{(r.firstName || r.name || 'C')[0].toUpperCase()}</span>
@@ -72,10 +76,23 @@ export const Users: React.FC = () => {
         <span className="font-semibold text-slate-200">{r.firstName} {r.name}</span>
       </div>
     )},
-    { key: 'phone', label: 'Téléphone', render: (r: any) => <span className="text-sm font-mono text-slate-300">{r.phone}</span> },
-    { key: 'countryCode', label: 'Pays', render: (r: any) => <span className="text-sm text-slate-400">{r.countryCode} · {r.currency}</span> },
-    { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status}/> },
-    { key: 'createdAt', label: "Inscription", render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+    { key: 'phone', label: 'Téléphone',
+      sortable: true,
+      exportValue: (r: any) => r.phone,
+      render: (r: any) => <span className="text-sm font-mono text-slate-300">{r.phone}</span> },
+    { key: 'countryCode', label: 'Pays',
+      sortable: true, hideOnMobile: true,
+      exportValue: (r: any) => `${r.countryCode ?? ''} ${r.currency ?? ''}`.trim(),
+      render: (r: any) => <span className="text-sm text-slate-400">{r.countryCode} · {r.currency}</span> },
+    { key: 'status', label: 'Statut',
+      sortable: true,
+      exportValue: (r: any) => r.status,
+      render: (r: any) => <Badge status={r.status}/> },
+    { key: 'createdAt', label: "Inscription",
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      exportValue: (r: any) => r.createdAt,
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
     { key: 'actions', label: '', width: '80px', render: (r: any) => (
       <div className="flex gap-1">
         <button onClick={(e) => { e.stopPropagation(); setSelected(r) }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
@@ -94,7 +111,14 @@ export const Users: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="card p-5">
-        <DataTable columns={columns} data={data || []} loading={isLoading} onRowClick={setSelected}/>
+        <DataTable
+          columns={columns}
+          data={data || []}
+          loading={isLoading}
+          onRowClick={setSelected}
+          exportable
+          exportFilename="clients"
+        />
       </div>
 
       <Modal open={!!selected} onClose={() => { setSelected(null); setUserTab('info') }} title="Détail client" size="lg">

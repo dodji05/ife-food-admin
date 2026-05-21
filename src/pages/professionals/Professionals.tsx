@@ -85,6 +85,9 @@ export const Professionals: React.FC = () => {
   const baseColumns = [
     {
       key: 'businessName', label: 'Établissement',
+      sortable: true,
+      sortValue: (r: any) => (r.businessName ?? '').toLowerCase(),
+      exportValue: (r: any) => `${r.businessName ?? ''} ${r.user?.name ? '(' + r.user.name + ')' : ''}`.trim(),
       render: (r: any) => (
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
@@ -97,10 +100,24 @@ export const Professionals: React.FC = () => {
         </div>
       ),
     },
-    { key: 'category', label: 'Type', render: (r: any) => <span className="text-xs font-bold text-slate-400 bg-navy-700 px-2 py-1 rounded-lg">{r.category || '—'}</span> },
-    { key: 'city', label: 'Ville', render: (r: any) => <span className="text-sm text-slate-300">{r.city}, {r.country}</span> },
-    { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
-    { key: 'createdAt', label: 'Inscription', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+    { key: 'category', label: 'Type',
+      sortable: true, hideOnMobile: true,
+      exportValue: (r: any) => r.category ?? '',
+      render: (r: any) => <span className="text-xs font-bold text-slate-400 bg-navy-700 px-2 py-1 rounded-lg">{r.category || '—'}</span> },
+    { key: 'city', label: 'Ville',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => `${r.city ?? ''} ${r.country ?? ''}`.toLowerCase(),
+      exportValue: (r: any) => `${r.city ?? ''}, ${r.country ?? ''}`,
+      render: (r: any) => <span className="text-sm text-slate-300">{r.city}, {r.country}</span> },
+    { key: 'status', label: 'Statut',
+      sortable: true,
+      exportValue: (r: any) => r.status ?? 'PENDING',
+      render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
+    { key: 'createdAt', label: 'Inscription',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      exportValue: (r: any) => r.createdAt,
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
   ]
 
   const pendingColumns = [
@@ -156,8 +173,22 @@ export const Professionals: React.FC = () => {
 
       <div className="card p-5">
         {tab === 'pending'
-          ? <DataTable columns={pendingColumns} data={pending} loading={pendingLoading} onRowClick={openDetail}/>
-          : <DataTable columns={baseColumns} data={allPros} loading={allLoading} onRowClick={openDetail}/>
+          ? <DataTable
+              columns={pendingColumns}
+              data={pending}
+              loading={pendingLoading}
+              onRowClick={openDetail}
+              exportable
+              exportFilename="professionnels-en-attente"
+            />
+          : <DataTable
+              columns={baseColumns}
+              data={allPros}
+              loading={allLoading}
+              onRowClick={openDetail}
+              exportable
+              exportFilename="professionnels"
+            />
         }
       </div>
 

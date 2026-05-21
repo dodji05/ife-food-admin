@@ -134,12 +134,17 @@ export const PromoCodes: React.FC = () => {
   const columns = [
     {
       key: 'code', label: 'Code',
+      sortable: true,
+      exportValue: (r: PromoCode) => r.code,
       render: (r: PromoCode) => (
         <span className="font-mono font-black text-brand-green text-sm bg-brand-green/10 px-2 py-1 rounded-lg tracking-widest">{r.code}</span>
       ),
     },
     {
       key: 'value', label: 'Remise',
+      sortable: true,
+      sortValue: (r: PromoCode) => Number(r.value) || 0,
+      exportValue: (r: PromoCode) => r.type === 'PERCENTAGE' ? `${r.value} %` : `${r.value} FCFA`,
       render: (r: PromoCode) => (
         <span className="font-bold text-slate-200">
           {r.type === 'PERCENTAGE' ? `${r.value} %` : formatCFA(r.value)}
@@ -148,10 +153,16 @@ export const PromoCodes: React.FC = () => {
     },
     {
       key: 'minOrder', label: 'Commande min.',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: PromoCode) => Number(r.minOrder) || 0,
+      exportValue: (r: PromoCode) => r.minOrder ?? 0,
       render: (r: PromoCode) => <span className="text-sm text-slate-400">{r.minOrder > 0 ? formatCFA(r.minOrder) : '—'}</span>,
     },
     {
       key: 'uses', label: 'Utilisations',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: PromoCode) => Number(r.usesCount) || 0,
+      exportValue: (r: PromoCode) => `${r.usesCount}${r.maxUses != null ? '/' + r.maxUses : ''}`,
       render: (r: PromoCode) => (
         <span className="text-sm text-slate-300">
           {r.usesCount}{r.maxUses != null ? ` / ${r.maxUses}` : ''}
@@ -160,10 +171,15 @@ export const PromoCodes: React.FC = () => {
     },
     {
       key: 'expiresAt', label: 'Expiration',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: PromoCode) => r.expiresAt ? new Date(r.expiresAt).getTime() : 0,
+      exportValue: (r: PromoCode) => r.expiresAt ?? '',
       render: (r: PromoCode) => <span className="text-xs text-slate-400">{formatDate(r.expiresAt)}</span>,
     },
     {
       key: 'countries', label: 'Pays',
+      hideOnMobile: true,
+      exportValue: (r: PromoCode) => r.countries?.length > 0 ? r.countries.join(' ') : 'Tous',
       render: (r: PromoCode) => (
         <span className="text-xs text-slate-400">
           {r.countries?.length > 0 ? r.countries.join(', ') : 'Tous'}
@@ -172,6 +188,9 @@ export const PromoCodes: React.FC = () => {
     },
     {
       key: 'isActive', label: 'Actif',
+      sortable: true,
+      sortValue: (r: PromoCode) => r.isActive ? 1 : 0,
+      exportValue: (r: PromoCode) => r.isActive ? 'Oui' : 'Non',
       render: (r: PromoCode) => (
         <button
           onClick={(e) => { e.stopPropagation(); toggleMutation.mutate(r.id) }}
@@ -220,7 +239,13 @@ export const PromoCodes: React.FC = () => {
       </div>
 
       <div className="card p-5">
-        <DataTable columns={columns} data={codes} loading={isLoading}/>
+        <DataTable
+          columns={columns}
+          data={codes}
+          loading={isLoading}
+          exportable
+          exportFilename="codes-promo"
+        />
       </div>
 
       <Modal open={modalOpen} onClose={closeModal} title={editing ? 'Modifier le code promo' : 'Nouveau code promo'} size="md">

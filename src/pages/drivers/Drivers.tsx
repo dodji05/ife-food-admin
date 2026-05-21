@@ -75,6 +75,9 @@ export const Drivers: React.FC = () => {
   const baseColumns = [
     {
       key: 'user', label: 'Livreur',
+      sortable: true,
+      sortValue: (r: any) => (r.user?.name ?? '').toLowerCase(),
+      exportValue: (r: any) => `${r.user?.name ?? ''} ${r.user?.phone ? '(' + r.user.phone + ')' : ''}`.trim(),
       render: (r: any) => (
         <div>
           <div className="font-semibold text-slate-200">{r.user?.name || '—'}</div>
@@ -82,10 +85,23 @@ export const Drivers: React.FC = () => {
         </div>
       ),
     },
-    { key: 'vehicleType', label: 'Véhicule', render: (r: any) => <span className="text-sm text-slate-300">{r.vehicleType || '—'}</span> },
-    { key: 'zoneCity', label: 'Zone', render: (r: any) => <span className="text-sm text-slate-400">{r.zoneCity || '—'}</span> },
-    { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
-    { key: 'createdAt', label: 'Inscription', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+    { key: 'vehicleType', label: 'Véhicule',
+      sortable: true,
+      exportValue: (r: any) => r.vehicleType ?? '',
+      render: (r: any) => <span className="text-sm text-slate-300">{r.vehicleType || '—'}</span> },
+    { key: 'zoneCity', label: 'Zone',
+      sortable: true, hideOnMobile: true,
+      exportValue: (r: any) => r.zoneCity ?? '',
+      render: (r: any) => <span className="text-sm text-slate-400">{r.zoneCity || '—'}</span> },
+    { key: 'status', label: 'Statut',
+      sortable: true,
+      exportValue: (r: any) => r.status ?? 'PENDING',
+      render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
+    { key: 'createdAt', label: 'Inscription',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      exportValue: (r: any) => r.createdAt,
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
   ]
 
   const pendingColumns = [
@@ -133,8 +149,22 @@ export const Drivers: React.FC = () => {
 
       <div className="card p-5">
         {tab === 'pending'
-          ? <DataTable columns={pendingColumns} data={pending} loading={pendingLoading} onRowClick={openDetail}/>
-          : <DataTable columns={baseColumns} data={allDrivers} loading={allLoading} onRowClick={openDetail}/>
+          ? <DataTable
+              columns={pendingColumns}
+              data={pending}
+              loading={pendingLoading}
+              onRowClick={openDetail}
+              exportable
+              exportFilename="livreurs-en-attente"
+            />
+          : <DataTable
+              columns={baseColumns}
+              data={allDrivers}
+              loading={allLoading}
+              onRowClick={openDetail}
+              exportable
+              exportFilename="livreurs"
+            />
         }
       </div>
 

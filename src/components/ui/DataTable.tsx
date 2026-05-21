@@ -54,9 +54,11 @@ function escapeCsv(v: any): string {
 }
 
 function downloadCsv<T>(rows: T[], columns: Column<T>[], filename: string) {
-  const headers = columns.map(c => escapeCsv(c.label)).join(',')
+  // Exclut les colonnes sans label (convention : "actions" et autres colonnes UI).
+  const exportCols = columns.filter(c => c.label && c.label.trim() !== '')
+  const headers = exportCols.map(c => escapeCsv(c.label)).join(',')
   const lines = rows.map(row =>
-    columns.map(col => {
+    exportCols.map(col => {
       const raw = col.exportValue ? col.exportValue(row) : (row as any)[col.key]
       return escapeCsv(raw)
     }).join(',')

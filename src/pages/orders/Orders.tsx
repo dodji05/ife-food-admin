@@ -44,8 +44,14 @@ export const Orders: React.FC = () => {
   })
 
   const columns = [
-    { key: 'id', label: 'ID', width: '120px', render: (r: any) => <span className="text-xs font-black text-slate-400">#{r.id?.substring(0,8).toUpperCase()}</span> },
-    { key: 'client', label: 'Client', render: (r: any) => (
+    { key: 'id', label: 'ID', width: '120px',
+      exportValue: (r: any) => r.id,
+      render: (r: any) => <span className="text-xs font-black text-slate-400">#{r.id?.substring(0,8).toUpperCase()}</span> },
+    { key: 'client', label: 'Client',
+      sortable: true,
+      sortValue: (r: any) => (r.client?.name ?? '').toLowerCase(),
+      exportValue: (r: any) => `${r.client?.name ?? ''} ${r.client?.phone ? '(' + r.client.phone + ')' : ''}`.trim(),
+      render: (r: any) => (
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
           <span className="text-brand-green font-black text-[10px]">{(r.client?.name || 'C')[0].toUpperCase()}</span>
@@ -56,11 +62,29 @@ export const Orders: React.FC = () => {
         </div>
       </div>
     )},
-    { key: 'professional', label: 'Établissement', render: (r: any) => <span className="text-sm text-slate-300 font-medium">{r.professional?.businessName || '—'}</span> },
-    { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status}/> },
-    { key: 'totalAmount', label: 'Montant', render: (r: any) => <span className="font-black text-brand-green">{formatCFA(r.totalAmount)}</span> },
-    { key: 'paymentStatus', label: 'Paiement', render: (r: any) => <Badge status={r.paymentStatus}/> },
-    { key: 'createdAt', label: 'Date', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+    { key: 'professional', label: 'Établissement',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => (r.professional?.businessName ?? '').toLowerCase(),
+      exportValue: (r: any) => r.professional?.businessName ?? '',
+      render: (r: any) => <span className="text-sm text-slate-300 font-medium">{r.professional?.businessName || '—'}</span> },
+    { key: 'status', label: 'Statut',
+      sortable: true,
+      exportValue: (r: any) => r.status,
+      render: (r: any) => <Badge status={r.status}/> },
+    { key: 'totalAmount', label: 'Montant',
+      sortable: true,
+      sortValue: (r: any) => Number(r.totalAmount) || 0,
+      exportValue: (r: any) => r.totalAmount,
+      render: (r: any) => <span className="font-black text-brand-green">{formatCFA(r.totalAmount)}</span> },
+    { key: 'paymentStatus', label: 'Paiement',
+      sortable: true, hideOnMobile: true,
+      exportValue: (r: any) => r.paymentStatus,
+      render: (r: any) => <Badge status={r.paymentStatus}/> },
+    { key: 'createdAt', label: 'Date',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      exportValue: (r: any) => r.createdAt,
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
     { key: 'actions', label: '', width: '40px', render: (r: any) => (
       <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(r) }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
         <ExternalLink size={14}/>
@@ -85,7 +109,14 @@ export const Orders: React.FC = () => {
       </div>
 
       <div className="card p-5">
-        <DataTable columns={columns} data={data || []} loading={isLoading} onRowClick={setSelectedOrder}/>
+        <DataTable
+          columns={columns}
+          data={data || []}
+          loading={isLoading}
+          onRowClick={setSelectedOrder}
+          exportable
+          exportFilename="commandes"
+        />
       </div>
 
       <Modal open={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={`Commande #${selectedOrder?.id?.substring(0,8).toUpperCase()}`} size="lg">

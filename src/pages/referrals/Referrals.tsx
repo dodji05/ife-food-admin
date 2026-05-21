@@ -48,6 +48,9 @@ export const Referrals: React.FC = () => {
   const columns = [
     {
       key: 'referrer', label: 'Parrain',
+      sortable: true,
+      sortValue: (r: any) => [r.referrer?.firstName, r.referrer?.name].filter(Boolean).join(' ').toLowerCase(),
+      exportValue: (r: any) => `${[r.referrer?.firstName, r.referrer?.name].filter(Boolean).join(' ')} ${r.referrer?.phone ? '(' + r.referrer.phone + ')' : ''}`.trim(),
       render: (r: any) => (
         <div>
           <div className="font-semibold text-slate-200 text-sm">{[r.referrer?.firstName, r.referrer?.name].filter(Boolean).join(' ') || '—'}</div>
@@ -57,6 +60,9 @@ export const Referrals: React.FC = () => {
     },
     {
       key: 'referee', label: 'Filleul',
+      sortable: true,
+      sortValue: (r: any) => [r.referee?.firstName, r.referee?.name].filter(Boolean).join(' ').toLowerCase(),
+      exportValue: (r: any) => `${[r.referee?.firstName, r.referee?.name].filter(Boolean).join(' ')} ${r.referee?.phone ? '(' + r.referee.phone + ')' : ''}`.trim(),
       render: (r: any) => (
         <div>
           <div className="font-semibold text-slate-200 text-sm">{[r.referee?.firstName, r.referee?.name].filter(Boolean).join(' ') || '—'}</div>
@@ -64,12 +70,22 @@ export const Referrals: React.FC = () => {
         </div>
       ),
     },
-    { key: 'status', label: 'Statut', render: (r: any) => <Badge status={r.status}/> },
+    { key: 'status', label: 'Statut',
+      sortable: true,
+      exportValue: (r: any) => r.status,
+      render: (r: any) => <Badge status={r.status}/> },
     {
       key: 'rewardedAt', label: 'Récompensé le',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => r.rewardedAt ? new Date(r.rewardedAt).getTime() : 0,
+      exportValue: (r: any) => r.rewardedAt ?? '',
       render: (r: any) => <span className="text-xs text-slate-400">{r.rewardedAt ? formatDateTime(r.rewardedAt) : '—'}</span>,
     },
-    { key: 'createdAt', label: 'Date parrainage', render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+    { key: 'createdAt', label: 'Date parrainage',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      exportValue: (r: any) => r.createdAt,
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
   ]
 
   return (
@@ -158,7 +174,13 @@ export const Referrals: React.FC = () => {
 
       {/* Table */}
       <div className="card p-5">
-        <DataTable columns={columns} data={referrals} loading={isLoading}/>
+        <DataTable
+          columns={columns}
+          data={referrals}
+          loading={isLoading}
+          exportable
+          exportFilename="parrainages"
+        />
       </div>
     </div>
   )
