@@ -36,6 +36,7 @@ interface UserFormProps {
 }
 
 const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
+  const isEdit = !!initial
   const [form, setForm] = useState({
     firstName: initial?.firstName ?? '',
     name:      initial?.name      ?? '',
@@ -44,6 +45,7 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
     countryCode: initial?.countryCode ?? 'BJ',
     currency:    initial?.currency    ?? 'XOF',
     role:        initial?.role        ?? 'CLIENT',
+    pin:         '',
   })
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -61,10 +63,12 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
           <input className="input w-full" placeholder="Nom" value={form.name} onChange={set('name')}/>
         </div>
       </div>
-      <div>
-        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Téléphone *</label>
-        <input className="input w-full font-mono" placeholder="+22901020304" value={form.phone} onChange={set('phone')}/>
-      </div>
+      {!isEdit && (
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Téléphone *</label>
+          <input className="input w-full font-mono" placeholder="+22901020304" value={form.phone} onChange={set('phone')}/>
+        </div>
+      )}
       <div>
         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email</label>
         <input className="input w-full" type="email" placeholder="email@exemple.com" value={form.email} onChange={set('email')}/>
@@ -83,21 +87,37 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
         <div>
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Rôle</label>
           <select className="input w-full appearance-none cursor-pointer" value={form.role} onChange={set('role')}
-            disabled={!!initial}>
+            disabled={isEdit}>
             <option value="CLIENT">Client</option>
             <option value="PROFESSIONAL">Professionnel</option>
             <option value="DRIVER">Livreur</option>
           </select>
         </div>
       </div>
+      {!isEdit && (
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Code PIN mobile (4-6 chiffres) — défaut : 0000
+          </label>
+          <input
+            className="input w-full font-mono tracking-widest"
+            placeholder="ex: 1234"
+            maxLength={6}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={form.pin}
+            onChange={set('pin')}
+          />
+        </div>
+      )}
       <button
         onClick={() => {
-          if (!form.phone.trim()) { toast.error('Le numéro de téléphone est requis'); return }
+          if (!isEdit && !form.phone.trim()) { toast.error('Le numéro de téléphone est requis'); return }
           onSubmit({ ...form, phoneCountry: form.countryCode, ...(form.email ? {} : { email: undefined }) })
         }}
         disabled={loading}
         className="btn-primary w-full justify-center">
-        {loading ? 'Enregistrement…' : initial ? 'Enregistrer les modifications' : 'Créer le compte'}
+        {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer les modifications' : 'Créer le compte'}
       </button>
     </div>
   )
@@ -112,7 +132,8 @@ export const Users: React.FC = () => {
   const [city, setCity] = useState('')
 
   const [selected, setSelected] = useState<any>(null)
-  const [userTab, setUserTab] = useState<'info' | 'wallet' | 'referral' | 'edit'>('info')
+  const [userTab, setUserTab] = useState<'info' | 'wallet' | 'referral' | 'edit' | 'pin'>('info')
+  const [newPin, setNewPin] = useState('')
   const [adjustAmount, setAdjustAmount] = useState('')
   const [adjustType, setAdjustType] = useState<'ADMIN_CREDIT' | 'ADMIN_DEBIT'>('ADMIN_CREDIT')
   const [adjustNote, setAdjustNote] = useState('')
@@ -177,6 +198,12 @@ export const Users: React.FC = () => {
       setUserTab('info')
     },
     onError: (e: any) => toast.error(e.message),
+  })
+
+  const resetPinMutation = useMutation({
+    mutationFn: (pin: string) => api.patch(`/admin/users/${selected.id}/pin`, { pin }),
+    onSuccess: () => { toast.success('PIN réinitialisé avec succès'); setNewPin('') },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
   })
 
   const columns = [
@@ -287,6 +314,7 @@ export const Users: React.FC = () => {
               {([
                 { key: 'info',     label: 'Informations' },
                 { key: 'edit',     label: 'Modifier' },
+                { key: 'pin',      label: 'PIN mobile' },
                 { key: 'wallet',   label: 'Wallet' },
                 { key: 'referral', label: 'Parrainage' },
               ] as const).map(({ key, label }) => (
@@ -434,6 +462,39 @@ export const Users: React.FC = () => {
                     )
                   }
                 </div>
+              </div>
+            )}
+
+            {/* Onglet PIN mobile */}
+            {userTab === 'pin' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-navy-800 border border-navy-600 rounded-xl text-sm text-slate-400">
+                  Le PIN mobile (4 à 6 chiffres) permet à l'utilisateur de se connecter sur l'application.
+                  Laissez vide pour utiliser <span className="font-mono text-slate-300">0000</span> par défaut.
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Nouveau PIN (4-6 chiffres)
+                  </label>
+                  <input
+                    className="input w-full font-mono tracking-widest text-lg"
+                    placeholder="ex: 1234"
+                    maxLength={6}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={newPin}
+                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    if (newPin.length < 4) { toast.error('Le PIN doit contenir au moins 4 chiffres'); return }
+                    resetPinMutation.mutate(newPin)
+                  }}
+                  disabled={resetPinMutation.isPending}
+                  className="btn-primary w-full justify-center">
+                  {resetPinMutation.isPending ? 'Enregistrement…' : 'Définir le PIN'}
+                </button>
               </div>
             )}
 

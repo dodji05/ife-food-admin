@@ -36,7 +36,7 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }
     firstName: initial?.user?.firstName ?? '',
     phone: initial?.user?.phone ?? '',
     email: initial?.user?.email ?? '',
-    password: '',
+    pin: '',
     vehicleType: initial?.vehicleType ?? 'MOTORCYCLE',
     zoneCity: initial?.zoneCity ?? '',
     zoneCountry: initial?.zoneCountry ?? 'BJ',
@@ -71,8 +71,16 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }
           <input className="input" type="email" value={form.email} onChange={set('email')} placeholder="email@…"/>
         </Field>
         {mode === 'create' && (
-          <Field label="Mot de passe">
-            <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="Défaut = téléphone"/>
+          <Field label="PIN mobile (4-6 chiffres) — défaut : 0000">
+            <input
+              className="input font-mono tracking-widest"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              value={form.pin}
+              onChange={e => setForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, '') }))}
+              placeholder="ex: 1234"
+            />
           </Field>
         )}
         <Field label="Véhicule">
@@ -100,9 +108,10 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }
 export const Drivers: React.FC = () => {
   const [tab, setTab] = useState<'all' | 'pending' | 'active'>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<'info' | 'edit' | 'missions' | 'referral'>('info')
+  const [detailTab, setDetailTab] = useState<'info' | 'edit' | 'missions' | 'referral' | 'pin'>('info')
   const [rejectNote, setRejectNote] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [newPin, setNewPin] = useState('')
 
   // Filters
   const [filterCountry, setFilterCountry] = useState('')
@@ -200,6 +209,13 @@ export const Drivers: React.FC = () => {
       qc.invalidateQueries({ queryKey: ['all-drivers'] })
       setSelectedId(null)
     },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const resetPinMutation = useMutation({
+    mutationFn: ({ userId, pin }: { userId: string; pin: string }) =>
+      api.patch(`/admin/users/${userId}/pin`, { pin }),
+    onSuccess: () => { toast.success('PIN réinitialisé avec succès'); setNewPin('') },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
   })
 
@@ -439,6 +455,7 @@ export const Drivers: React.FC = () => {
               {([
                 { key: 'info',     label: 'Informations' },
                 { key: 'edit',     label: 'Modifier' },
+                { key: 'pin',      label: 'PIN mobile' },
                 { key: 'missions', label: 'Missions' },
                 { key: 'referral', label: 'Parrainage' },
               ] as const).map(({ key, label }) => (
@@ -526,6 +543,38 @@ export const Drivers: React.FC = () => {
                 onSave={dto => updateMutation.mutate({ id: selected.id, dto })}
                 saving={updateMutation.isPending}
               />
+            )}
+
+            {/* Onglet : PIN mobile */}
+            {detailTab === 'pin' && selected.userId && (
+              <div className="space-y-4">
+                <div className="p-4 bg-navy-800 border border-navy-600 rounded-xl text-sm text-slate-400">
+                  Le PIN mobile (4 à 6 chiffres) permet au livreur de se connecter sur l'application.
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Nouveau PIN (4-6 chiffres)
+                  </label>
+                  <input
+                    className="input w-full font-mono tracking-widest text-lg"
+                    placeholder="ex: 1234"
+                    maxLength={6}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={newPin}
+                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    if (newPin.length < 4) { toast.error('Le PIN doit contenir au moins 4 chiffres'); return }
+                    resetPinMutation.mutate({ userId: selected.userId, pin: newPin })
+                  }}
+                  disabled={resetPinMutation.isPending}
+                  className="btn-primary w-full justify-center">
+                  {resetPinMutation.isPending ? 'Enregistrement…' : 'Définir le PIN'}
+                </button>
+              </div>
             )}
 
             {/* Onglet : Missions */}
