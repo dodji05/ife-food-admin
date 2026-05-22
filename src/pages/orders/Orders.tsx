@@ -160,7 +160,7 @@ export const Orders: React.FC = () => {
                 ))}
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
+            <div className={`grid gap-3 ${selectedOrder.tipAmount > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <div className="card-sm p-3 text-center">
                 <div className="text-xs text-slate-500 font-bold mb-1">Sous-total</div>
                 <div className="font-black text-slate-200">{formatCFA(selectedOrder.subtotal)}</div>
@@ -169,6 +169,12 @@ export const Orders: React.FC = () => {
                 <div className="text-xs text-slate-500 font-bold mb-1">Commission</div>
                 <div className="font-black text-brand-green">{formatCFA(selectedOrder.commissionAmount)}</div>
               </div>
+              {selectedOrder.tipAmount > 0 && (
+                <div className="card-sm p-3 text-center border border-yellow-500/30">
+                  <div className="text-xs text-yellow-400 font-bold mb-1">Pourboire</div>
+                  <div className="font-black text-yellow-300">{formatCFA(selectedOrder.tipAmount)}</div>
+                </div>
+              )}
               <div className="card-sm p-3 text-center">
                 <div className="text-xs text-slate-500 font-bold mb-1">Total</div>
                 <div className="font-black text-slate-100">{formatCFA(selectedOrder.totalAmount)}</div>

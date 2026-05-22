@@ -9,7 +9,7 @@ import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
 import {
   CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail,
-  MapPin, FileText, Package, Plus, Trash2,
+  MapPin, FileText, Package, Plus, Trash2, Gift,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -531,6 +531,22 @@ export const Drivers: React.FC = () => {
                   }
                 </div>
 
+                {(selected.tipStats?.tipCount > 0 || selected.tipStats) && (
+                  <div className="card-sm p-3 border border-yellow-500/20">
+                    <div className="label mb-2 flex items-center gap-1.5 text-yellow-400"><Gift size={13}/> Pourboires reçus</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 font-bold mb-0.5">Total</div>
+                        <div className="font-black text-yellow-300">{formatCFA(selected.tipStats?.totalTips ?? 0)}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-slate-500 font-bold mb-0.5">Nombre</div>
+                        <div className="font-black text-slate-200">{selected.tipStats?.tipCount ?? 0}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {selected.adminNote && (
                   <div className="card-sm p-3">
                     <div className="label text-[10px] mb-1">Note admin</div>
@@ -572,6 +588,11 @@ export const Drivers: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-xs font-bold text-slate-300">{formatCFA(m.totalAmount)}</span>
+                              {m.tipAmount > 0 && (
+                                <span className="text-[10px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                  <Gift size={9}/> {formatCFA(m.tipAmount)}
+                                </span>
+                              )}
                               <Badge status={m.status}/>
                             </div>
                           </div>
