@@ -444,7 +444,7 @@ export const Referrals: React.FC = () => {
                 </button>
               </div>
             </div>
-            <button onClick={refetchLinks} className="btn-secondary text-xs px-3 self-end gap-1.5">
+            <button onClick={() => refetchLinks()} className="btn-secondary text-xs px-3 self-end gap-1.5">
               <RefreshCw size={13} className={linksLoading ? 'animate-spin' : ''}/> Actualiser
             </button>
           </div>
