@@ -63,18 +63,29 @@ const COUNTRIES = [
   { code: 'TG', name: 'Togo' },
 ]
 
-type CommRate = { type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: string }
+type CommRate = { type: 'PERCENTAGE' | 'FIXED_PER_DISH'; value: string }
 const defaultRate = (): CommRate => ({ type: 'PERCENTAGE', value: '' })
+
+const COMM_TYPE_LABELS: Record<string, { short: string; desc: string }> = {
+  PERCENTAGE: {
+    short: '% Taux',
+    desc: 'Déduit du CA du pro. Invisible dans le prix affiché au client.',
+  },
+  FIXED_PER_DISH: {
+    short: 'Fixe / plat (FCFA)',
+    desc: 'Ajouté automatiquement au prix de chaque plat. Transparent côté client.',
+  },
+}
 
 function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate; onChange: (r: CommRate) => void }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
       <div className="flex gap-2">
-        {(['PERCENTAGE', 'FIXED_AMOUNT'] as const).map(t => (
+        {(['PERCENTAGE', 'FIXED_PER_DISH'] as const).map(t => (
           <button key={t} type="button" onClick={() => onChange({ ...rate, type: t })}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${rate.type === t ? 'bg-brand-green text-white' : 'bg-navy-700 text-slate-400 border border-navy-600'}`}>
-            {t === 'PERCENTAGE' ? '% Taux' : 'Fixe (FCFA)'}
+            {COMM_TYPE_LABELS[t].short}
           </button>
         ))}
       </div>
@@ -85,10 +96,11 @@ function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate
         className="input w-full text-sm"
         placeholder={rate.type === 'PERCENTAGE' ? 'ex: 15' : 'ex: 500'}
       />
-      <p className="text-[10px] text-slate-500">
+      <p className="text-[10px] text-slate-500">{COMM_TYPE_LABELS[rate.type]?.desc}</p>
+      <p className="text-[11px] text-brand-green font-medium">
         {rate.type === 'PERCENTAGE'
-          ? `${rate.value || '…'}% sur ${label === 'Professionnels' ? 'le sous-total commande' : 'les frais de livraison'}`
-          : `${rate.value ? formatCFA(Number(rate.value)) : '…'} fixe par ${label === 'Professionnels' ? 'commande' : 'livraison'}`}
+          ? `→ ${rate.value || '…'}% ${label === 'Professionnels' ? 'du sous-total' : 'des frais de livraison'}`
+          : `→ ${rate.value ? formatCFA(Number(rate.value)) : '…'} ajouté ${label === 'Professionnels' ? 'par plat' : 'par livraison'}`}
       </p>
     </div>
   )
@@ -122,9 +134,11 @@ const CommissionsTab: React.FC = () => {
     refetchOnWindowFocus: false,
     enabled: !configLoaded,
     select: (d: any) => {
+      const normType = (t?: string): CommRate['type'] =>
+        (t === 'FIXED_AMOUNT' || t === 'FIXED_PER_DISH') ? 'FIXED_PER_DISH' : 'PERCENTAGE'
       if (!configLoaded && d) {
-        setProRate({ type: d.professional?.type ?? 'PERCENTAGE', value: String(d.professional?.value ?? '15') })
-        setDriverRate({ type: d.driver?.type ?? 'PERCENTAGE', value: String(d.driver?.value ?? '10') })
+        setProRate({ type: normType(d.professional?.type), value: String(d.professional?.value ?? '15') })
+        setDriverRate({ type: normType(d.driver?.type), value: String(d.driver?.value ?? '10') })
         // Load country overrides
         const overrides: Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }> = {}
         if (d.countries) {
@@ -132,8 +146,8 @@ const CommissionsTab: React.FC = () => {
             const c = cfg as any
             overrides[code] = {
               enabled: true,
-              pro:    { type: c.professional?.type ?? 'PERCENTAGE', value: String(c.professional?.value ?? '') },
-              driver: { type: c.driver?.type ?? 'PERCENTAGE',       value: String(c.driver?.value ?? '') },
+              pro:    { type: normType(c.professional?.type), value: String(c.professional?.value ?? '') },
+              driver: { type: normType(c.driver?.type),       value: String(c.driver?.value ?? '') },
             }
           }
         }
