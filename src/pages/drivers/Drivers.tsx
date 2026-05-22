@@ -1,21 +1,137 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
+import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
-import { CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail, MapPin, FileText, Package } from 'lucide-react'
+import {
+  CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail,
+  MapPin, FileText, Package, Plus, Trash2,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
+const VEHICLE_TYPES = ['BICYCLE', 'MOTORCYCLE', 'CAR', 'ON_FOOT']
+const VEHICLE_LABELS: Record<string, string> = {
+  BICYCLE: 'Vélo',
+  MOTORCYCLE: 'Moto',
+  CAR: 'Voiture',
+  ON_FOOT: 'À pied',
+}
+
+const DRIVER_STATUSES = ['PENDING', 'VALIDATED', 'REJECTED', 'OFFLINE', 'ONLINE', 'BANNED']
+
+interface DriverFormProps {
+  initial?: any
+  onSave: (dto: any) => void
+  saving: boolean
+  mode: 'create' | 'edit'
+}
+
+const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }) => {
+  const [form, setForm] = useState({
+    name: initial?.user?.name ?? '',
+    firstName: initial?.user?.firstName ?? '',
+    phone: initial?.user?.phone ?? '',
+    email: initial?.user?.email ?? '',
+    password: '',
+    vehicleType: initial?.vehicleType ?? 'MOTORCYCLE',
+    zoneCity: initial?.zoneCity ?? '',
+    zoneCountry: initial?.zoneCountry ?? 'BJ',
+    licensePlate: initial?.licensePlate ?? '',
+  })
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex flex-col gap-1">
+      <label className="label text-[11px]">{label}</label>
+      {children}
+    </div>
+  )
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Nom">
+          <input className="input" value={form.name} onChange={set('name')} placeholder="Nom"/>
+        </Field>
+        <Field label="Prénom">
+          <input className="input" value={form.firstName} onChange={set('firstName')} placeholder="Prénom"/>
+        </Field>
+        {mode === 'create' && (
+          <Field label="Téléphone *">
+            <input className="input" value={form.phone} onChange={set('phone')} required placeholder="+229…"/>
+          </Field>
+        )}
+        <Field label="Email">
+          <input className="input" type="email" value={form.email} onChange={set('email')} placeholder="email@…"/>
+        </Field>
+        {mode === 'create' && (
+          <Field label="Mot de passe">
+            <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="Défaut = téléphone"/>
+          </Field>
+        )}
+        <Field label="Véhicule">
+          <select className="input" value={form.vehicleType} onChange={set('vehicleType')}>
+            {VEHICLE_TYPES.map(v => <option key={v} value={v}>{VEHICLE_LABELS[v]}</option>)}
+          </select>
+        </Field>
+        <Field label="Ville (zone)">
+          <input className="input" value={form.zoneCity} onChange={set('zoneCity')} placeholder="Cotonou"/>
+        </Field>
+        <Field label="Pays (zone)">
+          <input className="input" value={form.zoneCountry} onChange={set('zoneCountry')} placeholder="BJ"/>
+        </Field>
+        <Field label="Plaque d'immat.">
+          <input className="input" value={form.licensePlate} onChange={set('licensePlate')} placeholder="AB-123-BJ"/>
+        </Field>
+      </div>
+      <button type="submit" disabled={saving} className="btn-primary w-full justify-center">
+        {saving ? 'Enregistrement…' : mode === 'create' ? 'Créer le livreur' : 'Enregistrer les modifications'}
+      </button>
+    </form>
+  )
+}
+
 export const Drivers: React.FC = () => {
-  const [tab, setTab] = useState<'pending' | 'all'>('all')
+  const [tab, setTab] = useState<'all' | 'pending' | 'active'>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<'info' | 'missions'>('info')
+  const [detailTab, setDetailTab] = useState<'info' | 'edit' | 'missions' | 'referral'>('info')
   const [rejectNote, setRejectNote] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+
+  // Filters
+  const [filterCountry, setFilterCountry] = useState('')
+  const [filterCity, setFilterCity] = useState('')
+  const [filterVehicle, setFilterVehicle] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+
   const qc = useQueryClient()
   const confirm = useConfirm()
+
+  const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
+
+  const buildParams = () => {
+    const p = new URLSearchParams()
+    if (filterCountry) p.set('country', filterCountry)
+    if (filterCity)    p.set('city', filterCity)
+    if (filterVehicle) p.set('vehicleType', filterVehicle)
+    if (filterStatus)  p.set('status', filterStatus)
+    p.set('limit', '200')
+    return p.toString()
+  }
+
+  const { data: allDrivers = [], isLoading: allLoading, refetch } = useQuery({
+    queryKey: ['all-drivers', filterCountry, filterCity, filterVehicle, filterStatus],
+    queryFn: () => api.get(`/admin/drivers?${buildParams()}`).then((r: any) => {
+      const d = unwrap(r)
+      return Array.isArray(d) ? d : []
+    }),
+  })
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
     queryKey: ['pending-drivers'],
@@ -27,18 +143,6 @@ export const Drivers: React.FC = () => {
     }),
     refetchInterval: 30000,
   })
-
-  const { data: allDrivers = [], isLoading: allLoading } = useQuery({
-    queryKey: ['all-drivers'],
-    queryFn: () => api.get('/admin/drivers').then((r: any) => {
-      if (Array.isArray(r)) return r
-      if (Array.isArray(r?.data?.data)) return r.data.data
-      if (Array.isArray(r?.data)) return r.data
-      return []
-    }),
-  })
-
-  const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
 
   const { data: driverDetail } = useQuery({
     queryKey: ['driver-detail', selectedId],
@@ -68,11 +172,56 @@ export const Drivers: React.FC = () => {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const createMutation = useMutation({
+    mutationFn: (dto: any) => api.post('/admin/drivers', dto),
+    onSuccess: () => {
+      toast.success('Livreur créé !')
+      qc.invalidateQueries({ queryKey: ['all-drivers'] })
+      setShowCreate(false)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: any }) => api.patch(`/admin/drivers/${id}/info`, dto),
+    onSuccess: (_, vars) => {
+      toast.success('Livreur mis à jour')
+      qc.invalidateQueries({ queryKey: ['all-drivers'] })
+      qc.invalidateQueries({ queryKey: ['driver-detail', vars.id] })
+      setDetailTab('info')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/drivers/${id}`),
+    onSuccess: () => {
+      toast.success('Livreur supprimé')
+      qc.invalidateQueries({ queryKey: ['all-drivers'] })
+      setSelectedId(null)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
   const openDetail = (row: any) => {
     setSelectedId(row.id)
     setDetailTab('info')
     setRejectNote('')
   }
+
+  const activeCount = useMemo(
+    () => allDrivers.filter((d: any) => d.status === 'VALIDATED' || d.status === 'ONLINE' || d.status === 'OFFLINE').length,
+    [allDrivers]
+  )
+  const pendingCount = pending.length
+
+  const displayedDrivers = useMemo(() => {
+    if (tab === 'pending') return pending
+    if (tab === 'active')  return allDrivers.filter((d: any) => d.status === 'VALIDATED' || d.status === 'ONLINE' || d.status === 'OFFLINE')
+    return allDrivers
+  }, [tab, allDrivers, pending])
+
+  const selected = driverDetail
 
   const baseColumns = [
     {
@@ -87,23 +236,31 @@ export const Drivers: React.FC = () => {
         </div>
       ),
     },
-    { key: 'vehicleType', label: 'Véhicule',
+    {
+      key: 'vehicleType', label: 'Véhicule',
       sortable: true,
       exportValue: (r: any) => r.vehicleType ?? '',
-      render: (r: any) => <span className="text-sm text-slate-300">{r.vehicleType || '—'}</span> },
-    { key: 'zoneCity', label: 'Zone',
+      render: (r: any) => <span className="text-sm text-slate-300">{VEHICLE_LABELS[r.vehicleType] || r.vehicleType || '—'}</span>,
+    },
+    {
+      key: 'zoneCity', label: 'Zone',
       sortable: true, hideOnMobile: true,
       exportValue: (r: any) => r.zoneCity ?? '',
-      render: (r: any) => <span className="text-sm text-slate-400">{r.zoneCity || '—'}</span> },
-    { key: 'status', label: 'Statut',
+      render: (r: any) => <span className="text-sm text-slate-400">{r.zoneCity || '—'}</span>,
+    },
+    {
+      key: 'status', label: 'Statut',
       sortable: true,
       exportValue: (r: any) => r.status ?? 'PENDING',
-      render: (r: any) => <Badge status={r.status || 'PENDING'}/> },
-    { key: 'createdAt', label: 'Inscription',
+      render: (r: any) => <Badge status={r.status || 'PENDING'}/>,
+    },
+    {
+      key: 'createdAt', label: 'Inscription',
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span>,
+    },
   ]
 
   const pendingColumns = [
@@ -117,7 +274,7 @@ export const Drivers: React.FC = () => {
             onClick={async () => {
               const ok = await confirm({
                 title: 'Valider ce livreur ?',
-                message: `${r.user?.name ?? r.user?.phone ?? 'Ce livreur'} pourra immédiatement recevoir des missions de livraison.`,
+                message: `${r.user?.name ?? r.user?.phone ?? 'Ce livreur'} pourra immédiatement recevoir des missions.`,
                 variant: 'info',
                 confirmLabel: 'Valider',
               })
@@ -135,10 +292,15 @@ export const Drivers: React.FC = () => {
     },
   ]
 
-  const selected = driverDetail
+  const toolbar = (
+    <button onClick={() => setShowCreate(true)} className="btn-primary">
+      <Plus size={15}/> Nouveau livreur
+    </button>
+  )
 
   return (
     <div className="space-y-4">
+      {/* Alerte en attente */}
       {pending.length > 0 && (
         <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
           <AlertTriangle size={18} className="text-yellow-400 flex-shrink-0"/>
@@ -148,36 +310,75 @@ export const Drivers: React.FC = () => {
         </div>
       )}
 
+      {/* Filtres */}
+      <div className="card p-4 flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1 min-w-[120px]">
+          <label className="label text-[10px]">Pays</label>
+          <input className="input text-sm" value={filterCountry} onChange={e => setFilterCountry(e.target.value)} placeholder="BJ"/>
+        </div>
+        <div className="flex flex-col gap-1 min-w-[140px]">
+          <label className="label text-[10px]">Ville</label>
+          <input className="input text-sm" value={filterCity} onChange={e => setFilterCity(e.target.value)} placeholder="Cotonou"/>
+        </div>
+        <div className="flex flex-col gap-1 min-w-[140px]">
+          <label className="label text-[10px]">Véhicule</label>
+          <select className="input text-sm" value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)}>
+            <option value="">Tous</option>
+            {VEHICLE_TYPES.map(v => <option key={v} value={v}>{VEHICLE_LABELS[v]}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1 min-w-[140px]">
+          <label className="label text-[10px]">Statut</label>
+          <select className="input text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">Tous</option>
+            {DRIVER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <button onClick={() => { setFilterCountry(''); setFilterCity(''); setFilterVehicle(''); setFilterStatus('') }}
+          className="btn-secondary text-xs px-3 self-end">
+          Réinitialiser
+        </button>
+        <button onClick={() => refetch()} className="btn-primary text-xs px-3 self-end">
+          Actualiser
+        </button>
+      </div>
+
+      {/* Onglets compteurs */}
       <div className="flex gap-2">
-        <button onClick={() => setTab('pending')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'pending' ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
-          En attente ({pending.length})
-        </button>
-        <button onClick={() => setTab('all')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'all' ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
-          Tous les livreurs
-        </button>
+        {([
+          { key: 'all',     label: `Tous (${allDrivers.length})` },
+          { key: 'pending', label: `En attente (${pendingCount})` },
+          { key: 'active',  label: `Actifs (${activeCount})` },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
+      {/* Table */}
       <div className="card p-5">
-        {tab === 'pending'
-          ? <DataTable
-              columns={pendingColumns}
-              data={pending}
-              loading={pendingLoading}
-              onRowClick={openDetail}
-              exportable
-              exportFilename="livreurs-en-attente"
-            />
-          : <DataTable
-              columns={baseColumns}
-              data={allDrivers}
-              loading={allLoading}
-              onRowClick={openDetail}
-              exportable
-              exportFilename="livreurs"
-            />
-        }
+        <DataTable
+          columns={tab === 'pending' ? pendingColumns : baseColumns}
+          data={displayedDrivers}
+          loading={tab === 'pending' ? pendingLoading : allLoading}
+          onRowClick={openDetail}
+          exportable
+          exportFilename="livreurs"
+          toolbar={toolbar}
+        />
       </div>
 
+      {/* Modale création */}
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nouveau livreur" size="lg">
+        <DriverForm mode="create" onSave={dto => createMutation.mutate(dto)} saving={createMutation.isPending}/>
+      </Modal>
+
+      {/* Modale détail */}
       <Modal open={!!selectedId} onClose={() => setSelectedId(null)} title="Fiche livreur" size="xl">
         {selected ? (
           <div className="space-y-4">
@@ -189,10 +390,25 @@ export const Drivers: React.FC = () => {
                 </div>
                 <div>
                   <div className="font-black text-slate-100 text-base">{selected.user?.name || '—'}</div>
-                  <div className="text-sm text-slate-400">{selected.vehicleType || '—'} · {selected.zoneCity || '—'}</div>
+                  <div className="text-sm text-slate-400">{VEHICLE_LABELS[selected.vehicleType] || selected.vehicleType || '—'} · {selected.zoneCity || '—'}</div>
                 </div>
               </div>
-              <Badge status={selected.status || 'PENDING'}/>
+              <div className="flex items-center gap-2">
+                <Badge status={selected.status || 'PENDING'}/>
+                <button
+                  title="Supprimer"
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Supprimer ce livreur ?',
+                      message: 'Le compte sera désactivé (BANNED). Cette action est irréversible.',
+                      variant: 'danger',
+                      confirmLabel: 'Supprimer',
+                    })
+                    if (ok) deleteMutation.mutate(selected.id)
+                  }}
+                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                ><Trash2 size={15}/></button>
+              </div>
             </div>
 
             {/* Validation rapide si PENDING */}
@@ -219,11 +435,16 @@ export const Drivers: React.FC = () => {
             )}
 
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-navy-700">
-              {(['info', 'missions'] as const).map(t => (
-                <button key={t} onClick={() => setDetailTab(t)}
-                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all ${detailTab === t ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
-                  {t === 'info' ? 'Informations' : 'Missions'}
+            <div className="flex gap-1 border-b border-navy-700 overflow-x-auto">
+              {([
+                { key: 'info',     label: 'Informations' },
+                { key: 'edit',     label: 'Modifier' },
+                { key: 'missions', label: 'Missions' },
+                { key: 'referral', label: 'Parrainage' },
+              ] as const).map(({ key, label }) => (
+                <button key={key} onClick={() => setDetailTab(key)}
+                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                  {label}
                 </button>
               ))}
             </div>
@@ -250,16 +471,25 @@ export const Drivers: React.FC = () => {
                     <MapPin size={14} className="text-slate-500 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Zone</div>
-                      <div className="text-sm font-semibold text-slate-200">{selected.zoneCity || '—'}</div>
+                      <div className="text-sm font-semibold text-slate-200">{selected.zoneCity || '—'}{selected.zoneCountry ? ` (${selected.zoneCountry})` : ''}</div>
                     </div>
                   </div>
                   <div className="card-sm p-3 flex items-center gap-2">
                     <Truck size={14} className="text-slate-500 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Véhicule</div>
-                      <div className="text-sm font-semibold text-slate-200">{selected.vehicleType || '—'}</div>
+                      <div className="text-sm font-semibold text-slate-200">{VEHICLE_LABELS[selected.vehicleType] || selected.vehicleType || '—'}</div>
                     </div>
                   </div>
+                  {selected.licensePlate && (
+                    <div className="card-sm p-3 flex items-center gap-2 col-span-2">
+                      <FileText size={14} className="text-slate-500 flex-shrink-0"/>
+                      <div>
+                        <div className="label text-[10px]">Plaque</div>
+                        <div className="text-sm font-semibold text-slate-200">{selected.licensePlate}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="card-sm p-3">
@@ -286,6 +516,16 @@ export const Drivers: React.FC = () => {
 
                 <div className="text-xs text-slate-500 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
               </div>
+            )}
+
+            {/* Onglet : Modifier */}
+            {detailTab === 'edit' && (
+              <DriverForm
+                mode="edit"
+                initial={selected}
+                onSave={dto => updateMutation.mutate({ id: selected.id, dto })}
+                saving={updateMutation.isPending}
+              />
             )}
 
             {/* Onglet : Missions */}
@@ -316,6 +556,11 @@ export const Drivers: React.FC = () => {
                     )
                 }
               </div>
+            )}
+
+            {/* Onglet : Parrainage */}
+            {detailTab === 'referral' && selected.userId && (
+              <ReferralTab userId={selected.userId}/>
             )}
           </div>
         ) : (
