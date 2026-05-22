@@ -35,10 +35,14 @@ const TX_STATUS_LABELS: Record<string, string> = {
 }
 
 const GATEWAY_ICONS: Record<string, string> = {
-  STRIPE: '💳', PAYPAL: '🅿️', KKIAPAY: '📱', FEDAPAY: '🟢', OTHER: '💰',
+  STRIPE: '💳', PAYPAL: '🅿️', KKIAPAY: '📱', FEDAPAY: '🟢', CASH_ON_DELIVERY: '💵', OTHER: '💰',
 }
 const GATEWAY_LABELS: Record<string, string> = {
-  STRIPE: 'International', PAYPAL: 'Mondial', KKIAPAY: 'Mobile Money', FEDAPAY: 'Bénin', OTHER: 'Autre',
+  STRIPE: 'International', PAYPAL: 'Mondial', KKIAPAY: 'Mobile Money', FEDAPAY: 'Bénin',
+  CASH_ON_DELIVERY: 'Espèces à la livraison', OTHER: 'Autre',
+}
+const GATEWAY_NOTES: Record<string, string> = {
+  CASH_ON_DELIVERY: 'Collecté directement par le livreur — aucun traitement en ligne.',
 }
 
 function MonthBar({ value, max, label }: { value: number; max: number; label: string }) {
@@ -528,7 +532,7 @@ const DeliveryFeesTab: React.FC = () => {
 // ─── Onglet Passerelles ───────────────────────────────────────────────────────
 const GatewaysTab: React.FC = () => {
   const qc = useQueryClient()
-  const [gateways, setGateways] = useState({ STRIPE: true, PAYPAL: true, KKIAPAY: true, FEDAPAY: true })
+  const [gateways, setGateways] = useState({ STRIPE: true, PAYPAL: true, KKIAPAY: true, FEDAPAY: true, CASH_ON_DELIVERY: true })
   const [loaded, setLoaded] = useState(false)
 
   const { data: payStats, isLoading: statsLoading } = useQuery({
@@ -585,13 +589,13 @@ const GatewaysTab: React.FC = () => {
         </div>
         <div className="space-y-3">
           {Object.entries(gateways).map(([name, enabled]) => (
-            <div key={name} className="flex items-center gap-3 p-3 bg-navy-900 rounded-xl border border-navy-700">
-              <span className="text-lg flex-shrink-0">{GATEWAY_ICONS[name] ?? '💰'}</span>
-              <div className="flex-1">
-                <div className="text-sm font-bold text-slate-200">{name}</div>
-                <div className="text-xs text-slate-500">{GATEWAY_LABELS[name] ?? '—'}</div>
+            <div key={name} className={`flex items-center gap-3 p-3 bg-navy-900 rounded-xl border transition-colors ${enabled ? 'border-navy-600' : 'border-navy-800 opacity-60'}`}>
+              <span className="text-xl flex-shrink-0">{GATEWAY_ICONS[name] ?? '💰'}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-slate-200">{GATEWAY_LABELS[name] ?? name}</div>
+                <div className="text-xs text-slate-500">{GATEWAY_NOTES[name] ?? name}</div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                 <input type="checkbox" checked={enabled} onChange={e => setGateways(g => ({ ...g, [name]: e.target.checked }))} className="sr-only peer"/>
                 <div className="w-10 h-5 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-brand-green after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
               </label>
@@ -616,12 +620,14 @@ const GatewaysTab: React.FC = () => {
 const PayoutsTab: React.FC = () => {
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState('PENDING')
+  const [countryFilter, setCountryFilter] = useState('')
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['payouts', statusFilter],
+    queryKey: ['payouts', statusFilter, countryFilter],
     queryFn: () => {
-      const p = new URLSearchParams({ type: 'PAYOUT', limit: '100' })
-      if (statusFilter) p.set('status', statusFilter)
+      const p = new URLSearchParams({ type: 'PAYOUT', limit: '200' })
+      if (statusFilter)  p.set('status',  statusFilter)
+      if (countryFilter) p.set('country', countryFilter)
       return api.get(`/admin/payments/transactions?${p}`).then(unwrap)
     },
   })
@@ -705,6 +711,11 @@ const PayoutsTab: React.FC = () => {
             <opt.icon size={12}/> {opt.label}
           </button>
         ))}
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="input text-xs py-1.5 min-w-[130px]">
+          <option value="">Tous les pays</option>
+          {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+        </select>
         <button onClick={() => refetch()} className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/>
         </button>
@@ -726,16 +737,18 @@ const PayoutsTab: React.FC = () => {
 const TransactionsTab: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [countryFilter, setCountryFilter] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['all-transactions', typeFilter, statusFilter, from, to],
+    queryKey: ['all-transactions', typeFilter, statusFilter, countryFilter, from, to],
     queryFn: () => {
-      const p = new URLSearchParams({ limit: '200' })
-      if (typeFilter)   p.set('type', typeFilter)
-      if (statusFilter) p.set('status', statusFilter)
-      if (from && to)   { p.set('from', from); p.set('to', to) }
+      const p = new URLSearchParams({ limit: '500' })
+      if (typeFilter)    p.set('type',    typeFilter)
+      if (statusFilter)  p.set('status',  statusFilter)
+      if (countryFilter) p.set('country', countryFilter)
+      if (from && to)    { p.set('from', from); p.set('to', to) }
       return api.get(`/admin/payments/transactions?${p}`).then(unwrap)
     },
   })
@@ -807,6 +820,13 @@ const TransactionsTab: React.FC = () => {
             {Object.entries(TX_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
+        <div className="flex flex-col gap-1 min-w-[130px]">
+          <label className="label text-[10px]">Pays</label>
+          <select className="input text-sm" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
+            <option value="">Tous les pays</option>
+            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+          </select>
+        </div>
         <div className="flex flex-col gap-1">
           <label className="label text-[10px]">Du</label>
           <input type="date" className="input text-sm" value={from} onChange={e => setFrom(e.target.value)}/>
@@ -815,7 +835,7 @@ const TransactionsTab: React.FC = () => {
           <label className="label text-[10px]">Au</label>
           <input type="date" className="input text-sm" value={to} onChange={e => setTo(e.target.value)}/>
         </div>
-        <button onClick={() => { setTypeFilter(''); setStatusFilter(''); setFrom(''); setTo('') }}
+        <button onClick={() => { setTypeFilter(''); setStatusFilter(''); setCountryFilter(''); setFrom(''); setTo('') }}
           className="btn-secondary text-xs px-3 self-end">Réinitialiser</button>
         <button onClick={() => refetch()} className="btn-primary text-xs px-3 self-end gap-1.5">
           <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''}/> Actualiser
