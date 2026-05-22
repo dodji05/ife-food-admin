@@ -16,6 +16,7 @@ import { Settings } from './pages/settings/Settings'
 import { Analytics } from './pages/analytics/Analytics'
 import { PromoCodes } from './pages/promos/PromoCodes'
 import { Referrals } from './pages/referrals/Referrals'
+import { DeliveryFees } from './pages/delivery/DeliveryFees'
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, initializing, initialize } = useAuthStore()
@@ -52,9 +53,10 @@ export default function App() {
           <Route path="catalogue"     element={<Catalogue/>}/>
           <Route path="payments"      element={<Payments/>}/>
           <Route path="content"       element={<Content/>}/>
-          <Route path="promo-codes"   element={<PromoCodes/>}/>
-          <Route path="referrals"     element={<Referrals/>}/>
-          <Route path="settings"      element={<Settings/>}/>
+          <Route path="promo-codes"     element={<PromoCodes/>}/>
+          <Route path="referrals"      element={<Referrals/>}/>
+          <Route path="delivery-fees"  element={<DeliveryFees/>}/>
+          <Route path="settings"       element={<Settings/>}/>
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace/>}/>
       </Routes>
