@@ -56,16 +56,63 @@ function MonthBar({ value, max, label }: { value: number; max: number; label: st
   )
 }
 
+const COUNTRIES = [
+  { code: 'BJ', name: 'Bénin' },
+  { code: 'SN', name: 'Sénégal' },
+  { code: 'CI', name: "Côte d'Ivoire" },
+  { code: 'TG', name: 'Togo' },
+]
+
+type CommRate = { type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: string }
+const defaultRate = (): CommRate => ({ type: 'PERCENTAGE', value: '' })
+
+function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate; onChange: (r: CommRate) => void }) {
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
+      <div className="flex gap-2">
+        {(['PERCENTAGE', 'FIXED_AMOUNT'] as const).map(t => (
+          <button key={t} type="button" onClick={() => onChange({ ...rate, type: t })}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${rate.type === t ? 'bg-brand-green text-white' : 'bg-navy-700 text-slate-400 border border-navy-600'}`}>
+            {t === 'PERCENTAGE' ? '% Taux' : 'Fixe (FCFA)'}
+          </button>
+        ))}
+      </div>
+      <input
+        type="number" min="0"
+        value={rate.value}
+        onChange={e => onChange({ ...rate, value: e.target.value })}
+        className="input w-full text-sm"
+        placeholder={rate.type === 'PERCENTAGE' ? 'ex: 15' : 'ex: 500'}
+      />
+      <p className="text-[10px] text-slate-500">
+        {rate.type === 'PERCENTAGE'
+          ? `${rate.value || '…'}% sur ${label === 'Professionnels' ? 'le sous-total commande' : 'les frais de livraison'}`
+          : `${rate.value ? formatCFA(Number(rate.value)) : '…'} fixe par ${label === 'Professionnels' ? 'commande' : 'livraison'}`}
+      </p>
+    </div>
+  )
+}
+
 // ─── Onglet Commissions ───────────────────────────────────────────────────────
 const CommissionsTab: React.FC = () => {
   const qc = useQueryClient()
-  const [commType, setCommType] = useState<'PERCENTAGE' | 'FIXED_AMOUNT'>('PERCENTAGE')
-  const [commValue, setCommValue] = useState('15')
+  const [filterCountry, setFilterCountry] = useState('')
   const [configLoaded, setConfigLoaded] = useState(false)
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['commission-stats'],
-    queryFn: () => api.get('/admin/payments/commissions').then(unwrap),
+  // Global rates
+  const [proRate, setProRate]     = useState<CommRate>({ type: 'PERCENTAGE', value: '15' })
+  const [driverRate, setDriverRate] = useState<CommRate>({ type: 'PERCENTAGE', value: '10' })
+
+  // Per-country overrides: { BJ: { pro: CommRate, driver: CommRate, enabled: boolean } }
+  const [countryOverrides, setCountryOverrides] = useState<Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }>>({})
+
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+    queryKey: ['commission-stats', filterCountry],
+    queryFn: () => {
+      const p = filterCountry ? `?country=${filterCountry}` : ''
+      return api.get(`/admin/payments/commissions${p}`).then(unwrap)
+    },
   })
 
   useQuery({
@@ -75,9 +122,22 @@ const CommissionsTab: React.FC = () => {
     refetchOnWindowFocus: false,
     enabled: !configLoaded,
     select: (d: any) => {
-      if (!configLoaded) {
-        setCommType(d?.type ?? 'PERCENTAGE')
-        setCommValue(String(d?.value ?? '15'))
+      if (!configLoaded && d) {
+        setProRate({ type: d.professional?.type ?? 'PERCENTAGE', value: String(d.professional?.value ?? '15') })
+        setDriverRate({ type: d.driver?.type ?? 'PERCENTAGE', value: String(d.driver?.value ?? '10') })
+        // Load country overrides
+        const overrides: Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }> = {}
+        if (d.countries) {
+          for (const [code, cfg] of Object.entries(d.countries as any)) {
+            const c = cfg as any
+            overrides[code] = {
+              enabled: true,
+              pro:    { type: c.professional?.type ?? 'PERCENTAGE', value: String(c.professional?.value ?? '') },
+              driver: { type: c.driver?.type ?? 'PERCENTAGE',       value: String(c.driver?.value ?? '') },
+            }
+          }
+        }
+        setCountryOverrides(overrides)
         setConfigLoaded(true)
       }
       return d
@@ -85,129 +145,261 @@ const CommissionsTab: React.FC = () => {
   })
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put('/admin/config/commission', { type: commType, value: Number(commValue) }),
-    onSuccess: () => { toast.success('Commission mise à jour !'); qc.invalidateQueries({ queryKey: ['commission-config'] }) },
+    mutationFn: () => {
+      const validate = (r: CommRate, label: string) => {
+        const v = Number(r.value)
+        if (!r.value.trim() || isNaN(v) || v < 0) throw new Error(`${label} : valeur invalide`)
+        if (r.type === 'PERCENTAGE' && v > 100) throw new Error(`${label} : taux max 100%`)
+        return { type: r.type, value: v }
+      }
+      const professional = validate(proRate, 'Professionnels')
+      const driver       = validate(driverRate, 'Livreurs')
+      const countries: Record<string, any> = {}
+      for (const [code, ov] of Object.entries(countryOverrides)) {
+        if (!ov.enabled) continue
+        const pro = ov.pro.value.trim()
+          ? { type: ov.pro.type, value: Number(ov.pro.value) }
+          : undefined
+        const drv = ov.driver.value.trim()
+          ? { type: ov.driver.type, value: Number(ov.driver.value) }
+          : undefined
+        if (pro || drv) countries[code] = { ...(pro && { professional: pro }), ...(drv && { driver: drv }) }
+      }
+      return api.put('/admin/config/commission', { professional, driver, countries })
+    },
+    onSuccess: () => { toast.success('Configuration sauvegardée !'); qc.invalidateQueries({ queryKey: ['commission-config'] }); refetchStats() },
     onError: (e: any) => toast.error(e.message),
   })
 
+  const toggleCountryOverride = (code: string) => {
+    setCountryOverrides(prev => {
+      if (prev[code]) {
+        const next = { ...prev }
+        delete next[code]
+        return next
+      }
+      return { ...prev, [code]: { enabled: true, pro: defaultRate(), driver: defaultRate() } }
+    })
+  }
+
+  const updateCountryRate = (code: string, field: 'pro' | 'driver', rate: CommRate) => {
+    setCountryOverrides(prev => ({ ...prev, [code]: { ...prev[code], [field]: rate } }))
+  }
+
   const monthly: any[] = stats?.monthly ?? []
-  const maxComm = Math.max(...monthly.map((m: any) => m.commissions), 1)
+  const maxTotal = Math.max(...monthly.map((m: any) => (m.proCommissions ?? 0) + (m.driverCommissions ?? 0)), 1)
   const topCommissioners: any[] = stats?.topCommissioners ?? []
+
+  const totalPlatform = stats?.totalPlatformCommissions ?? 0
+  const totalPro      = stats?.totalProCommissions ?? 0
+  const totalDriver   = stats?.totalDriverCommissions ?? 0
+  const totalRevenue  = stats?.totalRevenue ?? 0
 
   return (
     <div className="space-y-5">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Filtre pays */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-xs font-bold text-slate-500">Filtrer les stats par pays :</span>
+        {[{ code: '', name: 'Tous' }, ...COUNTRIES].map(c => (
+          <button key={c.code} onClick={() => setFilterCountry(c.code)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterCountry === c.code ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+            {c.name}
+          </button>
+        ))}
+        <button onClick={() => refetchStats()} className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+          <RefreshCw size={14} className={statsLoading ? 'animate-spin' : ''}/>
+        </button>
+      </div>
+
+      {/* KPIs — Modèle global : plateforme = pros + livreurs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
             <TrendingUp size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{stats ? formatCFA(stats.totalRevenue) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">CA total (toutes périodes)</div>
+            <div className="text-lg font-black text-slate-100">{formatCFA(totalRevenue)}</div>
+            <div className="text-xs text-slate-500 font-semibold">CA {filterCountry || 'total'}</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center flex-shrink-0">
-            <DollarSign size={18} className="text-yellow-400"/>
+            <Building2 size={18} className="text-yellow-400"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{stats ? formatCFA(stats.totalCommissions) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Commissions totales</div>
+            <div className="text-lg font-black text-slate-100">{formatCFA(totalPro)}</div>
+            <div className="text-xs text-slate-500 font-semibold">Commissions pros</div>
+          </div>
+        </div>
+        <div className="card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+            <Truck size={18} className="text-blue-400"/>
+          </div>
+          <div>
+            <div className="text-lg font-black text-slate-100">{formatCFA(totalDriver)}</div>
+            <div className="text-xs text-slate-500 font-semibold">Commissions livreurs</div>
+          </div>
+        </div>
+        <div className="card p-4 flex items-center gap-3 border border-brand-green/30">
+          <div className="w-10 h-10 rounded-xl bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
+            <DollarSign size={18} className="text-brand-green"/>
+          </div>
+          <div>
+            <div className="text-lg font-black text-brand-green">{formatCFA(totalPlatform)}</div>
+            <div className="text-xs text-slate-400 font-bold">= Plateforme total</div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {/* Config */}
-        <div className="card p-5 space-y-4">
+      {/* Configuration globale */}
+      <div className="card p-5 space-y-5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarSign size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Taux de commission</span>
+            <span className="font-black text-slate-100 text-sm">Taux globaux (par défaut)</span>
           </div>
-          <div className="flex gap-2">
-            {(['PERCENTAGE', 'FIXED_AMOUNT'] as const).map(t => (
-              <button key={t} onClick={() => setCommType(t)}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${commType === t ? 'bg-brand-green text-white' : 'bg-navy-700 text-slate-400 border border-navy-600'}`}>
-                {t === 'PERCENTAGE' ? '% Pourcentage' : 'Montant fixe'}
-              </button>
-            ))}
-          </div>
-          <div>
-            <label className="label">{commType === 'PERCENTAGE' ? 'Taux (%)' : 'Montant (FCFA)'}</label>
-            <input value={commValue} onChange={e => setCommValue(e.target.value)} type="number" className="input w-full" placeholder="15"/>
-            <p className="text-xs text-slate-500 mt-1.5 font-medium">
-              {commType === 'PERCENTAGE'
-                ? `${commValue}% prélevés sur le sous-total de chaque commande`
-                : `${formatCFA(Number(commValue) || 0)} fixes par commande`}
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              const v = Number(commValue)
-              if (isNaN(v) || v < 0) { toast.error('Valeur invalide'); return }
-              if (commType === 'PERCENTAGE' && v > 100) { toast.error('Taux max 100%'); return }
-              saveMutation.mutate()
-            }}
-            disabled={saveMutation.isPending}
-            className="btn-primary w-full justify-center">
-            <Save size={14}/> Enregistrer
-          </button>
+          <span className="text-[10px] text-slate-500 font-semibold bg-navy-700 px-2 py-1 rounded-lg">
+            Commission plateforme = Pros + Livreurs
+          </span>
         </div>
 
-        {/* Tendance mensuelle */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          {/* Professionnels */}
+          <div className="card-sm p-4 space-y-3 border-l-2 border-yellow-500/50">
+            <CommRateForm label="Professionnels" rate={proRate} onChange={setProRate}/>
+          </div>
+          {/* Livreurs */}
+          <div className="card-sm p-4 space-y-3 border-l-2 border-blue-500/50">
+            <CommRateForm label="Livreurs" rate={driverRate} onChange={setDriverRate}/>
+          </div>
+        </div>
+
+        {/* Overrides par pays */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin size={13} className="text-slate-400"/>
+            <span className="text-xs font-bold text-slate-400">Surcharges par pays (optionnel)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {COUNTRIES.map(c => {
+              const active = !!countryOverrides[c.code]
+              return (
+                <button key={c.code} onClick={() => toggleCountryOverride(c.code)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${active ? 'bg-brand-green/15 border border-brand-green/40 text-brand-green' : 'bg-navy-800 text-slate-500 border border-navy-600 hover:text-slate-300'}`}>
+                  {active ? '✓ ' : '+ '}{c.name}
+                </button>
+              )
+            })}
+          </div>
+          {Object.entries(countryOverrides).map(([code, ov]) => {
+            const cName = COUNTRIES.find(c => c.code === code)?.name ?? code
+            return (
+              <div key={code} className="card-sm p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-300">{cName} — taux spécifiques</span>
+                  <button onClick={() => toggleCountryOverride(code)} className="text-xs text-red-400 hover:text-red-300 font-bold">Supprimer</button>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  <div className="border-l-2 border-yellow-500/40 pl-3">
+                    <CommRateForm label="Professionnels" rate={ov.pro} onChange={r => updateCountryRate(code, 'pro', r)}/>
+                  </div>
+                  <div className="border-l-2 border-blue-500/40 pl-3">
+                    <CommRateForm label="Livreurs" rate={ov.driver} onChange={r => updateCountryRate(code, 'driver', r)}/>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+          className="btn-primary w-full justify-center">
+          <Save size={14}/> Enregistrer la configuration
+        </button>
+      </div>
+
+      {/* Stats : tendance + top pros */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* Tendance mensuelle pros + livreurs */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Commissions — 6 mois</span>
+            <span className="font-black text-slate-100 text-sm">Tendance — 6 mois</span>
           </div>
           {statsLoading
             ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
             : (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {monthly.map((m: any) => {
                   const [year, month] = m.month.split('-')
-                  return <MonthBar key={m.month} value={m.commissions} max={maxComm} label={`${MONTH_LABELS[month] ?? month} ${year.slice(2)}`}/>
+                  const label = `${MONTH_LABELS[month] ?? month} ${year.slice(2)}`
+                  const pro    = m.proCommissions    ?? 0
+                  const driver = m.driverCommissions ?? 0
+                  const total  = pro + driver
+                  const pct    = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0
+                  const proPct = total > 0 ? Math.round((pro / total) * 100) : 0
+                  return (
+                    <div key={m.month} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400 font-semibold w-14">{label}</span>
+                        <span className="text-slate-400 text-[10px]">
+                          <span className="text-yellow-400">{formatCFA(pro)}</span>
+                          {' + '}
+                          <span className="text-blue-400">{formatCFA(driver)}</span>
+                          {' = '}
+                          <span className="text-slate-200 font-bold">{formatCFA(total)}</span>
+                        </span>
+                      </div>
+                      <div className="h-2 bg-navy-700 rounded-full overflow-hidden flex">
+                        <div className="h-full bg-yellow-500/70 transition-all" style={{ width: `${pct * proPct / 100}%` }}/>
+                        <div className="h-full bg-blue-500/70 transition-all" style={{ width: `${pct * (100 - proPct) / 100}%` }}/>
+                      </div>
+                    </div>
+                  )
                 })}
+                <div className="flex items-center gap-4 pt-1 text-[10px] text-slate-500 font-semibold">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-yellow-500/70 inline-block"/>Professionnels</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-blue-500/70 inline-block"/>Livreurs</span>
+                </div>
               </div>
             )
           }
         </div>
-      </div>
 
-      {/* Top établissements */}
-      <div className="card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Building2 size={15} className="text-brand-green"/>
-          <span className="font-black text-slate-100 text-sm">Top 5 — Commissions générées</span>
-        </div>
-        {statsLoading
-          ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
-          : topCommissioners.length === 0
-            ? <div className="text-center py-8 text-slate-500 text-sm">Aucune donnée</div>
-            : (
-              <div className="space-y-2">
-                {topCommissioners.map((item: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 p-3 card-sm">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black
-                      ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-slate-500/20 text-slate-300' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-navy-700 text-slate-500'}`}>
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-200 truncate">{item.professional?.businessName || '—'}</div>
-                      <div className="text-xs text-slate-500">{item.orders} commande{item.orders > 1 ? 's' : ''} · CA {formatCFA(item.revenue)}</div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-sm font-black text-brand-green">{formatCFA(item.commissions)}</div>
-                      <div className="text-[10px] text-slate-500">
-                        {item.revenue > 0 ? `${Math.round((item.commissions / item.revenue) * 100)}%` : '—'}
+        {/* Top établissements */}
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Building2 size={15} className="text-brand-green"/>
+            <span className="font-black text-slate-100 text-sm">Top 5 — Établissements</span>
+          </div>
+          {statsLoading
+            ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
+            : topCommissioners.length === 0
+              ? <div className="text-center py-8 text-slate-500 text-sm">Aucune donnée</div>
+              : (
+                <div className="space-y-2">
+                  {topCommissioners.map((item: any, i: number) => (
+                    <div key={i} className="flex items-center gap-3 p-3 card-sm">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black
+                        ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-slate-500/20 text-slate-300' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-navy-700 text-slate-500'}`}>
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-slate-200 truncate">{item.professional?.businessName || '—'}</div>
+                        <div className="text-xs text-slate-500">{item.orders} cmd · CA {formatCFA(item.revenue)}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-sm font-black text-brand-green">{formatCFA(item.commissions)}</div>
+                        <div className="text-[10px] text-slate-500">
+                          {item.revenue > 0 ? `${Math.round((item.commissions / item.revenue) * 100)}%` : '—'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )
-        }
+                  ))}
+                </div>
+              )
+          }
+        </div>
       </div>
     </div>
   )
