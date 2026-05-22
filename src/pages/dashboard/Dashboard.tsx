@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { LocationPeriodFilters } from '../../components/ui/LocationPeriodFilters'
 import { formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
+import { COUNTRIES } from '../../constants/countries'
 import {
   ShoppingCart, TrendingUp, AlertCircle, Truck, CheckCircle2, ChefHat, XCircle,
   Coins, Receipt, Wallet, Gift, Briefcase, Globe,
@@ -23,12 +24,6 @@ const CHART_COLORS = {
   purple: '#8B5CF6', red: '#EF4444', teal: '#14B8A6',
 }
 
-const COUNTRIES_FOR_RANKINGS = [
-  { code: 'BJ', name: 'Bénin' },
-  { code: 'SN', name: 'Sénégal' },
-  { code: 'CI', name: "Côte d'Ivoire" },
-  { code: 'TG', name: 'Togo' },
-]
 
 // ─── Tooltip charts ──────────────────────────────────────────────────────────
 
@@ -186,7 +181,7 @@ export const Dashboard: React.FC = () => {
           title="Top 5 pays" subtitle="Par commandes livrées"
           icon={Globe} accent="brand-green"
           items={topCountries.map((c: any) => ({
-            label: COUNTRIES_FOR_RANKINGS.find(x => x.code === c.country)?.name ?? c.country,
+            label: COUNTRIES.find(x => x.code === c.country)?.name ?? c.country,
             value: `${c.ordersCount} cmd`,
             sub: formatCFA(c.revenue),
           }))}

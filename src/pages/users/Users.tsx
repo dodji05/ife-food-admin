@@ -9,6 +9,7 @@ import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
 import { useConfirm } from '../../hooks/useConfirm'
+import { COUNTRIES } from '../../constants/countries'
 import {
   UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown,
   Gift, Plus, Edit2,
@@ -23,12 +24,6 @@ const TX_LABELS: Record<string, string> = {
 
 const isEditableByAdmin = (u: any) => u?.createdByAdmin === true && !u?.lastLoginAt
 
-const COUNTRIES_LIST = [
-  { code: 'BJ', name: 'Bénin',          currency: 'XOF', phone: '+229' },
-  { code: 'SN', name: 'Sénégal',        currency: 'XOF', phone: '+221' },
-  { code: 'CI', name: "Côte d'Ivoire",  currency: 'XOF', phone: '+225' },
-  { code: 'TG', name: 'Togo',           currency: 'XOF', phone: '+228' },
-]
 
 // ─── Formulaire Créer / Modifier ──────────────────────────────────────────────
 interface UserFormProps {
@@ -80,10 +75,10 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pays</label>
           <select className="input w-full appearance-none cursor-pointer" value={form.countryCode}
             onChange={e => {
-              const c = COUNTRIES_LIST.find(x => x.code === e.target.value)
+              const c = COUNTRIES.find(x => x.code === e.target.value)
               setForm(f => ({ ...f, countryCode: e.target.value, currency: c?.currency ?? f.currency }))
             }}>
-            {COUNTRIES_LIST.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
           </select>
         </div>
         <div>

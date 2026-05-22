@@ -9,6 +9,8 @@ import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
 import { useConfirm } from '../../hooks/useConfirm'
+import { unwrap } from '../../utils/api'
+import { COUNTRIES } from '../../constants/countries'
 import {
   CheckCircle, XCircle, AlertTriangle, Building2, Phone, Mail, MapPin, FileText,
   ShoppingCart, ChevronDown, ChevronRight, Eye, Plus, Edit2, Trash2,
@@ -33,12 +35,6 @@ const PROMO_TYPES = [
   { value: 'THREE_FOR_TWO', label: '3 pour le prix de 2' },
 ]
 
-const COUNTRIES_LIST = [
-  { code: 'BJ', name: 'Bénin',         currency: 'XOF' },
-  { code: 'SN', name: 'Sénégal',       currency: 'XOF' },
-  { code: 'CI', name: "Côte d'Ivoire", currency: 'XOF' },
-  { code: 'TG', name: 'Togo',          currency: 'XOF' },
-]
 
 const isEditableByAdmin = (user: any) => user?.createdByAdmin === true && !user?.lastLoginAt
 
@@ -78,7 +74,7 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
       {!isEdit && (
         <>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Propriétaire (nouveau compte)</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Prénom</label>
               <input className="input w-full" value={form.ownerFirstName} onChange={set('ownerFirstName')}/>
@@ -108,7 +104,7 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
       )}
 
       <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">Établissement</div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2">
           <label className="label">Nom de l'établissement *</label>
           <input className="input w-full" value={form.businessName} onChange={set('businessName')} placeholder="ex: Chez Maman"/>
@@ -122,7 +118,7 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
         <div>
           <label className="label">Pays *</label>
           <select className="input w-full appearance-none cursor-pointer" value={form.country} onChange={set('country')}>
-            {COUNTRIES_LIST.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
           </select>
         </div>
         <div>
@@ -231,7 +227,7 @@ const PromotionsTab: React.FC<{ proId: string }> = ({ proId }) => {
 
   const PromoForm = ({ isEdit }: { isEdit: boolean }) => (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Code *</label>
           <input className="input w-full font-mono uppercase" value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="PROMO10"/>
@@ -367,8 +363,6 @@ export const Professionals: React.FC = () => {
       return api.get(`/admin/professionals${params.toString() ? '?' + params : ''}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
     },
   })
-
-  const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
 
   const { data: proDetail } = useQuery({
     queryKey: ['pro-detail', selectedId],
@@ -580,7 +574,7 @@ export const Professionals: React.FC = () => {
       {/* Modal Détail */}
       <Modal open={!!selectedId} onClose={() => setSelectedId(null)} title="Fiche établissement" size="xl">
         {selected ? (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -597,7 +591,7 @@ export const Professionals: React.FC = () => {
 
             {/* Bannière lecture seule */}
             {!isEditableByAdmin(selected.user) && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/40 border border-slate-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+              <div className="flex items-center gap-2 px-3 py-2 bg-navy-700/40 border border-navy-600/40 rounded-xl text-xs text-slate-400 font-semibold">
                 <span>🔒</span>
                 <span>
                   {!selected.user?.createdByAdmin
@@ -646,7 +640,7 @@ export const Professionals: React.FC = () => {
             {/* Onglet : Infos */}
             {detailTab === 'info' && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="card-sm p-3 flex items-center gap-2">
                     <Phone size={14} className="text-slate-500 flex-shrink-0"/>
                     <div>
@@ -764,7 +758,7 @@ export const Professionals: React.FC = () => {
                   : (
                     <>
                       {orderStats && (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="card-sm p-3 text-center">
                             <div className="text-2xl font-black text-slate-100">{orderStats.total}</div>
                             <div className="text-xs text-slate-500 font-semibold">Commandes totales</div>

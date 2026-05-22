@@ -6,6 +6,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { formatDateTime, formatCFA } from '../../utils/format'
+import { unwrap } from '../../utils/api'
 import {
   Gift, Users, Clock, CheckCircle, TrendingUp, Save,
   Copy, Check, QrCode, Share2, Link2, BarChart3, Trophy,
@@ -21,7 +22,6 @@ const MONTH_LABELS: Record<string, string> = {
   '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Déc',
 }
 
-const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
 
 function useQRDataUrl(text: string) {
   const [dataUrl, setDataUrl] = useState('')
@@ -316,7 +316,7 @@ export const Referrals: React.FC = () => {
       </div>
 
       {/* Onglets */}
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center overflow-x-auto pb-1">
         {([
           { key: 'stats',   label: 'Statistiques',    icon: BarChart3 },
           { key: 'links',   label: 'Liens & QR codes', icon: Link2 },

@@ -5,14 +5,15 @@ import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { formatCFA, formatDateTime } from '../../utils/format'
+import { unwrap } from '../../utils/api'
 import {
   CreditCard, DollarSign, TrendingUp, Truck, ArrowUpDown,
   Save, RefreshCw, CheckCircle, XCircle, Clock, ExternalLink,
   BarChart3, Building2, MapPin,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-
-const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
+import { COUNTRIES } from '../../constants/countries'
+import { TX_TYPE_LABELS, TX_STATUS_LABELS as _TX_STATUS_LABELS, GATEWAY_ICONS, GATEWAY_LABELS, GATEWAY_NOTES } from '../../constants/payments'
 
 const MONTH_LABELS: Record<string, string> = {
   '01': 'Jan', '02': 'Fév', '03': 'Mar', '04': 'Avr',
@@ -20,29 +21,10 @@ const MONTH_LABELS: Record<string, string> = {
   '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Déc',
 }
 
-const TX_TYPE_LABELS: Record<string, string> = {
-  COMMISSION: 'Commission',
-  PAYOUT: 'Virement',
-  REFUND: 'Remboursement',
-  DELIVERY_FEE: 'Frais livraison',
-  TIP: 'Pourboire',
-}
-
 const TX_STATUS_LABELS: Record<string, string> = {
   PENDING: 'En attente',
   COMPLETED: 'Complété',
   FAILED: 'Échoué',
-}
-
-const GATEWAY_ICONS: Record<string, string> = {
-  STRIPE: '💳', PAYPAL: '🅿️', KKIAPAY: '📱', FEDAPAY: '🟢', CASH_ON_DELIVERY: '💵', OTHER: '💰',
-}
-const GATEWAY_LABELS: Record<string, string> = {
-  STRIPE: 'International', PAYPAL: 'Mondial', KKIAPAY: 'Mobile Money', FEDAPAY: 'Bénin',
-  CASH_ON_DELIVERY: 'Espèces à la livraison', OTHER: 'Autre',
-}
-const GATEWAY_NOTES: Record<string, string> = {
-  CASH_ON_DELIVERY: 'Collecté directement par le livreur — aucun traitement en ligne.',
 }
 
 function MonthBar({ value, max, label }: { value: number; max: number; label: string }) {
@@ -60,12 +42,6 @@ function MonthBar({ value, max, label }: { value: number; max: number; label: st
   )
 }
 
-const COUNTRIES = [
-  { code: 'BJ', name: 'Bénin' },
-  { code: 'SN', name: 'Sénégal' },
-  { code: 'CI', name: "Côte d'Ivoire" },
-  { code: 'TG', name: 'Togo' },
-]
 
 type CommRate = { type: 'PERCENTAGE' | 'FIXED_PER_DISH'; value: string }
 const defaultRate = (): CommRate => ({ type: 'PERCENTAGE', value: '' })
@@ -429,6 +405,8 @@ const DeliveryFeesTab: React.FC = () => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['delivery-fee-stats'],
     queryFn: () => api.get('/admin/payments/delivery-fee-stats').then(unwrap),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 
   const monthly: any[] = stats?.monthly ?? []
@@ -538,6 +516,8 @@ const GatewaysTab: React.FC = () => {
   const { data: payStats, isLoading: statsLoading } = useQuery({
     queryKey: ['payment-stats'],
     queryFn: () => api.get('/admin/payments/stats').then(unwrap),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 
   useQuery({
@@ -874,7 +854,7 @@ export const Payments: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* KPI globaux */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
             <TrendingUp size={18} className="text-brand-green"/>

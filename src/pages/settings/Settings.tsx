@@ -10,8 +10,8 @@ import { useConfirm } from '../../hooks/useConfirm'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { formatDateTime } from '../../utils/format'
-
-const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
+import { unwrap } from '../../utils/api'
+import Toggle from '../../components/ui/Toggle'
 
 // ─── Onglet Général ──────────────────────────────────────────────────────────
 const GeneralTab: React.FC = () => {
@@ -22,9 +22,11 @@ const GeneralTab: React.FC = () => {
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const { data: config } = useQuery({
+  const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ['platform-config'],
     queryFn: () => api.get('/admin/config/platform').then((r: any) => r.data),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
@@ -57,6 +59,8 @@ const GeneralTab: React.FC = () => {
     } catch (e: any) { toast.error(e.message) }
     finally { setSaving(false) }
   }
+
+  if (configLoading) return <div className="space-y-5 max-w-2xl animate-pulse">{[...Array(3)].map((_, i) => <div key={i} className="card p-5 h-24 bg-navy-700/40"/>)}</div>
 
   return (
     <div className="space-y-5 max-w-2xl">
@@ -145,12 +149,11 @@ const CountriesTab: React.FC = () => {
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mr-2 ${c.isActive ? 'bg-green-500/10 text-green-400' : 'bg-slate-700 text-slate-500'}`}>
                   {c.isActive ? 'Actif' : 'Inactif'}
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                  <input type="checkbox" checked={c.isActive}
-                    onChange={() => toggleMutation.mutate(c.code)}
-                    disabled={toggleMutation.isPending} className="sr-only peer"/>
-                  <div className="w-10 h-5 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-brand-green after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
-                </label>
+                <Toggle
+                  checked={c.isActive}
+                  onChange={() => toggleMutation.mutate(c.code)}
+                  disabled={toggleMutation.isPending}
+                />
               </div>
             ))}
           </div>
@@ -169,6 +172,8 @@ const CurrenciesTab: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-currencies'],
     queryFn: () => api.get('/admin/config/currencies').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
     select: (d: any) => {
       if (!loaded && d?.rates) {
         const m: Record<string, string> = {}
@@ -360,7 +365,7 @@ const AdminsTab: React.FC = () => {
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Modifier le compte' : 'Nouveau compte admin'}>
         <div className="space-y-3 p-1">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label text-[10px]">Prénom</label>
               <input className="input" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Jean"/>

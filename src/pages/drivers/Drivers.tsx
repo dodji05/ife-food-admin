@@ -7,6 +7,7 @@ import { Modal } from '../../components/ui/Modal'
 import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
+import { unwrap } from '../../utils/api'
 import {
   CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail,
   MapPin, FileText, Package, Plus, Trash2, Gift,
@@ -57,7 +58,7 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Nom">
           <input className="input" value={form.name} onChange={set('name')} placeholder="Nom"/>
         </Field>
@@ -122,8 +123,6 @@ export const Drivers: React.FC = () => {
 
   const qc = useQueryClient()
   const confirm = useConfirm()
-
-  const unwrap = (r: any) => r?.data?.data ?? r?.data ?? r
 
   const buildParams = () => {
     const p = new URLSearchParams()
@@ -391,7 +390,7 @@ export const Drivers: React.FC = () => {
       {/* Modale détail */}
       <Modal open={!!selectedId} onClose={() => setSelectedId(null)} title="Fiche livreur" size="xl">
         {selected ? (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -425,7 +424,7 @@ export const Drivers: React.FC = () => {
 
             {/* Bannière lecture seule */}
             {!isEditableByAdmin(selected.user) && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/40 border border-slate-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+              <div className="flex items-center gap-2 px-3 py-2 bg-navy-700/40 border border-navy-600/40 rounded-xl text-xs text-slate-400 font-semibold">
                 <span>🔒</span>
                 <span>
                   {!selected.user?.createdByAdmin
@@ -476,7 +475,7 @@ export const Drivers: React.FC = () => {
             {/* Onglet : Infos */}
             {detailTab === 'info' && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="card-sm p-3 flex items-center gap-2">
                     <Phone size={14} className="text-slate-500 flex-shrink-0"/>
                     <div>
@@ -534,7 +533,7 @@ export const Drivers: React.FC = () => {
                 {(selected.tipStats?.tipCount > 0 || selected.tipStats) && (
                   <div className="card-sm p-3 border border-yellow-500/20">
                     <div className="label mb-2 flex items-center gap-1.5 text-yellow-400"><Gift size={13}/> Pourboires reçus</div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="text-center">
                         <div className="text-xs text-slate-500 font-bold mb-0.5">Total</div>
                         <div className="font-black text-yellow-300">{formatCFA(selected.tipStats?.totalTips ?? 0)}</div>
