@@ -1,15 +1,6 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// LocationPeriodFilters — bloc de filtres réutilisable (pays / région /
-// ville / période + reset). Utilisé par Dashboard et Orders pour garantir
-// une UX et un look homogènes.
-//
-// Pays + période sont synchronisés avec le store global (useFiltersStore).
-// Région + ville sont locaux à la page consommatrice (passés en props).
-// Le bouton "Actualiser" est OPTIONNEL : passer onRefresh + isRefreshing.
-// ─────────────────────────────────────────────────────────────────────────────
 import React, { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Globe, MapPin, RotateCcw, RefreshCw } from 'lucide-react'
+import { Globe, MapPin, RotateCcw, RefreshCw, Calendar } from 'lucide-react'
 import api from '../../services/api'
 import { useFiltersStore, Period } from '../../store/filters'
 
@@ -42,6 +33,7 @@ const PERIODS: { label: string; value: Period }[] = [
   { label: "Auj.", value: 'day' },
   { label: '7 jours', value: 'week' },
   { label: '30 jours', value: 'month' },
+  { label: 'Personnalisé', value: 'custom' },
 ]
 
 export interface LocationPeriodFiltersProps {
@@ -66,7 +58,7 @@ export const LocationPeriodFilters: React.FC<LocationPeriodFiltersProps> = ({
   city, onCityChange,
   cities, onRefresh, isRefreshing,
 }) => {
-  const { period, country, setPeriod, setCountry, reset: resetGlobal } = useFiltersStore()
+  const { period, country, dateFrom, dateTo, setPeriod, setCountry, setDateRange, reset: resetGlobal } = useFiltersStore()
 
   // Si la page n'a pas fourni la liste des villes, on la récupère ici (cached).
   const { data: fetchedCities } = useQuery({
@@ -94,6 +86,11 @@ export const LocationPeriodFilters: React.FC<LocationPeriodFiltersProps> = ({
     resetGlobal()
     onRegionChange('')
     onCityChange('')
+  }
+
+  const handlePeriodChange = (p: Period) => {
+    setPeriod(p)
+    if (p !== 'custom') setDateRange('', '')
   }
 
   return (
@@ -131,13 +128,36 @@ export const LocationPeriodFilters: React.FC<LocationPeriodFiltersProps> = ({
       <Field label="Période">
         <div className="flex rounded-xl overflow-hidden border border-navy-600 h-9">
           {PERIODS.map(p => (
-            <button key={p.value} onClick={() => setPeriod(p.value)}
+            <button key={p.value} onClick={() => handlePeriodChange(p.value)}
               className={`px-3 text-xs font-bold transition-colors ${period === p.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 hover:text-slate-200'}`}>
               {p.label}
             </button>
           ))}
         </div>
       </Field>
+
+      {period === 'custom' && (
+        <>
+          <Field label="Du" icon={Calendar}>
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={e => setDateRange(e.target.value, dateTo)}
+              className="input h-9 text-sm px-3 cursor-pointer"
+            />
+          </Field>
+          <Field label="Au" icon={Calendar}>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={e => setDateRange(dateFrom, e.target.value)}
+              className="input h-9 text-sm px-3 cursor-pointer"
+            />
+          </Field>
+        </>
+      )}
 
       <div className="flex-1"/>
 

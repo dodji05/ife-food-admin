@@ -1,24 +1,27 @@
 import { create } from 'zustand'
 
-export type Period = 'day' | 'week' | 'month'
+export type Period = 'day' | 'week' | 'month' | 'custom'
 
 interface FiltersStore {
   period: Period
   country: string
-  /** Préférence globale "temps réel". Les pages peuvent l'utiliser pour
-   *  conditionner leur refetchInterval (ex: refetchInterval: realtime ? 15000 : false). */
   realtime: boolean
+  dateFrom: string
+  dateTo: string
   setPeriod: (p: Period) => void
   setCountry: (c: string) => void
   setRealtime: (v: boolean) => void
+  setDateRange: (from: string, to: string) => void
   /** Remet tous les filtres aux valeurs par défaut. */
   reset: () => void
 }
 
-const DEFAULTS: Pick<FiltersStore, 'period' | 'country' | 'realtime'> = {
+const DEFAULTS: Pick<FiltersStore, 'period' | 'country' | 'realtime' | 'dateFrom' | 'dateTo'> = {
   period: 'week',
   country: '',
   realtime: false,
+  dateFrom: '',
+  dateTo: '',
 }
 
 export const useFiltersStore = create<FiltersStore>()((set) => ({
@@ -26,5 +29,6 @@ export const useFiltersStore = create<FiltersStore>()((set) => ({
   setPeriod: (period) => set({ period }),
   setCountry: (country) => set({ country }),
   setRealtime: (realtime) => set({ realtime }),
+  setDateRange: (dateFrom, dateTo) => set({ dateFrom, dateTo }),
   reset: () => set(DEFAULTS),
 }))

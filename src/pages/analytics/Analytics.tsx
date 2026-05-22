@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { StatCard } from '../../components/ui/StatCard'
+import { LocationPeriodFilters } from '../../components/ui/LocationPeriodFilters'
 import { formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts'
@@ -20,12 +21,29 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const Analytics: React.FC = () => {
-  const { period, country } = useFiltersStore()
-  const params = new URLSearchParams({ period, ...(country ? { country } : {}) })
+  const [region, setRegion] = useState('')
+  const [city, setCity] = useState('')
+  const { period, country, dateFrom, dateTo } = useFiltersStore()
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['analytics', period, country],
-    queryFn: () => api.get(`/admin/analytics?${params}`).then((r: any) => r.data),
+  const buildParams = () => {
+    const p = new URLSearchParams()
+    if (country) p.set('country', country)
+    if (city)    p.set('city', city)
+    if (period === 'custom') {
+      if (dateFrom) p.set('from', dateFrom)
+      if (dateTo)   p.set('to', dateTo)
+    } else {
+      p.set('period', period)
+    }
+    return p.toString()
+  }
+
+  const queryReady = period !== 'custom' || (!!dateFrom && !!dateTo)
+
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['analytics', period, country, city, dateFrom, dateTo],
+    queryFn: () => api.get(`/admin/analytics?${buildParams()}`).then((r: any) => r.data),
+    enabled: queryReady,
   })
 
   const countryData: any[] = data?.byCountry ?? []
@@ -34,6 +52,20 @@ export const Analytics: React.FC = () => {
 
   return (
   <div className="space-y-6">
+    <LocationPeriodFilters
+      region={region} onRegionChange={setRegion}
+      city={city}     onCityChange={setCity}
+      onRefresh={() => refetch()}
+      isRefreshing={isFetching}
+    />
+
+    {period === 'custom' && (!dateFrom || !dateTo) && (
+      <div className="card p-4 flex items-center gap-3 text-sm text-slate-400 font-semibold">
+        <span className="text-brand-green">›</span>
+        Sélectionnez une date de début et une date de fin pour charger les données.
+      </div>
+    )}
+
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
       <StatCard title="Taux de complétion" value={data?.completionRate ? `${data.completionRate}%` : '—'} icon={TrendingUp} color="brand-green" trend={2} loading={isLoading}/>
       <StatCard title="Panier moyen" value={data?.avgBasket ? formatCFA(data.avgBasket) : '—'} icon={Package} color="yellow" trend={5} loading={isLoading}/>
@@ -44,7 +76,11 @@ export const Analytics: React.FC = () => {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 card p-5">
         <h3 className="text-base font-black text-slate-100 mb-1">Revenus par pays</h3>
-        <p className="text-xs text-slate-500 mb-5 font-semibold">Ce mois</p>
+        <p className="text-xs text-slate-500 mb-5 font-semibold">
+          {period === 'custom' && dateFrom && dateTo
+            ? `${dateFrom} → ${dateTo}`
+            : period === 'day' ? "Aujourd'hui" : period === 'week' ? '7 derniers jours' : '30 derniers jours'}
+        </p>
         {countryData.length > 0 ? (
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={countryData} layout="vertical" margin={{ left: 10, right: 20 }}>
