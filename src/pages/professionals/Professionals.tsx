@@ -336,11 +336,10 @@ export const Professionals: React.FC = () => {
   const [region, setRegion] = useState('')
   const [city, setCity] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<'info' | 'edit' | 'catalogue' | 'orders' | 'promotions' | 'referral' | 'pin'>('info')
+  const [detailTab, setDetailTab] = useState<'info' | 'edit' | 'catalogue' | 'orders' | 'promotions' | 'referral'>('info')
   const [rejectNote, setRejectNote] = useState('')
   const [openCats, setOpenCats] = useState<Set<string>>(new Set())
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newPin, setNewPin] = useState('')
   const { country } = useFiltersStore()
   const qc = useQueryClient()
   const confirm = useConfirm()
@@ -437,13 +436,6 @@ export const Professionals: React.FC = () => {
       setSelectedId(null)
     },
     onError: (e: any) => toast.error(e.message),
-  })
-
-  const resetPinMutation = useMutation({
-    mutationFn: ({ userId, pin }: { userId: string; pin: string }) =>
-      api.patch(`/admin/users/${userId}/pin`, { pin }),
-    onSuccess: () => { toast.success('PIN réinitialisé avec succès'); setNewPin('') },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
   })
 
   const openDetail = (row: any) => {
@@ -625,7 +617,6 @@ export const Professionals: React.FC = () => {
               {([
                 { key: 'info',       label: 'Informations' },
                 { key: 'edit',       label: 'Modifier' },
-                { key: 'pin',        label: 'PIN mobile' },
                 { key: 'catalogue',  label: 'Catalogue' },
                 { key: 'orders',     label: 'Commandes' },
                 { key: 'promotions', label: 'Promotions' },
@@ -703,38 +694,6 @@ export const Professionals: React.FC = () => {
                 onSubmit={(dto) => updateMutation.mutate(dto)}
                 loading={updateMutation.isPending}
               />
-            )}
-
-            {/* Onglet : PIN mobile */}
-            {detailTab === 'pin' && selected.userId && (
-              <div className="space-y-4">
-                <div className="p-4 bg-navy-800 border border-navy-600 rounded-xl text-sm text-slate-400">
-                  Le PIN mobile (4 à 6 chiffres) est utilisé par le responsable de l'établissement pour se connecter sur l'application.
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Nouveau PIN (4-6 chiffres)
-                  </label>
-                  <input
-                    className="input w-full font-mono tracking-widest text-lg"
-                    placeholder="ex: 1234"
-                    maxLength={6}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={newPin}
-                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    if (newPin.length < 4) { toast.error('Le PIN doit contenir au moins 4 chiffres'); return }
-                    resetPinMutation.mutate({ userId: selected.userId, pin: newPin })
-                  }}
-                  disabled={resetPinMutation.isPending}
-                  className="btn-primary w-full justify-center">
-                  {resetPinMutation.isPending ? 'Enregistrement…' : 'Définir le PIN'}
-                </button>
-              </div>
             )}
 
             {/* Onglet : Catalogue */}
