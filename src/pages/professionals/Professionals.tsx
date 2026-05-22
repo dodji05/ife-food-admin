@@ -73,7 +73,39 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
 
   return (
     <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Établissement</div>
+      {!isEdit && (
+        <>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Propriétaire (nouveau compte)</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Prénom</label>
+              <input className="input w-full" value={form.ownerFirstName} onChange={set('ownerFirstName')}/>
+            </div>
+            <div>
+              <label className="label">Nom</label>
+              <input className="input w-full" value={form.ownerName} onChange={set('ownerName')}/>
+            </div>
+            <div className="col-span-2">
+              <label className="label">Téléphone *</label>
+              <input className="input w-full font-mono" value={form.ownerPhone} onChange={set('ownerPhone')} placeholder="+22901020304"/>
+            </div>
+            <div className="col-span-2">
+              <label className="label">PIN mobile (4-6 chiffres) — défaut : 0000</label>
+              <input
+                className="input w-full font-mono tracking-widest"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={form.ownerPin}
+                onChange={e => setForm(f => ({ ...f, ownerPin: e.target.value.replace(/\D/g, '') }))}
+                placeholder="ex: 1234"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">Établissement</div>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
           <label className="label">Nom de l'établissement *</label>
@@ -112,38 +144,6 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
           <input className="input w-full" type="number" min="1" value={form.deliveryRadiusKm} onChange={set('deliveryRadiusKm')}/>
         </div>
       </div>
-
-      {!isEdit && (
-        <>
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">Propriétaire (nouveau compte)</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Prénom</label>
-              <input className="input w-full" value={form.ownerFirstName} onChange={set('ownerFirstName')}/>
-            </div>
-            <div>
-              <label className="label">Nom</label>
-              <input className="input w-full" value={form.ownerName} onChange={set('ownerName')}/>
-            </div>
-            <div className="col-span-2">
-              <label className="label">Téléphone *</label>
-              <input className="input w-full font-mono" value={form.ownerPhone} onChange={set('ownerPhone')} placeholder="+22901020304"/>
-            </div>
-            <div className="col-span-2">
-              <label className="label">PIN mobile du propriétaire (4-6 chiffres) — défaut : 0000</label>
-              <input
-                className="input w-full font-mono tracking-widest"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                value={form.ownerPin}
-                onChange={e => setForm(f => ({ ...f, ownerPin: e.target.value.replace(/\D/g, '') }))}
-                placeholder="ex: 1234"
-              />
-            </div>
-          </div>
-        </>
-      )}
 
       <button
         onClick={() => {
