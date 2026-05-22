@@ -1,13 +1,18 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import QRCode from 'qrcode'
 import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
+import { LocationPeriodFilters } from '../../components/ui/LocationPeriodFilters'
 import { formatDateTime, formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
 import { useConfirm } from '../../hooks/useConfirm'
-import { UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown, Gift } from 'lucide-react'
+import {
+  UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown,
+  Gift, Plus, Edit2, Copy, Share2, QrCode, Check,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const TX_LABELS: Record<string, string> = {
@@ -16,17 +21,215 @@ const TX_LABELS: Record<string, string> = {
   ADMIN_DEBIT: 'Débit admin',
 }
 
+const COUNTRIES_LIST = [
+  { code: 'BJ', name: 'Bénin',          currency: 'XOF', phone: '+229' },
+  { code: 'SN', name: 'Sénégal',        currency: 'XOF', phone: '+221' },
+  { code: 'CI', name: "Côte d'Ivoire",  currency: 'XOF', phone: '+225' },
+  { code: 'TG', name: 'Togo',           currency: 'XOF', phone: '+228' },
+]
+
+const REFERRAL_BASE_URL = 'https://app.ifefd.com/join'
+
+// ─── Formulaire Créer / Modifier ──────────────────────────────────────────────
+interface UserFormProps {
+  initial?: any
+  onSubmit: (data: any) => void
+  loading: boolean
+}
+
+const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
+  const [form, setForm] = useState({
+    firstName: initial?.firstName ?? '',
+    name:      initial?.name      ?? '',
+    phone:     initial?.phone     ?? '',
+    email:     initial?.email     ?? '',
+    countryCode: initial?.countryCode ?? 'BJ',
+    currency:    initial?.currency    ?? 'XOF',
+    role:        initial?.role        ?? 'CLIENT',
+  })
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }))
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Prénom</label>
+          <input className="input w-full" placeholder="Prénom" value={form.firstName} onChange={set('firstName')}/>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nom</label>
+          <input className="input w-full" placeholder="Nom" value={form.name} onChange={set('name')}/>
+        </div>
+      </div>
+      <div>
+        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Téléphone *</label>
+        <input className="input w-full font-mono" placeholder="+22901020304" value={form.phone} onChange={set('phone')}/>
+      </div>
+      <div>
+        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email</label>
+        <input className="input w-full" type="email" placeholder="email@exemple.com" value={form.email} onChange={set('email')}/>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pays</label>
+          <select className="input w-full appearance-none cursor-pointer" value={form.countryCode}
+            onChange={e => {
+              const c = COUNTRIES_LIST.find(x => x.code === e.target.value)
+              setForm(f => ({ ...f, countryCode: e.target.value, currency: c?.currency ?? f.currency }))
+            }}>
+            {COUNTRIES_LIST.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Rôle</label>
+          <select className="input w-full appearance-none cursor-pointer" value={form.role} onChange={set('role')}
+            disabled={!!initial}>
+            <option value="CLIENT">Client</option>
+            <option value="PROFESSIONAL">Professionnel</option>
+            <option value="DRIVER">Livreur</option>
+          </select>
+        </div>
+      </div>
+      <button
+        onClick={() => {
+          if (!form.phone.trim()) { toast.error('Le numéro de téléphone est requis'); return }
+          onSubmit({ ...form, phoneCountry: form.countryCode, ...(form.email ? {} : { email: undefined }) })
+        }}
+        disabled={loading}
+        className="btn-primary w-full justify-center">
+        {loading ? 'Enregistrement…' : initial ? 'Enregistrer les modifications' : 'Créer le compte'}
+      </button>
+    </div>
+  )
+}
+
+// ─── QR Code hook ─────────────────────────────────────────────────────────────
+function useQRCode(text: string) {
+  const [dataUrl, setDataUrl] = useState('')
+  useEffect(() => {
+    if (!text) { setDataUrl(''); return }
+    QRCode.toDataURL(text, { width: 200, margin: 2, color: { dark: '#e2e8f0', light: '#0a1628' } })
+      .then(setDataUrl).catch(() => setDataUrl(''))
+  }, [text])
+  return dataUrl
+}
+
+// ─── Onglet Parrainage ────────────────────────────────────────────────────────
+const ReferralTab: React.FC<{ user: any; onCodeGenerated: (code: string) => void }> = ({ user, onCodeGenerated }) => {
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null)
+  const referralUrl = user.referralCode ? `${REFERRAL_BASE_URL}/${user.referralCode}` : ''
+  const qrDataUrl = useQRCode(referralUrl)
+
+  const generateMutation = useMutation({
+    mutationFn: () => api.post(`/admin/users/${user.id}/referral-code`, {}).then((r: any) => r?.data?.data ?? r?.data),
+    onSuccess: (data: any) => {
+      toast.success('Code de parrainage généré !')
+      onCodeGenerated(data?.referralCode ?? '')
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const copyText = async (text: string, type: 'code' | 'link') => {
+    await navigator.clipboard.writeText(text)
+    setCopied(type)
+    toast.success('Copié !')
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  const share = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: 'Rejoins IFE Food !', url: referralUrl }).catch(() => {})
+    } else {
+      await copyText(referralUrl, 'link')
+    }
+  }
+
+  if (!user.referralCode) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+          <Gift size={28} className="text-brand-green"/>
+        </div>
+        <div className="text-center">
+          <div className="text-sm font-bold text-slate-200 mb-1">Aucun code de parrainage</div>
+          <div className="text-xs text-slate-500">Générez un code unique pour cet utilisateur.</div>
+        </div>
+        <button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}
+          className="btn-primary">
+          <Gift size={15}/> {generateMutation.isPending ? 'Génération…' : 'Générer un code'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Code */}
+      <div className="card-sm p-4">
+        <div className="text-xs text-slate-500 font-bold mb-2">Code de parrainage</div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 font-black text-2xl text-brand-green tracking-widest">{user.referralCode}</div>
+          <button onClick={() => copyText(user.referralCode, 'code')}
+            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all">
+            {copied === 'code' ? <Check size={16} className="text-brand-green"/> : <Copy size={16}/>}
+          </button>
+        </div>
+      </div>
+
+      {/* Lien + partage */}
+      <div className="card-sm p-4">
+        <div className="text-xs text-slate-500 font-bold mb-2">Lien de parrainage</div>
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-xs font-mono text-slate-300 truncate">{referralUrl}</span>
+          <button onClick={() => copyText(referralUrl, 'link')}
+            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all flex-shrink-0">
+            {copied === 'link' ? <Check size={16} className="text-brand-green"/> : <Copy size={16}/>}
+          </button>
+          <button onClick={share}
+            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all flex-shrink-0">
+            <Share2 size={16}/>
+          </button>
+        </div>
+      </div>
+
+      {/* QR Code */}
+      <div className="card-sm p-4 flex flex-col items-center gap-3">
+        <div className="text-xs text-slate-500 font-bold self-start">QR Code</div>
+        {qrDataUrl
+          ? <img src={qrDataUrl} alt="QR Code parrainage" className="rounded-xl" width={160} height={160}/>
+          : <div className="w-40 h-40 rounded-xl bg-navy-700 flex items-center justify-center">
+              <QrCode size={40} className="text-slate-600 animate-pulse"/>
+            </div>
+        }
+        {qrDataUrl && (
+          <a href={qrDataUrl} download={`parrainage-${user.referralCode}.png`}
+            className="btn-secondary text-xs px-3">
+            Télécharger
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 export const Users: React.FC = () => {
   const qc = useQueryClient()
   const confirm = useConfirm()
   const { country } = useFiltersStore()
+  const [region, setRegion] = useState('')
+  const [city, setCity] = useState('')
+
   const [selected, setSelected] = useState<any>(null)
-  const [userTab, setUserTab] = useState<'info' | 'wallet'>('info')
+  const [userTab, setUserTab] = useState<'info' | 'wallet' | 'referral' | 'edit'>('info')
   const [adjustAmount, setAdjustAmount] = useState('')
   const [adjustType, setAdjustType] = useState<'ADMIN_CREDIT' | 'ADMIN_DEBIT'>('ADMIN_CREDIT')
   const [adjustNote, setAdjustNote] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-users', country],
     queryFn: () => {
       const params = new URLSearchParams({ role: 'CLIENT' })
@@ -65,6 +268,28 @@ export const Users: React.FC = () => {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const createMutation = useMutation({
+    mutationFn: (dto: any) => api.post('/admin/users', dto),
+    onSuccess: () => {
+      toast.success('Compte créé !')
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      setShowCreateModal(false)
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (dto: any) => api.patch(`/admin/users/${selected.id}/profile`, dto)
+      .then((r: any) => r?.data?.data ?? r?.data),
+    onSuccess: (updated: any) => {
+      toast.success('Profil mis à jour')
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      setSelected((s: any) => ({ ...s, ...updated }))
+      setUserTab('info')
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   const columns = [
     { key: 'name', label: 'Nom',
       sortable: true,
@@ -97,7 +322,7 @@ export const Users: React.FC = () => {
       render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
     { key: 'actions', label: '', width: '80px', render: (r: any) => (
       <div className="flex gap-1">
-        <button onClick={(e) => { e.stopPropagation(); setSelected(r) }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+        <button onClick={(e) => { e.stopPropagation(); setSelected(r); setUserTab('info') }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
           <ExternalLink size={14}/>
         </button>
         {r.status === 'ACTIVE'
@@ -119,20 +344,40 @@ export const Users: React.FC = () => {
     )},
   ]
 
+  const closeDetail = () => { setSelected(null); setUserTab('info') }
+
   return (
     <div className="space-y-4">
+      <LocationPeriodFilters
+        region={region} onRegionChange={setRegion}
+        city={city}     onCityChange={setCity}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
+      />
+
       <div className="card p-5">
         <DataTable
           columns={columns}
           data={data || []}
           loading={isLoading}
-          onRowClick={setSelected}
+          onRowClick={(r) => { setSelected(r); setUserTab('info') }}
           exportable
           exportFilename="clients"
+          toolbar={
+            <button onClick={() => setShowCreateModal(true)} className="btn-primary text-xs px-3 h-9">
+              <Plus size={14}/> Nouveau client
+            </button>
+          }
         />
       </div>
 
-      <Modal open={!!selected} onClose={() => { setSelected(null); setUserTab('info') }} title="Détail client" size="lg">
+      {/* ── Modal Créer ── */}
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Créer un compte client">
+        <UserForm onSubmit={(dto) => createMutation.mutate(dto)} loading={createMutation.isPending}/>
+      </Modal>
+
+      {/* ── Modal Détail ── */}
+      <Modal open={!!selected} onClose={closeDetail} title="Détail client" size="lg">
         {selected && (
           <div className="space-y-4">
             {/* Header */}
@@ -149,13 +394,15 @@ export const Users: React.FC = () => {
             </div>
 
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-navy-700">
+            <div className="flex gap-1 border-b border-navy-700 overflow-x-auto">
               {([
-                { key: 'info', label: 'Informations' },
-                { key: 'wallet', label: 'Wallet' },
+                { key: 'info',     label: 'Informations' },
+                { key: 'edit',     label: 'Modifier' },
+                { key: 'wallet',   label: 'Wallet' },
+                { key: 'referral', label: 'Parrainage' },
               ] as const).map(({ key, label }) => (
                 <button key={key} onClick={() => setUserTab(key)}
-                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all ${userTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${userTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
                   {label}
                 </button>
               ))}
@@ -179,16 +426,20 @@ export const Users: React.FC = () => {
                   <div className="text-xs font-mono text-slate-400 break-all">{selected.id}</div>
                 </div>
                 <div className="flex gap-3 pt-1">
+                  <button onClick={() => setUserTab('edit')}
+                    className="btn-secondary flex-1 justify-center">
+                    <Edit2 size={14}/> Modifier
+                  </button>
                   {selected.status === 'ACTIVE'
                     ? <button onClick={async () => {
-                        const ok = await confirm({
-                          title: 'Suspendre ce compte ?',
-                          message: 'L\'utilisateur ne pourra plus se connecter tant que le compte sera suspendu. Vous pourrez le réactiver à tout moment.',
-                          variant: 'warning',
-                          confirmLabel: 'Suspendre',
-                        })
-                        if (ok) statusMutation.mutate({ id: selected.id, status: 'SUSPENDED' })
-                      }}
+                          const ok = await confirm({
+                            title: 'Suspendre ce compte ?',
+                            message: 'L\'utilisateur ne pourra plus se connecter tant que le compte sera suspendu. Vous pourrez le réactiver à tout moment.',
+                            variant: 'warning',
+                            confirmLabel: 'Suspendre',
+                          })
+                          if (ok) statusMutation.mutate({ id: selected.id, status: 'SUSPENDED' })
+                        }}
                         disabled={statusMutation.isPending} className="btn-secondary flex-1 justify-center text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10">
                         <UserX size={15}/> Suspendre
                       </button>
@@ -212,10 +463,18 @@ export const Users: React.FC = () => {
               </div>
             )}
 
+            {/* Onglet Modifier */}
+            {userTab === 'edit' && (
+              <UserForm
+                initial={selected}
+                onSubmit={(dto) => updateMutation.mutate(dto)}
+                loading={updateMutation.isPending}
+              />
+            )}
+
             {/* Onglet Wallet */}
             {userTab === 'wallet' && (
               <div className="space-y-4">
-                {/* Solde */}
                 <div className="card-sm p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
                     <Wallet size={18} className="text-brand-green"/>
@@ -226,7 +485,6 @@ export const Users: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ajustement manuel */}
                 <div className="card-sm p-4 space-y-3">
                   <div className="text-xs text-slate-500 font-bold">Ajustement manuel</div>
                   <div className="flex gap-2">
@@ -255,7 +513,6 @@ export const Users: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Historique */}
                 <div className="space-y-2">
                   <div className="text-xs text-slate-500 font-bold">Historique des transactions</div>
                   {!walletData || walletData.transactions?.length === 0
@@ -289,6 +546,14 @@ export const Users: React.FC = () => {
                   }
                 </div>
               </div>
+            )}
+
+            {/* Onglet Parrainage */}
+            {userTab === 'referral' && (
+              <ReferralTab
+                user={selected}
+                onCodeGenerated={(code) => setSelected((s: any) => ({ ...s, referralCode: code }))}
+              />
             )}
           </div>
         )}
