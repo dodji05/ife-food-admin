@@ -20,12 +20,16 @@ const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) =
     queryFn: () => api.get('/admin/professionals?limit=200').then((r: any) => r?.data?.data ?? r?.data ?? []),
   })
 
-  const filtered = useMemo(() => pros.filter((p: any) => {
+  // Seuls les pros créés par l'admin ET n'ayant pas encore effectué leur première connexion
+  // sont éligibles à la gestion de catalogue par l'admin.
+  const eligible = useMemo(() => pros.filter((p: any) => p.user?.createdByAdmin === true && !p.user?.lastLoginAt), [pros])
+
+  const filtered = useMemo(() => eligible.filter((p: any) => {
     const matchSearch  = !search        || p.businessName?.toLowerCase().includes(search.toLowerCase()) || p.city?.toLowerCase().includes(search.toLowerCase())
     const matchCountry = !filterCountry || p.country?.toLowerCase().includes(filterCountry.toLowerCase())
     const matchCity    = !filterCity    || p.city?.toLowerCase().includes(filterCity.toLowerCase())
     return matchSearch && matchCountry && matchCity
-  }), [pros, search, filterCountry, filterCity])
+  }), [eligible, search, filterCountry, filterCity])
 
   const hasFilters = search || filterCountry || filterCity
   const reset = () => { setSearch(''); setFilterCountry(''); setFilterCity('') }
@@ -65,17 +69,25 @@ const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) =
       </div>
 
       {/* Compteur */}
-      {hasFilters && (
-        <div className="text-xs text-slate-500 font-semibold">
-          {filtered.length} établissement{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
-        </div>
-      )}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-slate-500 font-semibold">
+          {hasFilters
+            ? `${filtered.length} établissement${filtered.length !== 1 ? 's' : ''} trouvé${filtered.length !== 1 ? 's' : ''}`
+            : `${eligible.length} établissement${eligible.length !== 1 ? 's' : ''} éligible${eligible.length !== 1 ? 's' : ''}`}
+        </span>
+        <span className="text-slate-600">Créés par l'admin · avant 1ère connexion</span>
+      </div>
 
       {/* Liste */}
       {isLoading ? (
         <div className="space-y-2">{Array.from({length:4}).map((_,i) => <div key={i} className="h-14 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+      ) : eligible.length === 0 ? (
+        <div className="text-center py-8 space-y-2">
+          <p className="text-slate-500 text-sm">Aucun établissement éligible.</p>
+          <p className="text-slate-600 text-xs">Seuls les établissements créés par un admin et n'ayant pas encore effectué leur première connexion peuvent être gérés ici.</p>
+        </div>
       ) : filtered.length === 0 ? (
-        <p className="text-slate-500 text-sm text-center py-8">Aucun établissement trouvé</p>
+        <p className="text-slate-500 text-sm text-center py-8">Aucun résultat pour ces filtres.</p>
       ) : (
         <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
           {filtered.map((p: any) => (
