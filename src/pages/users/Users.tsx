@@ -21,6 +21,8 @@ const TX_LABELS: Record<string, string> = {
   ADMIN_DEBIT: 'Débit admin',
 }
 
+const isEditableByAdmin = (u: any) => u?.createdByAdmin === true && !u?.lastLoginAt
+
 const COUNTRIES_LIST = [
   { code: 'BJ', name: 'Bénin',          currency: 'XOF', phone: '+229' },
   { code: 'SN', name: 'Sénégal',        currency: 'XOF', phone: '+221' },
@@ -302,6 +304,18 @@ export const Users: React.FC = () => {
               <div className="ml-auto"><Badge status={selected.status}/></div>
             </div>
 
+            {/* Bannière lecture seule */}
+            {!isEditableByAdmin(selected) && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/40 border border-slate-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+                <span>🔒</span>
+                <span>
+                  {!selected.createdByAdmin
+                    ? 'Compte créé depuis l\'application mobile — profil en lecture seule.'
+                    : 'L\'utilisateur s\'est déjà connecté — profil non modifiable.'}
+                </span>
+              </div>
+            )}
+
             {/* Onglets */}
             <div className="flex gap-1 border-b border-navy-700 overflow-x-auto">
               {([
@@ -309,7 +323,7 @@ export const Users: React.FC = () => {
                 { key: 'edit',     label: 'Modifier' },
                 { key: 'wallet',   label: 'Wallet' },
                 { key: 'referral', label: 'Parrainage' },
-              ] as const).map(({ key, label }) => (
+              ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected)).map(({ key, label }) => (
                 <button key={key} onClick={() => setUserTab(key)}
                   className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${userTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
                   {label}
@@ -335,10 +349,12 @@ export const Users: React.FC = () => {
                   <div className="text-xs font-mono text-slate-400 break-all">{selected.id}</div>
                 </div>
                 <div className="flex gap-3 pt-1">
-                  <button onClick={() => setUserTab('edit')}
-                    className="btn-secondary flex-1 justify-center">
-                    <Edit2 size={14}/> Modifier
-                  </button>
+                  {isEditableByAdmin(selected) && (
+                    <button onClick={() => setUserTab('edit')}
+                      className="btn-secondary flex-1 justify-center">
+                      <Edit2 size={14}/> Modifier
+                    </button>
+                  )}
                   {selected.status === 'ACTIVE'
                     ? <button onClick={async () => {
                           const ok = await confirm({
@@ -357,17 +373,19 @@ export const Users: React.FC = () => {
                         <UserCheck size={15}/> Réactiver
                       </button>
                   }
-                  <button onClick={async () => {
-                    const ok = await confirm({
-                      title: 'Supprimer définitivement ce compte ?',
-                      message: `Le compte de ${[selected.firstName, selected.name].filter(Boolean).join(' ') || selected.phone} sera effacé. Cette action est irréversible.`,
-                      variant: 'danger',
-                      confirmLabel: 'Supprimer',
-                    })
-                    if (ok) deleteMutation.mutate(selected.id)
-                  }} disabled={deleteMutation.isPending} className="btn-danger justify-center px-4">
-                    <Trash2 size={15}/>
-                  </button>
+                  {isEditableByAdmin(selected) && (
+                    <button onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Supprimer définitivement ce compte ?',
+                        message: `Le compte de ${[selected.firstName, selected.name].filter(Boolean).join(' ') || selected.phone} sera effacé. Cette action est irréversible.`,
+                        variant: 'danger',
+                        confirmLabel: 'Supprimer',
+                      })
+                      if (ok) deleteMutation.mutate(selected.id)
+                    }} disabled={deleteMutation.isPending} className="btn-danger justify-center px-4">
+                      <Trash2 size={15}/>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

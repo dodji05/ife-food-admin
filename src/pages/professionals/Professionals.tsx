@@ -40,6 +40,8 @@ const COUNTRIES_LIST = [
   { code: 'TG', name: 'Togo',          currency: 'XOF' },
 ]
 
+const isEditableByAdmin = (user: any) => user?.createdByAdmin === true && !user?.lastLoginAt
+
 // ─── Formulaire Professionnel ──────────────────────────────────────────────────
 interface ProFormProps {
   initial?: any
@@ -593,6 +595,18 @@ export const Professionals: React.FC = () => {
               <Badge status={selected.status || 'PENDING'}/>
             </div>
 
+            {/* Bannière lecture seule */}
+            {!isEditableByAdmin(selected.user) && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/40 border border-slate-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+                <span>🔒</span>
+                <span>
+                  {!selected.user?.createdByAdmin
+                    ? 'Compte créé depuis l\'application mobile — profil en lecture seule.'
+                    : 'Le responsable s\'est déjà connecté — profil non modifiable.'}
+                </span>
+              </div>
+            )}
+
             {/* Validation rapide si PENDING */}
             {selected.status === 'PENDING' && (
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl space-y-3">
@@ -621,7 +635,7 @@ export const Professionals: React.FC = () => {
                 { key: 'orders',     label: 'Commandes' },
                 { key: 'promotions', label: 'Promotions' },
                 { key: 'referral',   label: 'Parrainage' },
-              ] as const).map(({ key, label }) => (
+              ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected.user)).map(({ key, label }) => (
                 <button key={key} onClick={() => setDetailTab(key)}
                   className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
                   {label}
@@ -678,12 +692,14 @@ export const Professionals: React.FC = () => {
                   </div>
                 )}
                 <div className="text-xs text-slate-500 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
-                <button onClick={async () => {
-                  const ok = await confirm({ title: 'Supprimer cet établissement ?', message: `${selected.businessName} sera banni et le compte propriétaire désactivé. Action irréversible.`, variant: 'danger', confirmLabel: 'Supprimer' })
-                  if (ok) deleteMutation.mutate(selected.id)
-                }} disabled={deleteMutation.isPending} className="btn-danger text-sm justify-center w-full">
-                  <Trash2 size={14}/> Supprimer l'établissement
-                </button>
+                {isEditableByAdmin(selected.user) && (
+                  <button onClick={async () => {
+                    const ok = await confirm({ title: 'Supprimer cet établissement ?', message: `${selected.businessName} sera banni et le compte propriétaire désactivé. Action irréversible.`, variant: 'danger', confirmLabel: 'Supprimer' })
+                    if (ok) deleteMutation.mutate(selected.id)
+                  }} disabled={deleteMutation.isPending} className="btn-danger text-sm justify-center w-full">
+                    <Trash2 size={14}/> Supprimer l'établissement
+                  </button>
+                )}
               </div>
             )}
 

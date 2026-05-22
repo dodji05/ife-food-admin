@@ -23,6 +23,8 @@ const VEHICLE_LABELS: Record<string, string> = {
 
 const DRIVER_STATUSES = ['PENDING', 'VALIDATED', 'REJECTED', 'OFFLINE', 'ONLINE', 'BANNED']
 
+const isEditableByAdmin = (user: any) => user?.createdByAdmin === true && !user?.lastLoginAt
+
 interface DriverFormProps {
   initial?: any
   onSave: (dto: any) => void
@@ -403,21 +405,35 @@ export const Drivers: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Badge status={selected.status || 'PENDING'}/>
-                <button
-                  title="Supprimer"
-                  onClick={async () => {
-                    const ok = await confirm({
-                      title: 'Supprimer ce livreur ?',
-                      message: 'Le compte sera désactivé (BANNED). Cette action est irréversible.',
-                      variant: 'danger',
-                      confirmLabel: 'Supprimer',
-                    })
-                    if (ok) deleteMutation.mutate(selected.id)
-                  }}
-                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                ><Trash2 size={15}/></button>
+                {isEditableByAdmin(selected.user) && (
+                  <button
+                    title="Supprimer"
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Supprimer ce livreur ?',
+                        message: 'Le compte sera désactivé (BANNED). Cette action est irréversible.',
+                        variant: 'danger',
+                        confirmLabel: 'Supprimer',
+                      })
+                      if (ok) deleteMutation.mutate(selected.id)
+                    }}
+                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  ><Trash2 size={15}/></button>
+                )}
               </div>
             </div>
+
+            {/* Bannière lecture seule */}
+            {!isEditableByAdmin(selected.user) && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/40 border border-slate-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+                <span>🔒</span>
+                <span>
+                  {!selected.user?.createdByAdmin
+                    ? 'Compte créé depuis l\'application mobile — profil en lecture seule.'
+                    : 'Le livreur s\'est déjà connecté — profil non modifiable.'}
+                </span>
+              </div>
+            )}
 
             {/* Validation rapide si PENDING */}
             {selected.status === 'PENDING' && (
@@ -449,7 +465,7 @@ export const Drivers: React.FC = () => {
                 { key: 'edit',     label: 'Modifier' },
                 { key: 'missions', label: 'Missions' },
                 { key: 'referral', label: 'Parrainage' },
-              ] as const).map(({ key, label }) => (
+              ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected.user)).map(({ key, label }) => (
                 <button key={key} onClick={() => setDetailTab(key)}
                   className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
                   {label}
