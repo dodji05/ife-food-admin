@@ -9,7 +9,7 @@ import { unwrap } from '../../utils/api'
 import {
   CreditCard, DollarSign, TrendingUp, Truck, ArrowUpDown,
   Save, RefreshCw, CheckCircle, XCircle, Clock, ExternalLink,
-  BarChart3, Building2, MapPin,
+  BarChart3, Building2, MapPin, Key, Eye, EyeOff, ChevronDown, ChevronRight,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { COUNTRIES } from '../../constants/countries'
@@ -507,11 +507,43 @@ const DeliveryFeesTab: React.FC = () => {
   )
 }
 
+// ─── Schéma des champs de credentials par passerelle ─────────────────────────
+type CredFieldDef = { key: string; label: string; type?: 'password' | 'text' | 'url' | 'boolean' }
+const CRED_FIELDS: Record<string, CredFieldDef[]> = {
+  FEDAPAY: [
+    { key: 'secretKey',     label: 'Clé secrète',    type: 'password' },
+    { key: 'webhookSecret', label: 'Secret webhook',  type: 'password' },
+    { key: 'callbackUrl',   label: 'URL callback',    type: 'url' },
+    { key: 'sandbox',       label: 'Mode sandbox',    type: 'boolean' },
+  ],
+  KKIAPAY: [
+    { key: 'privateKey', label: 'Clé privée',   type: 'password' },
+    { key: 'secret',     label: 'Clé secrète',  type: 'password' },
+    { key: 'sandbox',    label: 'Mode sandbox', type: 'boolean' },
+  ],
+  STRIPE: [
+    { key: 'secretKey',     label: 'Clé secrète',   type: 'password' },
+    { key: 'webhookSecret', label: 'Secret webhook', type: 'password' },
+  ],
+  PAYPAL: [
+    { key: 'clientId',     label: 'Client ID',     type: 'text' },
+    { key: 'clientSecret', label: 'Client secret', type: 'password' },
+    { key: 'sandbox',      label: 'Mode sandbox',  type: 'boolean' },
+  ],
+}
+
 // ─── Onglet Passerelles ───────────────────────────────────────────────────────
 const GatewaysTab: React.FC = () => {
   const qc = useQueryClient()
   const [gateways, setGateways] = useState({ STRIPE: true, PAYPAL: true, KKIAPAY: true, FEDAPAY: true, CASH_ON_DELIVERY: true })
   const [loaded, setLoaded] = useState(false)
+
+  // Credentials state
+  const [maskedCreds, setMaskedCreds] = useState<Record<string, Record<string, any>>>({})
+  const [editedCreds, setEditedCreds] = useState<Record<string, Record<string, string | boolean>>>({})
+  const [credsLoaded, setCredsLoaded] = useState(false)
+  const [showFields, setShowFields] = useState<Record<string, boolean>>({})
+  const [expandedGw, setExpandedGw] = useState<Record<string, boolean>>({})
 
   const { data: payStats, isLoading: statsLoading } = useQuery({
     queryKey: ['payment-stats'],
@@ -535,11 +567,65 @@ const GatewaysTab: React.FC = () => {
     },
   })
 
+  useQuery({
+    queryKey: ['payment-credentials'],
+    queryFn: () => api.get('/admin/config/payment-credentials').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: !credsLoaded,
+    select: (d: any) => {
+      if (!credsLoaded && d) {
+        setMaskedCreds(d)
+        setCredsLoaded(true)
+      }
+      return d
+    },
+  })
+
   const saveMutation = useMutation({
     mutationFn: () => api.put('/admin/config/payment-gateways', gateways),
     onSuccess: () => { toast.success('Passerelles mises à jour !'); qc.invalidateQueries({ queryKey: ['gateway-config'] }) },
     onError: (e: any) => toast.error(e.message),
   })
+
+  const saveCredsMutation = useMutation({
+    mutationFn: () => {
+      const payload: Record<string, Record<string, any>> = {}
+      for (const [gw, fields] of Object.entries(CRED_FIELDS)) {
+        payload[gw] = {}
+        for (const field of fields) {
+          if (field.type === 'boolean') {
+            const edited = editedCreds[gw]?.[field.key]
+            payload[gw][field.key] = edited !== undefined ? edited : (maskedCreds[gw]?.[field.key] ?? true)
+          } else {
+            const val = editedCreds[gw]?.[field.key]
+            payload[gw][field.key] = (val !== undefined && val !== '') ? val : '__keep__'
+          }
+        }
+      }
+      return api.put('/admin/config/payment-credentials', payload)
+    },
+    onSuccess: () => {
+      toast.success('Clés API enregistrées !')
+      setEditedCreds({})
+      setCredsLoaded(false)
+      qc.invalidateQueries({ queryKey: ['payment-credentials'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const setCredField = (gw: string, key: string, value: string | boolean) => {
+    setEditedCreds(prev => ({ ...prev, [gw]: { ...(prev[gw] ?? {}), [key]: value } }))
+  }
+
+  const toggleShow = (fieldId: string) => setShowFields(prev => ({ ...prev, [fieldId]: !prev[fieldId] }))
+  const toggleExpand = (gw: string) => setExpandedGw(prev => ({ ...prev, [gw]: !prev[gw] }))
+
+  const getSandboxValue = (gw: string): boolean => {
+    const edited = editedCreds[gw]?.sandbox
+    if (edited !== undefined) return edited as boolean
+    return maskedCreds[gw]?.sandbox ?? true
+  }
 
   const gatewayStats: any[] = payStats?.gatewayStats ?? []
 
@@ -590,6 +676,98 @@ const GatewaysTab: React.FC = () => {
           disabled={saveMutation.isPending}
           className="btn-primary w-full justify-center">
           <Save size={14}/> Enregistrer
+        </button>
+      </div>
+
+      {/* Clés API */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Key size={15} className="text-brand-green"/>
+          <span className="font-black text-slate-100 text-sm">Clés API & Configuration</span>
+          <span className="ml-auto text-[10px] text-slate-500 bg-navy-700 px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
+        </div>
+        <p className="text-xs text-slate-500">Laissez un champ vide pour conserver la valeur actuelle. Les clés affichées sont masquées.</p>
+
+        <div className="space-y-3">
+          {Object.entries(CRED_FIELDS).map(([gw, fields]) => {
+            const isExpanded = expandedGw[gw] ?? false
+            const hasSavedCreds = Object.keys(maskedCreds[gw] ?? {}).some(k => {
+              const v = maskedCreds[gw][k]
+              return typeof v === 'string' && v && v !== '****'
+            })
+            return (
+              <div key={gw} className="bg-navy-900 rounded-xl border border-navy-700 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(gw)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-navy-800 transition-colors text-left">
+                  <span className="text-xl flex-shrink-0">{GATEWAY_ICONS[gw] ?? '💰'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-slate-200">{GATEWAY_LABELS[gw] ?? gw}</div>
+                    {hasSavedCreds
+                      ? <div className="text-[10px] text-brand-green font-semibold">Clés configurées</div>
+                      : <div className="text-[10px] text-slate-500">Aucune clé enregistrée</div>
+                    }
+                  </div>
+                  {isExpanded ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0"/> : <ChevronRight size={14} className="text-slate-400 flex-shrink-0"/>}
+                </button>
+
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
+                    {fields.map(field => {
+                      const fieldId = `${gw}__${field.key}`
+                      if (field.type === 'boolean') {
+                        return (
+                          <div key={field.key} className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-400">{field.label}</span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={getSandboxValue(gw)}
+                                onChange={e => setCredField(gw, field.key, e.target.checked)}
+                                className="sr-only peer"/>
+                              <div className="w-10 h-5 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-yellow-500 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
+                              <span className="ml-2 text-xs text-slate-400">{getSandboxValue(gw) ? 'Sandbox' : 'Live'}</span>
+                            </label>
+                          </div>
+                        )
+                      }
+                      const maskedVal = maskedCreds[gw]?.[field.key] ?? ''
+                      const editVal = editedCreds[gw]?.[field.key] as string | undefined
+                      const isVisible = showFields[fieldId]
+                      return (
+                        <div key={field.key} className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">{field.label}</label>
+                          <div className="flex gap-2">
+                            <input
+                              type={field.type === 'url' ? 'url' : (isVisible ? 'text' : 'password')}
+                              value={editVal ?? ''}
+                              onChange={e => setCredField(gw, field.key, e.target.value)}
+                              placeholder={maskedVal || 'Non configuré'}
+                              className="input flex-1 text-sm font-mono"
+                            />
+                            {field.type !== 'url' && (
+                              <button type="button" onClick={() => toggleShow(fieldId)}
+                                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-navy-700 rounded-lg flex-shrink-0">
+                                {isVisible ? <EyeOff size={14}/> : <Eye size={14}/>}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={() => saveCredsMutation.mutate()}
+          disabled={saveCredsMutation.isPending}
+          className="btn-primary w-full justify-center">
+          <Save size={14}/> Enregistrer les clés API
         </button>
       </div>
     </div>
