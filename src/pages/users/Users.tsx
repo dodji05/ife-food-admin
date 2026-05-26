@@ -12,7 +12,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import { COUNTRIES } from '../../constants/countries'
 import {
   UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown,
-  Gift, Plus, Edit2,
+  Gift, Plus, Edit2, Search,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -127,6 +127,7 @@ export const Users: React.FC = () => {
   const { country } = useFiltersStore()
   const [region, setRegion] = useState('')
   const [city, setCity] = useState('')
+  const [search, setSearch] = useState('')
 
   const [selected, setSelected] = useState<any>(null)
   const [userTab, setUserTab] = useState<'info' | 'wallet' | 'referral' | 'edit'>('info')
@@ -136,10 +137,11 @@ export const Users: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['admin-users', country],
+    queryKey: ['admin-users', country, region, city, search],
     queryFn: () => {
       const params = new URLSearchParams({ role: 'CLIENT' })
       if (country) params.set('country', country)
+      if (search.trim()) params.set('search', search.trim())
       return api.get(`/admin/users?${params}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
     },
   })
@@ -270,9 +272,20 @@ export const Users: React.FC = () => {
           exportable
           exportFilename="clients"
           toolbar={
-            <button onClick={() => setShowCreateModal(true)} className="btn-primary text-xs px-3 h-9">
-              <Plus size={14}/> Nouveau client
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Rechercher nom, téléphone, email…"
+                  className="input h-9 pl-8 text-xs w-56"
+                />
+              </div>
+              <button onClick={() => setShowCreateModal(true)} className="btn-primary text-xs px-3 h-9">
+                <Plus size={14}/> Nouveau client
+              </button>
+            </div>
           }
         />
       </div>
@@ -337,6 +350,16 @@ export const Users: React.FC = () => {
                   <div className="card-sm p-3">
                     <div className="text-xs text-slate-500 font-bold mb-1">Inscription</div>
                     <div className="text-sm font-semibold text-slate-300">{formatDateTime(selected.createdAt)}</div>
+                  </div>
+                  <div className="card-sm p-3">
+                    <div className="text-xs text-slate-500 font-bold mb-1">Dernière connexion</div>
+                    <div className="text-sm font-semibold text-slate-300">
+                      {selected.lastLoginAt ? formatDateTime(selected.lastLoginAt) : <span className="text-slate-500 italic">Jamais connecté</span>}
+                    </div>
+                  </div>
+                  <div className="card-sm p-3">
+                    <div className="text-xs text-slate-500 font-bold mb-1">Langue</div>
+                    <div className="font-semibold text-slate-200 uppercase">{selected.lang ?? '—'}</div>
                   </div>
                 </div>
                 <div className="card-sm p-3">
