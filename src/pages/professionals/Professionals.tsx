@@ -133,10 +133,12 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
           <label className="label">Adresse *</label>
           <input className="input w-full" value={form.address} onChange={set('address')} placeholder="123 rue du marché"/>
         </div>
-        <div>
-          <label className="label">Commission (%)</label>
-          <input className="input w-full" type="number" min="0" max="100" value={form.commissionRate} onChange={set('commissionRate')} placeholder="10"/>
-        </div>
+        {isEdit && (
+          <div>
+            <label className="label">Commission (%)</label>
+            <input className="input w-full" type="number" min="0" max="100" value={form.commissionRate} onChange={set('commissionRate')} placeholder="10"/>
+          </div>
+        )}
         <div>
           <label className="label">Rayon livraison (km)</label>
           <input className="input w-full" type="number" min="1" value={form.deliveryRadiusKm} onChange={set('deliveryRadiusKm')}/>
@@ -159,6 +161,310 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
         className="btn-primary w-full justify-center">
         {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer l\'établissement'}
       </button>
+    </div>
+  )
+}
+
+// ─── Onglet Catalogue ─────────────────────────────────────────────────────────
+const EMPTY_PRODUCT = { name: '', price: '', categoryId: '', description: '', imageUrl: '', isAvailable: true, stock: '' }
+
+const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
+  const qc = useQueryClient()
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [catName, setCatName] = useState('')
+  const [openCats, setOpenCats] = useState<Set<string>>(new Set())
+  const [showProductForm, setShowProductForm] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<any>(null)
+  const [productForm, setProductForm] = useState<any>(EMPTY_PRODUCT)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const confirm = useConfirm()
+
+  const { data: catalogueData, isLoading } = useQuery({
+    queryKey: ['pro-catalogue-tab', proId],
+    queryFn: () => api.get(`/admin/catalogue/${proId}`).then(unwrap),
+    enabled: !!proId,
+  })
+
+  const categories: any[] = catalogueData?.categories ?? []
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['pro-catalogue-tab', proId] })
+
+  const setField = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setProductForm((f: any) => ({ ...f, [k]: e.target.value }))
+
+  const toggleCat = (id: string) => setOpenCats(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  // ─── Mutations ─────────────────────────────────────────────────────────────
+
+  const createCatMutation = useMutation({
+    mutationFn: (name: string) => api.post(`/admin/catalogue/${proId}/categories`, { name }),
+    onSuccess: () => { toast.success('Catégorie créée'); invalidate(); setShowNewCat(false); setCatName('') },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const deleteCatMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/catalogue/categories/${id}`),
+    onSuccess: () => { toast.success('Catégorie supprimée'); invalidate() },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const createProductMutation = useMutation({
+    mutationFn: (dto: any) => api.post(`/admin/catalogue/${proId}/products`, dto),
+    onSuccess: () => { toast.success('Produit ajouté'); invalidate(); setShowProductForm(false); setProductForm(EMPTY_PRODUCT); setImageFile(null) },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const updateProductMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: any }) => api.patch(`/admin/catalogue/products/${id}`, dto),
+    onSuccess: () => { toast.success('Produit mis à jour'); invalidate(); setEditingProduct(null); setProductForm(EMPTY_PRODUCT); setImageFile(null) },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const deleteProductMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/catalogue/products/${id}`),
+    onSuccess: () => { toast.success('Produit supprimé'); invalidate() },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/admin/catalogue/products/${id}/toggle`, {}),
+    onSuccess: () => invalidate(),
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  // ─── Upload image ──────────────────────────────────────────────────────────
+
+  const handleImageUpload = async (): Promise<string | null> => {
+    if (!imageFile) return productForm.imageUrl || null
+    setUploadingImage(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', imageFile)
+      const res: any = await api.post('/admin/catalogue/upload-image', fd)
+      return res?.data?.url ?? res?.url ?? null
+    } catch (e: any) {
+      toast.error('Erreur upload : ' + e.message)
+      return null
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  // ─── Soumission produit ────────────────────────────────────────────────────
+
+  const handleProductSubmit = async () => {
+    if (!productForm.name.trim()) { toast.error('Nom requis'); return }
+    if (!productForm.price || isNaN(Number(productForm.price))) { toast.error('Prix valide requis'); return }
+
+    const imageUrl = await handleImageUpload()
+
+    const dto = {
+      name: productForm.name.trim(),
+      price: Number(productForm.price),
+      categoryId: productForm.categoryId || null,
+      description: productForm.description.trim() || null,
+      imageUrl: imageUrl || null,
+      isAvailable: productForm.isAvailable,
+      stock: productForm.stock ? Number(productForm.stock) : null,
+      currency: 'XOF',
+    }
+
+    if (editingProduct) {
+      updateProductMutation.mutate({ id: editingProduct.id, dto })
+    } else {
+      createProductMutation.mutate(dto)
+    }
+  }
+
+  const openEdit = (product: any) => {
+    setEditingProduct(product)
+    setProductForm({
+      name: typeof product.name === 'string' ? product.name : (product.name?.fr || product.name?.en || ''),
+      price: String(product.price ?? ''),
+      categoryId: product.categoryId ?? '',
+      description: product.description ?? '',
+      imageUrl: product.imageUrl ?? '',
+      isAvailable: product.isAvailable ?? true,
+      stock: product.stock != null ? String(product.stock) : '',
+    })
+    setImageFile(null)
+    setShowProductForm(false)
+  }
+
+  const cancelForm = () => { setShowProductForm(false); setEditingProduct(null); setProductForm(EMPTY_PRODUCT); setImageFile(null) }
+
+  const isSubmitting = createProductMutation.isPending || updateProductMutation.isPending || uploadingImage
+
+  // ─── Formulaire produit inline ─────────────────────────────────────────────
+
+  const ProductForm = () => (
+    <div className="card-sm p-4 space-y-3">
+      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        {editingProduct ? `Modifier — ${typeof editingProduct.name === 'string' ? editingProduct.name : editingProduct.name?.fr}` : 'Nouveau produit'}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="col-span-2">
+          <label className="label">Nom *</label>
+          <input className="input w-full" value={productForm.name} onChange={setField('name')} placeholder="ex: Riz sauce graine"/>
+        </div>
+        <div>
+          <label className="label">Prix (XOF) *</label>
+          <input className="input w-full" type="number" min="0" value={productForm.price} onChange={setField('price')} placeholder="2500"/>
+        </div>
+        <div>
+          <label className="label">Catégorie</label>
+          <select className="input w-full appearance-none cursor-pointer" value={productForm.categoryId} onChange={setField('categoryId')}>
+            <option value="">Sans catégorie</option>
+            {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="col-span-2">
+          <label className="label">Description</label>
+          <textarea className="input w-full h-16 resize-none text-sm" value={productForm.description} onChange={setField('description')} placeholder="Description optionnelle…"/>
+        </div>
+        <div>
+          <label className="label">Image</label>
+          <input
+            type="file" accept="image/jpeg,image/png,image/webp"
+            onChange={e => setImageFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-navy-700 file:text-slate-300 file:cursor-pointer cursor-pointer"
+          />
+          {(imageFile || productForm.imageUrl) && (
+            <div className="mt-2">
+              <img
+                src={imageFile ? URL.createObjectURL(imageFile) : productForm.imageUrl}
+                alt="aperçu" className="h-16 w-16 rounded-lg object-cover border border-navy-600"
+              />
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="label">Stock</label>
+          <input className="input w-full" type="number" min="0" value={productForm.stock} onChange={setField('stock')} placeholder="Illimité"/>
+        </div>
+        <div className="col-span-2 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setProductForm((f: any) => ({ ...f, isAvailable: !f.isAvailable }))}
+            className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition-colors ${productForm.isAvailable ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-navy-700 border-navy-600 text-slate-400'}`}
+          >
+            {productForm.isAvailable ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
+            {productForm.isAvailable ? 'Disponible' : 'Indisponible'}
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={cancelForm} className="btn-secondary flex-1 justify-center">Annuler</button>
+        <button onClick={handleProductSubmit} disabled={isSubmitting} className="btn-primary flex-1 justify-center">
+          {isSubmitting ? 'Enregistrement…' : editingProduct ? 'Enregistrer' : 'Ajouter le produit'}
+        </button>
+      </div>
+    </div>
+  )
+
+  if (isLoading) return <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
+
+  return (
+    <div className="space-y-3">
+      {/* Actions bar */}
+      {!showProductForm && !editingProduct && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowProductForm(true)} className="btn-primary text-sm">
+            <Plus size={14}/> Nouveau produit
+          </button>
+          {!showNewCat && (
+            <button onClick={() => setShowNewCat(true)} className="btn-secondary text-sm">
+              <Plus size={14}/> Nouvelle catégorie
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Formulaire nouvelle catégorie */}
+      {showNewCat && (
+        <div className="card-sm p-3 flex items-center gap-2">
+          <input
+            className="input flex-1 text-sm" placeholder="Nom de la catégorie…"
+            value={catName} onChange={e => setCatName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && catName.trim()) createCatMutation.mutate(catName.trim()) }}
+            autoFocus
+          />
+          <button onClick={() => { setCatName(''); setShowNewCat(false) }} className="btn-secondary text-xs px-2">Annuler</button>
+          <button onClick={() => catName.trim() && createCatMutation.mutate(catName.trim())}
+            disabled={createCatMutation.isPending || !catName.trim()}
+            className="btn-primary text-xs px-3">
+            Créer
+          </button>
+        </div>
+      )}
+
+      {/* Formulaire produit (nouveau ou édition) */}
+      {(showProductForm || editingProduct) && <ProductForm/>}
+
+      {/* Liste des catégories + produits */}
+      {categories.length === 0 && !showProductForm ? (
+        <div className="text-center py-10 text-slate-500 text-sm">Aucune catégorie — créez-en une ou ajoutez un produit directement</div>
+      ) : (
+        <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+          {categories.map((cat: any) => (
+            <div key={cat.id} className="card-sm overflow-hidden">
+              <div className="flex items-center justify-between p-3 hover:bg-navy-700/50 transition-colors">
+                <button onClick={() => toggleCat(cat.id)} className="flex items-center gap-2 flex-1 text-left">
+                  <span className="text-sm font-bold text-slate-200">{cat.name}</span>
+                  <span className="text-xs text-slate-500 bg-navy-700 px-1.5 py-0.5 rounded-md">{cat.products?.length || 0}</span>
+                  {openCats.has(cat.id) ? <ChevronDown size={14} className="text-slate-500"/> : <ChevronRight size={14} className="text-slate-500"/>}
+                </button>
+                <button
+                  onClick={async () => {
+                    const ok = await confirm({ title: 'Supprimer cette catégorie ?', message: 'Les produits ne seront pas supprimés.', variant: 'danger', confirmLabel: 'Supprimer' })
+                    if (ok) deleteCatMutation.mutate(cat.id)
+                  }}
+                  className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg flex-shrink-0">
+                  <Trash2 size={13}/>
+                </button>
+              </div>
+              {openCats.has(cat.id) && (
+                <div className="border-t border-navy-700 divide-y divide-navy-700">
+                  {cat.products?.length === 0 && (
+                    <div className="px-4 py-3 text-xs text-slate-500 italic">Aucun produit dans cette catégorie</div>
+                  )}
+                  {cat.products?.map((p: any) => (
+                    <div key={p.id} className="flex items-center gap-3 px-4 py-2">
+                      {p.imageUrl && (
+                        <img src={p.imageUrl} alt={p.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-navy-600"/>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-slate-300 font-semibold truncate">
+                          {typeof p.name === 'string' ? p.name : p.name?.fr || p.name?.en || '—'}
+                        </div>
+                        <div className="text-xs text-slate-500">{formatCFA(p.price)}{p.stock != null ? ` · stock: ${p.stock}` : ''}</div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${p.isAvailable ? 'text-green-400 bg-green-500/10' : 'text-slate-500 bg-navy-700'}`}>
+                          {p.isAvailable ? 'Dispo' : 'Indispo'}
+                        </span>
+                        <button onClick={() => toggleMutation.mutate(p.id)}
+                          className={`p-1 rounded-lg ${p.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-slate-500 hover:bg-navy-700'}`}>
+                          {p.isAvailable ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
+                        </button>
+                        <button onClick={() => openEdit(p)} className="p-1 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg"><Edit2 size={13}/></button>
+                        <button onClick={async () => {
+                          const ok = await confirm({ title: 'Supprimer ce produit ?', message: p.name, variant: 'danger', confirmLabel: 'Supprimer' })
+                          if (ok) deleteProductMutation.mutate(p.id)
+                        }} className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 size={13}/></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -336,7 +642,6 @@ export const Professionals: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailTab, setDetailTab] = useState<'info' | 'edit' | 'catalogue' | 'orders' | 'promotions' | 'referral'>('info')
   const [rejectNote, setRejectNote] = useState('')
-  const [openCats, setOpenCats] = useState<Set<string>>(new Set())
   const [showCreateModal, setShowCreateModal] = useState(false)
   const { country } = useFiltersStore()
   const qc = useQueryClient()
@@ -368,12 +673,6 @@ export const Professionals: React.FC = () => {
     queryKey: ['pro-detail', selectedId],
     queryFn: () => api.get(`/admin/professionals/${selectedId}`).then(unwrap),
     enabled: !!selectedId,
-  })
-
-  const { data: catalogueData } = useQuery({
-    queryKey: ['pro-catalogue', selectedId],
-    queryFn: () => api.get(`/admin/catalogue/${selectedId}`).then(unwrap),
-    enabled: !!selectedId && detailTab === 'catalogue',
   })
 
   const { data: ordersData } = useQuery({
@@ -438,14 +737,7 @@ export const Professionals: React.FC = () => {
     setSelectedId(row.id)
     setDetailTab('info')
     setRejectNote('')
-    setOpenCats(new Set())
   }
-
-  const toggleCat = (id: string) => setOpenCats(prev => {
-    const next = new Set(prev)
-    next.has(id) ? next.delete(id) : next.add(id)
-    return next
-  })
 
   const baseColumns = [
     {
@@ -505,7 +797,6 @@ export const Professionals: React.FC = () => {
   ]
 
   const selected = proDetail
-  const categories = catalogueData?.categories ?? []
   const proOrders = ordersData?.orders ?? []
   const orderStats = ordersData?.stats
 
@@ -707,48 +998,7 @@ export const Professionals: React.FC = () => {
             )}
 
             {/* Onglet : Catalogue */}
-            {detailTab === 'catalogue' && (
-              <div>
-                {!catalogueData
-                  ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
-                  : categories.length === 0
-                    ? <div className="text-center py-10 text-slate-500 text-sm">Aucune catégorie dans le catalogue</div>
-                    : (
-                      <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                        {categories.map((cat: any) => (
-                          <div key={cat.id} className="card-sm overflow-hidden">
-                            <button onClick={() => toggleCat(cat.id)}
-                              className="w-full flex items-center justify-between p-3 text-left hover:bg-navy-700/50 transition-colors">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-slate-200">{cat.name}</span>
-                                <span className="text-xs text-slate-500 bg-navy-700 px-1.5 py-0.5 rounded-md">{cat.products?.length || 0} produit{cat.products?.length !== 1 ? 's' : ''}</span>
-                              </div>
-                              {openCats.has(cat.id) ? <ChevronDown size={14} className="text-slate-500"/> : <ChevronRight size={14} className="text-slate-500"/>}
-                            </button>
-                            {openCats.has(cat.id) && cat.products?.length > 0 && (
-                              <div className="border-t border-navy-700 divide-y divide-navy-700">
-                                {cat.products.map((p: any) => (
-                                  <div key={p.id} className="flex items-center justify-between px-4 py-2 gap-3">
-                                    <div className="min-w-0">
-                                      <div className="text-sm text-slate-300 font-semibold truncate">{p.name}</div>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                      <span className="text-sm font-bold text-slate-200">{formatCFA(p.price)}</span>
-                                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${p.isAvailable ? 'text-green-400 bg-green-500/10' : 'text-slate-500 bg-navy-700'}`}>
-                                        {p.isAvailable ? 'Dispo' : 'Indispo'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                }
-              </div>
-            )}
+            {detailTab === 'catalogue' && <CatalogueTab proId={selected.id}/>}
 
             {/* Onglet : Commandes */}
             {detailTab === 'orders' && (
