@@ -8,6 +8,7 @@ import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
 import { unwrap } from '../../utils/api'
+import { COUNTRIES } from '../../constants/countries'
 import {
   CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail,
   MapPin, FileText, Package, Plus, Trash2, Gift,
@@ -28,12 +29,15 @@ const isEditableByAdmin = (user: any) => user?.createdByAdmin === true && !user?
 
 interface DriverFormProps {
   initial?: any
+  zones: any[]
   onSave: (dto: any) => void
   saving: boolean
   mode: 'create' | 'edit'
 }
 
-const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }) => {
+const DriverForm: React.FC<DriverFormProps> = ({ initial, zones, onSave, saving, mode }) => {
+  const initialZoneIds: string[] = initial?.selectedZones?.map((sz: any) => sz.deliveryZoneId) ?? []
+
   const [form, setForm] = useState({
     name: initial?.user?.name ?? '',
     firstName: initial?.user?.firstName ?? '',
@@ -44,10 +48,34 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }
     zoneCity: initial?.zoneCity ?? '',
     zoneCountry: initial?.zoneCountry ?? 'BJ',
     licensePlate: initial?.licensePlate ?? '',
+    deliveryZoneIds: initialZoneIds,
   })
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCountry = e.target.value
+    const compatibleZoneIds = zones
+      .filter(z => z.country === newCountry)
+      .map(z => z.id)
+    setForm(f => ({
+      ...f,
+      zoneCountry: newCountry,
+      deliveryZoneIds: f.deliveryZoneIds.filter(id => compatibleZoneIds.includes(id)),
+    }))
+  }
+
+  const toggleZone = (zoneId: string) => {
+    setForm(f => ({
+      ...f,
+      deliveryZoneIds: f.deliveryZoneIds.includes(zoneId)
+        ? f.deliveryZoneIds.filter(id => id !== zoneId)
+        : [...f.deliveryZoneIds, zoneId],
+    }))
+  }
+
+  const filteredZones = zones.filter(z => !form.zoneCountry || z.country === form.zoneCountry)
 
   const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex flex-col gap-1">
@@ -91,16 +119,55 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, onSave, saving, mode }
             {VEHICLE_TYPES.map(v => <option key={v} value={v}>{VEHICLE_LABELS[v]}</option>)}
           </select>
         </Field>
+        <Field label="Pays">
+          <select className="input" value={form.zoneCountry} onChange={handleCountryChange}>
+            {COUNTRIES.map(c => (
+              <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+            ))}
+          </select>
+        </Field>
         <Field label="Ville (zone)">
           <input className="input" value={form.zoneCity} onChange={set('zoneCity')} placeholder="Cotonou"/>
-        </Field>
-        <Field label="Pays (zone)">
-          <input className="input" value={form.zoneCountry} onChange={set('zoneCountry')} placeholder="BJ"/>
         </Field>
         <Field label="Plaque d'immat.">
           <input className="input" value={form.licensePlate} onChange={set('licensePlate')} placeholder="AB-123-BJ"/>
         </Field>
       </div>
+
+      {/* Zones de livraison */}
+      <div className="flex flex-col gap-2">
+        <label className="label text-[11px]">
+          Zones de livraison
+          {filteredZones.length === 0 && form.zoneCountry && (
+            <span className="ml-2 text-slate-500 font-normal">— aucune zone configurée pour ce pays</span>
+          )}
+        </label>
+        {filteredZones.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-3 bg-navy-800/50 rounded-xl border border-navy-600">
+            {filteredZones.map(zone => {
+              const selected = form.deliveryZoneIds.includes(zone.id)
+              return (
+                <button
+                  key={zone.id}
+                  type="button"
+                  onClick={() => toggleZone(zone.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    selected
+                      ? 'bg-brand-green/20 border-brand-green text-brand-green'
+                      : 'bg-navy-700 border-navy-600 text-slate-400 hover:text-slate-200 hover:border-navy-500'
+                  }`}
+                >
+                  {zone.name}
+                  {zone.fromCity && zone.toCity && (
+                    <span className="ml-1 font-normal opacity-70">{zone.fromCity}→{zone.toCity}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <button type="submit" disabled={saving} className="btn-primary w-full justify-center">
         {saving ? 'Enregistrement…' : mode === 'create' ? 'Créer le livreur' : 'Enregistrer les modifications'}
       </button>
@@ -123,6 +190,15 @@ export const Drivers: React.FC = () => {
 
   const qc = useQueryClient()
   const confirm = useConfirm()
+
+  const { data: deliveryZones = [] } = useQuery({
+    queryKey: ['delivery-zones'],
+    queryFn: () => api.get('/admin/delivery-zones').then((r: any) => {
+      const d = unwrap(r)
+      return Array.isArray(d) ? d : []
+    }),
+    staleTime: 5 * 60 * 1000,
+  })
 
   const buildParams = () => {
     const p = new URLSearchParams()
@@ -321,9 +397,14 @@ export const Drivers: React.FC = () => {
 
       {/* Filtres */}
       <div className="card p-4 flex flex-wrap gap-3 items-end">
-        <div className="flex flex-col gap-1 min-w-[120px]">
+        <div className="flex flex-col gap-1 min-w-[160px]">
           <label className="label text-[10px]">Pays</label>
-          <input className="input text-sm" value={filterCountry} onChange={e => setFilterCountry(e.target.value)} placeholder="BJ"/>
+          <select className="input text-sm" value={filterCountry} onChange={e => setFilterCountry(e.target.value)}>
+            <option value="">Tous les pays</option>
+            {COUNTRIES.map(c => (
+              <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col gap-1 min-w-[140px]">
           <label className="label text-[10px]">Ville</label>
@@ -384,7 +465,12 @@ export const Drivers: React.FC = () => {
 
       {/* Modale création */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nouveau livreur" size="lg">
-        <DriverForm mode="create" onSave={dto => createMutation.mutate(dto)} saving={createMutation.isPending}/>
+        <DriverForm
+          mode="create"
+          zones={deliveryZones}
+          onSave={dto => createMutation.mutate(dto)}
+          saving={createMutation.isPending}
+        />
       </Modal>
 
       {/* Modale détail */}
@@ -515,6 +601,23 @@ export const Drivers: React.FC = () => {
                   )}
                 </div>
 
+                {/* Zones de livraison assignées */}
+                {selected.selectedZones?.length > 0 && (
+                  <div className="card-sm p-3">
+                    <div className="label mb-2 flex items-center gap-1.5"><MapPin size={13}/> Zones de livraison ({selected.selectedZones.length})</div>
+                    <div className="flex flex-wrap gap-2">
+                      {selected.selectedZones.map((sz: any) => (
+                        <span key={sz.deliveryZoneId} className="px-2.5 py-1 bg-brand-green/10 border border-brand-green/30 text-brand-green text-xs font-bold rounded-lg">
+                          {sz.deliveryZone?.name || sz.deliveryZoneId}
+                          {sz.deliveryZone?.fromCity && sz.deliveryZone?.toCity && (
+                            <span className="ml-1 font-normal opacity-70">{sz.deliveryZone.fromCity}→{sz.deliveryZone.toCity}</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="card-sm p-3">
                   <div className="label mb-2 flex items-center gap-1.5"><FileText size={13}/> Documents soumis ({selected.documents?.length || 0})</div>
                   {selected.documents?.length > 0
@@ -562,6 +665,7 @@ export const Drivers: React.FC = () => {
               <DriverForm
                 mode="edit"
                 initial={selected}
+                zones={deliveryZones}
                 onSave={dto => updateMutation.mutate({ id: selected.id, dto })}
                 saving={updateMutation.isPending}
               />
