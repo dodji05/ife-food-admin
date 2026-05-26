@@ -116,8 +116,8 @@ interface ProductFormData {
   variants: { name: string; price: string }[]
 }
 
-const EMPTY_PRODUCT: Omit<ProductFormData, 'proId'> = {
-  name: '', description: '', price: '', currency: 'XOF',
+const EMPTY_PRODUCT: ProductFormData = {
+  proId: '', name: '', description: '', price: '', currency: 'XOF',
   isAvailable: true, isMenu: false, categoryId: '', imageUrl: '', stock: '', variants: [],
 }
 
