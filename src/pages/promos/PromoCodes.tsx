@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
@@ -21,6 +21,10 @@ interface PromoCode {
   countries: string[]
   isActive: boolean
   createdAt: string
+  professionalId: string | null
+  productId: string | null
+  professional?: { id: string; businessName: string } | null
+  product?: { id: string; name: any } | null
 }
 
 const EMPTY_FORM = {
@@ -32,6 +36,8 @@ const EMPTY_FORM = {
   perUser: false,
   expiresAt: '',
   countries: [] as string[],
+  professionalId: '',
+  productId: '',
 }
 
 const COUNTRY_OPTIONS = [
@@ -40,6 +46,12 @@ const COUNTRY_OPTIONS = [
   { code: 'CI', label: "Côte d'Ivoire" },
   { code: 'TG', label: 'Togo' },
 ]
+
+const resolveName = (name: any): string => {
+  if (!name) return '—'
+  if (typeof name === 'string') return name
+  return name.fr || name.en || Object.values(name)[0] as string || '—'
+}
 
 export const PromoCodes: React.FC = () => {
   const qc = useQueryClient()
@@ -56,6 +68,25 @@ export const PromoCodes: React.FC = () => {
       if (Array.isArray(r?.data)) return r.data
       return []
     }),
+  })
+
+  // Professionals pour le select
+  const { data: pros = [] } = useQuery({
+    queryKey: ['all-professionals-selector'],
+    queryFn: () => api.get('/admin/professionals?limit=500').then((r: any) => r?.data?.data ?? r?.data ?? []),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Produits du pro sélectionné
+  const { data: proProducts = [] } = useQuery({
+    queryKey: ['promo-pro-products', form.professionalId],
+    queryFn: () => api.get(`/admin/catalogue/${form.professionalId}`).then((r: any) => {
+      const d = r?.data?.data ?? r?.data
+      const cats: any[] = d?.categories ?? []
+      return cats.flatMap((c: any) => c.products ?? [])
+    }),
+    enabled: !!form.professionalId,
+    staleTime: 30_000,
   })
 
   const createMutation = useMutation({
@@ -99,11 +130,17 @@ export const PromoCodes: React.FC = () => {
       perUser: c.perUser,
       expiresAt: c.expiresAt ? c.expiresAt.slice(0, 10) : '',
       countries: c.countries ?? [],
+      professionalId: c.professionalId ?? '',
+      productId: c.productId ?? '',
     })
     setModalOpen(true)
   }
 
   const closeModal = () => { setModalOpen(false); setEditing(null) }
+
+  const handleProChange = (proId: string) => {
+    setForm(f => ({ ...f, professionalId: proId, productId: '' }))
+  }
 
   const handleSubmit = () => {
     if (!form.code.trim()) return toast.error('Code requis')
@@ -117,6 +154,8 @@ export const PromoCodes: React.FC = () => {
       perUser: form.perUser,
       expiresAt: form.expiresAt || null,
       countries: form.countries,
+      professionalId: form.professionalId || null,
+      productId: form.productId || null,
     }
     if (editing) updateMutation.mutate({ id: editing.id, dto })
     else createMutation.mutate(dto)
@@ -154,14 +193,35 @@ export const PromoCodes: React.FC = () => {
       ),
     },
     {
-      key: 'minOrder', label: 'Commande min.',
+      key: 'professional', label: 'Établissement',
+      sortable: true, hideOnMobile: true,
+      sortValue: (r: PromoCode) => (r.professional?.businessName ?? '').toLowerCase(),
+      exportValue: (r: PromoCode) => r.professional?.businessName ?? '',
+      render: (r: PromoCode) => (
+        <span className="text-sm text-slate-400 truncate max-w-[140px] block">
+          {r.professional?.businessName ?? <span className="text-slate-600 italic">Tous</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'product', label: 'Produit',
+      sortable: true, hideOnMobile: true,
+      exportValue: (r: PromoCode) => resolveName(r.product?.name),
+      render: (r: PromoCode) => (
+        <span className="text-sm text-slate-400 truncate max-w-[140px] block">
+          {r.product ? resolveName(r.product.name) : <span className="text-slate-600 italic">Tous</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'minOrder', label: 'Min.',
       sortable: true, hideOnMobile: true,
       sortValue: (r: PromoCode) => Number(r.minOrder) || 0,
       exportValue: (r: PromoCode) => r.minOrder ?? 0,
       render: (r: PromoCode) => <span className="text-sm text-slate-400">{r.minOrder > 0 ? formatCFA(r.minOrder) : '—'}</span>,
     },
     {
-      key: 'uses', label: 'Utilisations',
+      key: 'uses', label: 'Usages',
       sortable: true, hideOnMobile: true,
       sortValue: (r: PromoCode) => Number(r.usesCount) || 0,
       exportValue: (r: PromoCode) => `${r.usesCount}${r.maxUses != null ? '/' + r.maxUses : ''}`,
@@ -177,16 +237,6 @@ export const PromoCodes: React.FC = () => {
       sortValue: (r: PromoCode) => r.expiresAt ? new Date(r.expiresAt).getTime() : 0,
       exportValue: (r: PromoCode) => r.expiresAt ?? '',
       render: (r: PromoCode) => <span className="text-xs text-slate-400">{formatDate(r.expiresAt)}</span>,
-    },
-    {
-      key: 'countries', label: 'Pays',
-      hideOnMobile: true,
-      exportValue: (r: PromoCode) => r.countries?.length > 0 ? r.countries.join(' ') : 'Tous',
-      render: (r: PromoCode) => (
-        <span className="text-xs text-slate-400">
-          {r.countries?.length > 0 ? r.countries.join(', ') : 'Tous'}
-        </span>
-      ),
     },
     {
       key: 'isActive', label: 'Actif',
@@ -255,8 +305,10 @@ export const PromoCodes: React.FC = () => {
         />
       </div>
 
-      <Modal open={modalOpen} onClose={closeModal} title={editing ? 'Modifier le code promo' : 'Nouveau code promo'} size="md">
-        <div className="space-y-4">
+      <Modal open={modalOpen} onClose={closeModal} title={editing ? 'Modifier le code promo' : 'Nouveau code promo'} size="lg">
+        <div className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
+
+          {/* Code + Type */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Code *</label>
@@ -276,13 +328,13 @@ export const PromoCodes: React.FC = () => {
             </div>
           </div>
 
+          {/* Valeur + Min commande */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">{form.type === 'PERCENTAGE' ? 'Valeur (%) *' : 'Montant (F CFA) *'}</label>
               <input
                 className="input"
-                type="number"
-                min="0"
+                inputMode="decimal"
                 placeholder={form.type === 'PERCENTAGE' ? 'Ex: 20' : 'Ex: 1000'}
                 value={form.value}
                 onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
@@ -292,8 +344,7 @@ export const PromoCodes: React.FC = () => {
               <label className="label">Commande minimum (F CFA)</label>
               <input
                 className="input"
-                type="number"
-                min="0"
+                inputMode="decimal"
                 placeholder="0"
                 value={form.minOrder}
                 onChange={e => setForm(f => ({ ...f, minOrder: e.target.value }))}
@@ -301,13 +352,13 @@ export const PromoCodes: React.FC = () => {
             </div>
           </div>
 
+          {/* Max utilisations + Expiration */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Utilisations max (vide = illimité)</label>
               <input
                 className="input"
-                type="number"
-                min="1"
+                inputMode="numeric"
                 placeholder="Illimité"
                 value={form.maxUses}
                 onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))}
@@ -324,8 +375,48 @@ export const PromoCodes: React.FC = () => {
             </div>
           </div>
 
+          {/* Établissement concerné */}
           <div>
-            <label className="label">Pays (vide = tous)</label>
+            <label className="label">Établissement concerné <span className="text-slate-600 font-normal">(optionnel)</span></label>
+            <select
+              className="input w-full"
+              value={form.professionalId}
+              onChange={e => handleProChange(e.target.value)}
+            >
+              <option value="">— Tous les établissements —</option>
+              {pros.map((p: any) => (
+                <option key={p.id} value={p.id}>
+                  {p.businessName}{p.city ? ` · ${p.city}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Produit concerné — visible seulement si un pro est sélectionné */}
+          {form.professionalId && (
+            <div>
+              <label className="label">Produit concerné <span className="text-slate-600 font-normal">(optionnel)</span></label>
+              <select
+                className="input w-full"
+                value={form.productId}
+                onChange={e => setForm(f => ({ ...f, productId: e.target.value }))}
+              >
+                <option value="">— Tous les produits de cet établissement —</option>
+                {proProducts.map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {resolveName(p.name)}{p.price ? ` — ${formatCFA(p.price)}` : ''}
+                  </option>
+                ))}
+              </select>
+              {proProducts.length === 0 && (
+                <p className="text-xs text-slate-600 mt-1 font-semibold italic">Aucun produit dans le catalogue de cet établissement</p>
+              )}
+            </div>
+          )}
+
+          {/* Pays */}
+          <div>
+            <label className="label">Pays <span className="text-slate-600 font-normal">(vide = tous)</span></label>
             <div className="flex gap-2 flex-wrap mt-1">
               {COUNTRY_OPTIONS.map(({ code, label }) => (
                 <button
@@ -340,6 +431,7 @@ export const PromoCodes: React.FC = () => {
             </div>
           </div>
 
+          {/* Par utilisateur */}
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
