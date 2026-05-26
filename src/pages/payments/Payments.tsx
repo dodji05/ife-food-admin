@@ -46,6 +46,56 @@ function MonthBar({ value, max, label }: { value: number; max: number; label: st
 type CommRate = { type: 'PERCENTAGE' | 'FIXED_PER_DISH'; value: string }
 const defaultRate = (): CommRate => ({ type: 'PERCENTAGE', value: '' })
 
+type CommTier = { rate: string; fixedAmount: string }
+const defaultTier = (): CommTier => ({ rate: '', fixedAmount: '' })
+const defaultTiers = (): CommTier[] => [defaultTier(), defaultTier(), defaultTier(), defaultTier()]
+
+const TIER_LABELS = [
+  'Jusqu\'à 2 plats',
+  'De 3 à 6 plats',
+  'De 7 à 10 plats',
+  'Plus de 10 plats',
+]
+
+function TiersForm({ label, tiers, onChange }: { label: string; tiers: CommTier[]; onChange: (t: CommTier[]) => void }) {
+  const update = (i: number, field: keyof CommTier, value: string) => {
+    const next = tiers.map((t, idx) => idx === i ? { ...t, [field]: value } : t)
+    onChange(next)
+  }
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label} — Paliers RPO</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+        {TIER_LABELS.map((tierLabel, i) => (
+          <div key={i} className="card-sm p-3 space-y-2 border border-navy-600">
+            <div className="text-[11px] font-bold text-slate-300">{tierLabel}</div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-500 font-semibold">Taux (%)</label>
+              <input
+                inputMode="decimal"
+                value={tiers[i]?.rate ?? ''}
+                onChange={e => update(i, 'rate', e.target.value)}
+                className="input w-full text-sm"
+                placeholder="ex : 15"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-500 font-semibold">Montant fixe (FCFA)</label>
+              <input
+                inputMode="decimal"
+                value={tiers[i]?.fixedAmount ?? ''}
+                onChange={e => update(i, 'fixedAmount', e.target.value)}
+                className="input w-full text-sm"
+                placeholder="ex : 500"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const COMM_TYPE_LABELS: Record<string, { short: string; desc: string }> = {
   PERCENTAGE: {
     short: '% Taux',
@@ -93,8 +143,12 @@ const CommissionsTab: React.FC = () => {
   const [configLoaded, setConfigLoaded] = useState(false)
 
   // Global rates
-  const [proRate, setProRate]     = useState<CommRate>({ type: 'PERCENTAGE', value: '15' })
+  const [proRate, setProRate]       = useState<CommRate>({ type: 'PERCENTAGE', value: '15' })
   const [driverRate, setDriverRate] = useState<CommRate>({ type: 'PERCENTAGE', value: '10' })
+
+  // RPO tiers
+  const [proTiers, setProTiers]       = useState<CommTier[]>(defaultTiers)
+  const [driverTiers, setDriverTiers] = useState<CommTier[]>(defaultTiers)
 
   // Per-country overrides: { BJ: { pro: CommRate, driver: CommRate, enabled: boolean } }
   const [countryOverrides, setCountryOverrides] = useState<Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }>>({})
@@ -119,6 +173,13 @@ const CommissionsTab: React.FC = () => {
       if (!configLoaded && d) {
         setProRate({ type: normType(d.professional?.type), value: String(d.professional?.value ?? '15') })
         setDriverRate({ type: normType(d.driver?.type), value: String(d.driver?.value ?? '10') })
+        // Load RPO tiers
+        const normTiers = (raw: any[]): CommTier[] =>
+          Array.isArray(raw) && raw.length === 4
+            ? raw.map(t => ({ rate: t?.rate != null ? String(t.rate) : '', fixedAmount: t?.fixedAmount != null ? String(t.fixedAmount) : '' }))
+            : defaultTiers()
+        setProTiers(normTiers(d.professional?.tiers))
+        setDriverTiers(normTiers(d.driver?.tiers))
         // Load country overrides
         const overrides: Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }> = {}
         if (d.countries) {
@@ -146,8 +207,15 @@ const CommissionsTab: React.FC = () => {
         if (r.type === 'PERCENTAGE' && v > 100) throw new Error(`${label} : taux max 100%`)
         return { type: r.type, value: v }
       }
-      const professional = validate(proRate, 'Professionnels')
-      const driver       = validate(driverRate, 'Livreurs')
+      const proBase    = validate(proRate, 'Professionnels')
+      const driverBase = validate(driverRate, 'Livreurs')
+      const normTierOut = (tiers: CommTier[]) =>
+        tiers.map(t => ({
+          rate:        t.rate.trim()        ? Number(t.rate)        : null,
+          fixedAmount: t.fixedAmount.trim() ? Number(t.fixedAmount) : null,
+        }))
+      const professional = { ...proBase,    tiers: normTierOut(proTiers) }
+      const driver       = { ...driverBase, tiers: normTierOut(driverTiers) }
       const countries: Record<string, any> = {}
       for (const [code, ov] of Object.entries(countryOverrides)) {
         if (!ov.enabled) continue
@@ -265,6 +333,21 @@ const CommissionsTab: React.FC = () => {
           {/* Livreurs */}
           <div className="card-sm p-4 space-y-3 border-l-2 border-blue-500/50">
             <CommRateForm label="Livreurs" rate={driverRate} onChange={setDriverRate}/>
+          </div>
+        </div>
+
+        {/* Paliers RPO */}
+        <div className="space-y-4 pt-2 border-t border-navy-700">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={13} className="text-brand-green"/>
+            <span className="text-xs font-bold text-slate-300">Paliers par nombre de plats</span>
+            <span className="ml-2 text-[10px] text-slate-500 bg-navy-700 px-2 py-0.5 rounded-lg">RPO — optionnel par palier</span>
+          </div>
+          <div className="card-sm p-4 space-y-3 border-l-2 border-yellow-500/50">
+            <TiersForm label="Professionnels" tiers={proTiers} onChange={setProTiers}/>
+          </div>
+          <div className="card-sm p-4 space-y-3 border-l-2 border-blue-500/50">
+            <TiersForm label="Livreurs" tiers={driverTiers} onChange={setDriverTiers}/>
           </div>
         </div>
 
