@@ -158,9 +158,8 @@ const CommissionsTab: React.FC = () => {
   const [proRate, setProRate]       = useState<CommRate>({ type: 'PERCENTAGE', value: '15' })
   const [driverRate, setDriverRate] = useState<CommRate>({ type: 'PERCENTAGE', value: '10' })
 
-  // RPO tiers
-  const [proTiers, setProTiers]       = useState<CommTier[]>(defaultTiers)
-  const [driverTiers, setDriverTiers] = useState<CommTier[]>(defaultTiers)
+  // RPO tiers (professionnels uniquement)
+  const [proTiers, setProTiers] = useState<CommTier[]>(defaultTiers)
 
   // Per-country overrides: { BJ: { pro: CommRate, driver: CommRate, enabled: boolean } }
   const [countryOverrides, setCountryOverrides] = useState<Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }>>({})
@@ -191,7 +190,6 @@ const CommissionsTab: React.FC = () => {
             ? raw.map(t => ({ rate: t?.rate != null ? String(t.rate) : '', fixedAmount: t?.fixedAmount != null ? String(t.fixedAmount) : '' }))
             : defaultTiers()
         setProTiers(normTiers(d.professional?.tiers))
-        setDriverTiers(normTiers(d.driver?.tiers))
         // Load country overrides
         const overrides: Record<string, { pro: CommRate; driver: CommRate; enabled: boolean }> = {}
         if (d.countries) {
@@ -226,8 +224,8 @@ const CommissionsTab: React.FC = () => {
           rate:        t.rate.trim()        ? Number(t.rate)        : null,
           fixedAmount: t.fixedAmount.trim() ? Number(t.fixedAmount) : null,
         }))
-      const professional = { ...proBase,    tiers: normTierOut(proTiers) }
-      const driver       = { ...driverBase, tiers: normTierOut(driverTiers) }
+      const professional = { ...proBase, tiers: normTierOut(proTiers) }
+      const driver       = { ...driverBase }
       const countries: Record<string, any> = {}
       for (const [code, ov] of Object.entries(countryOverrides)) {
         if (!ov.enabled) continue
@@ -357,9 +355,6 @@ const CommissionsTab: React.FC = () => {
           </div>
           <div className="card-sm p-4 space-y-3 border-l-2 border-yellow-500/50">
             <TiersForm label="Professionnels" tiers={proTiers} onChange={setProTiers}/>
-          </div>
-          <div className="card-sm p-4 space-y-3 border-l-2 border-blue-500/50">
-            <TiersForm label="Livreurs" tiers={driverTiers} onChange={setDriverTiers}/>
           </div>
         </div>
 
