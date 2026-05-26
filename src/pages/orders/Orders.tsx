@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import api from '../../services/api'
 import { DataTable } from '../../components/ui/DataTable'
 import { Badge } from '../../components/ui/Badge'
@@ -7,45 +7,50 @@ import { Modal } from '../../components/ui/Modal'
 import { LocationPeriodFilters } from '../../components/ui/LocationPeriodFilters'
 import { formatCFA, formatDateTime } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
-import { RefreshCw, MapPin, ExternalLink } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { RefreshCw, MapPin, ExternalLink, Truck, CreditCard } from 'lucide-react'
+
+// Tous les statuts intermédiaires regroupés sous "En cours"
+const IN_PROGRESS_STATUSES = 'ACCEPTED,IN_PREPARATION,READY_FOR_PICKUP,DRIVER_ASSIGNED,PICKED_UP,IN_DELIVERY'
 
 const statusFilters = [
-  { label: 'Toutes', value: '' },
-  { label: 'Nouvelles', value: 'PAID' },
-  { label: 'En cours', value: 'IN_PREPARATION' },
-  { label: 'En livraison', value: 'IN_DELIVERY' },
-  { label: 'Livrées', value: 'DELIVERED' },
-  { label: 'Annulées', value: 'CANCELLED' },
+  { label: 'Toutes',      value: '' },
+  { label: 'Nouvelles',   value: 'PAID' },
+  { label: 'En cours',    value: IN_PROGRESS_STATUSES },
+  { label: 'En livraison',value: 'IN_DELIVERY' },
+  { label: 'Livrées',     value: 'DELIVERED' },
+  { label: 'Annulées',    value: 'CANCELLED' },
 ]
+
+/** Résout le nom d'un produit qu'il soit string ou objet i18n `{ fr, en }`. */
+const resolveProductName = (name: any): string => {
+  if (!name) return 'Produit'
+  if (typeof name === 'string') return name
+  return name.fr || name.en || Object.values(name)[0] as string || 'Produit'
+}
 
 export const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [region, setRegion] = useState('')
   const [city, setCity] = useState('')
-  const qc = useQueryClient()
-  const { country, period } = useFiltersStore()
+  const { country, period, dateFrom, dateTo } = useFiltersStore()
 
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['admin-orders', statusFilter, country, city, period],
+    queryKey: ['admin-orders', statusFilter, country, city, period, dateFrom, dateTo],
     queryFn: () => {
-      const params = new URLSearchParams()
+      const params = new URLSearchParams({ limit: '100' })
       if (statusFilter) params.set('status', statusFilter)
       if (country)      params.set('country', country)
       if (city)         params.set('city', city)
-      if (period)       params.set('period', period)
-      const qs = params.toString()
-      return api.get(`/admin/orders${qs ? `?${qs}` : ''}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
+      if (period === 'custom' && dateFrom) {
+        params.set('from', dateFrom)
+        if (dateTo) params.set('to', dateTo)
+      } else if (period) {
+        params.set('period', period)
+      }
+      return api.get(`/admin/orders?${params}`).then((r: any) => r?.data?.data ?? r?.data ?? [])
     },
-    refetchInterval: 15000,
-  })
-
-  const reassignMutation = useMutation({
-    mutationFn: ({ orderId, driverId }: { orderId: string; driverId: string }) =>
-      api.patch(`/admin/orders/${orderId}/reassign`, { driverId }),
-    onSuccess: () => { toast.success('Livreur réassigné !'); qc.invalidateQueries({ queryKey: ['admin-orders'] }) },
-    onError: (e: any) => toast.error(e.message),
+    refetchInterval: 15_000,
   })
 
   const columns = [
@@ -57,15 +62,15 @@ export const Orders: React.FC = () => {
       sortValue: (r: any) => (r.client?.name ?? '').toLowerCase(),
       exportValue: (r: any) => `${r.client?.name ?? ''} ${r.client?.phone ? '(' + r.client.phone + ')' : ''}`.trim(),
       render: (r: any) => (
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
-          <span className="text-brand-green font-black text-[10px]">{(r.client?.name || 'C')[0].toUpperCase()}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
+            <span className="text-brand-green font-black text-[10px]">{(r.client?.name || 'C')[0].toUpperCase()}</span>
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-slate-200">{r.client?.name || 'Client'}</div>
+            <div className="text-xs text-slate-500">{r.client?.phone || '—'}</div>
+          </div>
         </div>
-        <div>
-          <div className="text-sm font-semibold text-slate-200">{r.client?.name || 'Client'}</div>
-          <div className="text-xs text-slate-500">{r.client?.phone || '—'}</div>
-        </div>
-      </div>
     )},
     { key: 'professional', label: 'Établissement',
       sortable: true, hideOnMobile: true,
@@ -99,13 +104,11 @@ export const Orders: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* Bloc filtres globaux (pays / région / ville / période + reset) */}
       <LocationPeriodFilters
         region={region} onRegionChange={setRegion}
         city={city}     onCityChange={setCity}
       />
 
-      {/* Filtres statut existants + Actualiser (conservés) */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex gap-1.5 flex-wrap">
           {statusFilters.map(f => (
@@ -131,35 +134,75 @@ export const Orders: React.FC = () => {
         />
       </div>
 
-      <Modal open={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={`Commande #${selectedOrder?.id?.substring(0,8).toUpperCase()}`} size="lg">
+      {/* ─── Modal détail commande ────────────────────────────────────────── */}
+      <Modal
+        open={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        title={`Commande #${selectedOrder?.id?.substring(0,8).toUpperCase()}`}
+        size="lg"
+      >
         {selectedOrder && (
           <div className="space-y-4">
+
+            {/* Ligne 1 — Client / Établissement */}
             <div className="grid grid-cols-2 gap-3">
               <div className="card-sm p-3">
                 <div className="text-xs text-slate-500 font-bold mb-1">Client</div>
                 <div className="font-bold text-slate-200">{selectedOrder.client?.name || '—'}</div>
-                <div className="text-xs text-slate-400">{selectedOrder.client?.phone}</div>
+                <div className="text-xs text-slate-400">{selectedOrder.client?.phone || '—'}</div>
               </div>
               <div className="card-sm p-3">
                 <div className="text-xs text-slate-500 font-bold mb-1">Établissement</div>
                 <div className="font-bold text-slate-200">{selectedOrder.professional?.businessName || '—'}</div>
               </div>
             </div>
+
+            {/* Ligne 2 — Livreur / Mode de paiement */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="card-sm p-3 flex items-center gap-2">
+                <Truck size={14} className="text-teal-400 flex-shrink-0"/>
+                <div>
+                  <div className="text-xs text-slate-500 font-bold mb-0.5">Livreur</div>
+                  <div className="text-sm font-semibold text-slate-300">
+                    {selectedOrder.driver?.user?.name || <span className="text-slate-500 italic">Non assigné</span>}
+                  </div>
+                  {selectedOrder.driver?.user?.phone && (
+                    <div className="text-xs text-slate-500">{selectedOrder.driver.user.phone}</div>
+                  )}
+                </div>
+              </div>
+              <div className="card-sm p-3 flex items-center gap-2">
+                <CreditCard size={14} className="text-purple-400 flex-shrink-0"/>
+                <div>
+                  <div className="text-xs text-slate-500 font-bold mb-0.5">Paiement</div>
+                  <div className="text-sm font-semibold text-slate-300">{selectedOrder.paymentMethod || '—'}</div>
+                  <Badge status={selectedOrder.paymentStatus} size="sm"/>
+                </div>
+              </div>
+            </div>
+
+            {/* Adresse de livraison */}
             <div className="card-sm p-3 flex items-center gap-3">
               <MapPin size={16} className="text-brand-green flex-shrink-0"/>
-              <span className="text-sm text-slate-300">{selectedOrder.deliveryAddress}</span>
+              <span className="text-sm text-slate-300">{selectedOrder.deliveryAddress || '—'}</span>
             </div>
+
+            {/* Articles */}
             {selectedOrder.items?.length > 0 && (
               <div className="card-sm p-3">
                 <div className="text-xs text-slate-500 font-bold mb-2">Articles</div>
                 {selectedOrder.items.map((item: any, i: number) => (
                   <div key={i} className="flex justify-between text-sm py-1.5 border-b border-navy-700 last:border-0">
-                    <span className="text-slate-300">{item.quantity}× {item.product?.name?.fr || 'Produit'}</span>
+                    <span className="text-slate-300">
+                      {item.quantity}× {resolveProductName(item.product?.name)}
+                    </span>
                     <span className="font-bold text-slate-200">{formatCFA(item.totalPrice)}</span>
                   </div>
                 ))}
               </div>
             )}
+
+            {/* Récapitulatif financier */}
             <div className={`grid gap-3 ${selectedOrder.tipAmount > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <div className="card-sm p-3 text-center">
                 <div className="text-xs text-slate-500 font-bold mb-1">Sous-total</div>
@@ -180,6 +223,12 @@ export const Orders: React.FC = () => {
                 <div className="font-black text-slate-100">{formatCFA(selectedOrder.totalAmount)}</div>
               </div>
             </div>
+
+            {/* Date de création */}
+            <div className="text-xs text-slate-500 text-right font-semibold">
+              Créée le {formatDateTime(selectedOrder.createdAt)}
+            </div>
+
           </div>
         )}
       </Modal>

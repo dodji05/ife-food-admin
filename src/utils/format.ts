@@ -27,15 +27,15 @@ export const formatRelative = (date: string | Date | null | undefined): string =
 }
 export const statusColor = (s: string): string => ({
   PENDING:'yellow', PAID:'green', ACCEPTED:'blue', IN_PREPARATION:'blue',
-  READY_FOR_PICKUP:'blue', DRIVER_ASSIGNED:'blue', IN_DELIVERY:'blue',
+  READY_FOR_PICKUP:'blue', DRIVER_ASSIGNED:'blue', PICKED_UP:'blue', IN_DELIVERY:'blue',
   DELIVERED:'green', CANCELLED:'red', REFUNDED:'gray',
   VALIDATED:'green', REJECTED:'red', SUSPENDED:'yellow', BANNED:'red',
   ONLINE:'green', OFFLINE:'gray', ACTIVE:'green', SUCCESS:'green', FAILED:'red',
 }[s] || 'gray')
 export const statusLabel = (s: string): string => ({
   PENDING:'En attente', PAID:'Payée', ACCEPTED:'Acceptée', IN_PREPARATION:'En prép.',
-  READY_FOR_PICKUP:'Prête', DRIVER_ASSIGNED:'Livreur assigné', IN_DELIVERY:'En livraison',
-  DELIVERED:'Livrée', CANCELLED:'Annulée', REFUNDED:'Remboursée',
+  READY_FOR_PICKUP:'Prête', DRIVER_ASSIGNED:'Livreur assigné', PICKED_UP:'Récupérée',
+  IN_DELIVERY:'En livraison', DELIVERED:'Livrée', CANCELLED:'Annulée', REFUNDED:'Remboursée',
   VALIDATED:'Validé', REJECTED:'Refusé', SUSPENDED:'Suspendu', BANNED:'Banni',
   ONLINE:'En ligne', OFFLINE:'Hors ligne', ACTIVE:'Actif', SUCCESS:'Succès', FAILED:'Échec',
 }[s] || s)
