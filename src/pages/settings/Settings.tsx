@@ -247,7 +247,6 @@ const CurrenciesTab: React.FC = () => {
 // ─── Onglet Comptes admin ─────────────────────────────────────────────────────
 const LEVEL_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin', ADMIN: 'Admin', SUPPORT: 'Support',
-  MODERATOR: 'Modérateur', ANALYST: 'Analyste',
 }
 const LEVEL_COLORS: Record<string, string> = {
   SUPER_ADMIN: 'text-yellow-400 bg-yellow-400/10',
