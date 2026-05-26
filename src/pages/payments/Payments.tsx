@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -96,18 +96,20 @@ function TiersForm({ label, tiers, onChange }: { label: string; tiers: CommTier[
   )
 }
 
-const COMM_TYPE_LABELS: Record<string, { short: string; desc: string }> = {
-  PERCENTAGE: {
-    short: '% Taux',
-    desc: 'Déduit du CA du pro. Invisible dans le prix affiché au client.',
+const COMM_TYPE_LABELS: Record<string, Record<'PERCENTAGE' | 'FIXED_PER_DISH', { short: string; desc: string }>> = {
+  Professionnels: {
+    PERCENTAGE:    { short: '% Taux',          desc: 'Déduit du chiffre d\'affaires du pro. Invisible dans le prix affiché au client.' },
+    FIXED_PER_DISH:{ short: 'Fixe / plat (FCFA)', desc: 'Ajouté automatiquement au prix de chaque plat. Visible dans le détail de commande.' },
   },
-  FIXED_PER_DISH: {
-    short: 'Fixe / plat (FCFA)',
-    desc: 'Ajouté automatiquement au prix de chaque plat. Transparent côté client.',
+  Livreurs: {
+    PERCENTAGE:    { short: '% Taux',           desc: 'Prélevé sur les frais de livraison encaissés par le livreur.' },
+    FIXED_PER_DISH:{ short: 'Fixe / livraison', desc: 'Montant fixe retenu par livraison effectuée, indépendamment du nombre de plats.' },
   },
 }
 
 function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate; onChange: (r: CommRate) => void }) {
+  const typeLabels = COMM_TYPE_LABELS[label] ?? COMM_TYPE_LABELS['Professionnels']
+  const isDriver = label === 'Livreurs'
   return (
     <div className="space-y-2">
       <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
@@ -115,22 +117,22 @@ function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate
         {(['PERCENTAGE', 'FIXED_PER_DISH'] as const).map(t => (
           <button key={t} type="button" onClick={() => onChange({ ...rate, type: t })}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${rate.type === t ? 'bg-brand-green text-white' : 'bg-navy-700 text-slate-400 border border-navy-600'}`}>
-            {COMM_TYPE_LABELS[t].short}
+            {typeLabels[t].short}
           </button>
         ))}
       </div>
       <input
-        type="number" min="0"
+        inputMode="decimal"
         value={rate.value}
         onChange={e => onChange({ ...rate, value: e.target.value })}
         className="input w-full text-sm"
         placeholder={rate.type === 'PERCENTAGE' ? 'ex: 15' : 'ex: 500'}
       />
-      <p className="text-[10px] text-slate-500">{COMM_TYPE_LABELS[rate.type]?.desc}</p>
+      <p className="text-[10px] text-slate-500">{typeLabels[rate.type].desc}</p>
       <p className="text-[11px] text-brand-green font-medium">
         {rate.type === 'PERCENTAGE'
-          ? `→ ${rate.value || '…'}% ${label === 'Professionnels' ? 'du sous-total' : 'des frais de livraison'}`
-          : `→ ${rate.value ? formatCFA(Number(rate.value)) : '…'} ajouté ${label === 'Professionnels' ? 'par plat' : 'par livraison'}`}
+          ? `→ ${rate.value || '…'}% ${isDriver ? 'des frais de livraison' : 'du sous-total'}`
+          : `→ ${rate.value ? formatCFA(Number(rate.value)) : '…'} ${isDriver ? 'par livraison' : 'par plat'}`}
       </p>
     </div>
   )
@@ -141,6 +143,16 @@ const CommissionsTab: React.FC = () => {
   const qc = useQueryClient()
   const [filterCountry, setFilterCountry] = useState('')
   const [configLoaded, setConfigLoaded] = useState(false)
+
+  const { data: activeCountriesData } = useQuery({
+    queryKey: ['active-countries'],
+    queryFn: () => api.get('/admin/config/countries').then(unwrap),
+    staleTime: 5 * 60 * 1000,
+  })
+  const activeCountries: { code: string; name: string; isActive: boolean }[] =
+    Array.isArray(activeCountriesData)
+      ? activeCountriesData.filter((c: any) => c.isActive)
+      : []
 
   // Global rates
   const [proRate, setProRate]       = useState<CommRate>({ type: 'PERCENTAGE', value: '15' })
@@ -358,7 +370,10 @@ const CommissionsTab: React.FC = () => {
             <span className="text-xs font-bold text-slate-400">Surcharges par pays (optionnel)</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {COUNTRIES.map(c => {
+            {activeCountries.length === 0 && (
+              <span className="text-xs text-slate-500 italic">Aucun pays actif — activez des pays dans la config plateforme.</span>
+            )}
+            {activeCountries.map(c => {
               const active = !!countryOverrides[c.code]
               return (
                 <button key={c.code} onClick={() => toggleCountryOverride(c.code)}
@@ -369,7 +384,7 @@ const CommissionsTab: React.FC = () => {
             })}
           </div>
           {Object.entries(countryOverrides).map(([code, ov]) => {
-            const cName = COUNTRIES.find(c => c.code === code)?.name ?? code
+            const cName = (activeCountries.find(c => c.code === code) ?? COUNTRIES.find(c => c.code === code))?.name ?? code
             return (
               <div key={code} className="card-sm p-4 space-y-3">
                 <div className="flex items-center justify-between">
