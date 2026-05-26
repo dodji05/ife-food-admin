@@ -13,8 +13,8 @@ import {
   Trophy, User as UserIcon,
 } from 'lucide-react'
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar,
-  CartesianGrid, PieChart, Pie, Cell, Legend,
+  ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Bar,
+  CartesianGrid, PieChart, Pie, Cell, Legend, BarChart,
 } from 'recharts'
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -24,6 +24,13 @@ const CHART_COLORS = {
   purple: '#8B5CF6', red: '#EF4444', teal: '#14B8A6',
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const trendPct = (curr: number, prev: number): number =>
+  prev === 0 ? (curr > 0 ? 100 : 0) : Math.round(((curr - prev) / prev) * 100)
+
+const fmtDate = (d: string) =>
+  d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '…'
 
 // ─── Tooltip charts ──────────────────────────────────────────────────────────
 
@@ -33,8 +40,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     <div className="bg-navy-800 border border-navy-600 rounded-xl p-3 shadow-xl">
       <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
       {payload.map((p: any) => (
-        <p key={p.name ?? p.dataKey} className="text-sm font-bold" style={{ color: p.color }}>
-          {p.name === 'revenue' ? formatCFA(p.value) : `${p.value} ${p.name === 'orders' ? 'commandes' : ''}`.trim()}
+        <p key={p.name ?? p.dataKey} className="text-sm font-bold" style={{ color: p.color ?? p.fill }}>
+          {p.name === 'revenue' ? formatCFA(p.value) : `${p.value} commande${p.value !== 1 ? 's' : ''}`}
         </p>
       ))}
     </div>
@@ -44,34 +51,51 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 export const Dashboard: React.FC = () => {
-  const { period, country } = useFiltersStore()
+  const { period, country, dateFrom, dateTo } = useFiltersStore()
   const [region, setRegion] = useState('')
   const [city, setCity]     = useState('')
 
-  const params = new URLSearchParams({ period, ...(country ? { country } : {}), ...(city ? { city } : {}) })
+  const params = new URLSearchParams({
+    period,
+    ...(country  ? { country }       : {}),
+    ...(city     ? { city }          : {}),
+    ...(period === 'custom' && dateFrom ? { from: dateFrom } : {}),
+    ...(period === 'custom' && dateTo   ? { to: dateTo }     : {}),
+  })
+
   const { data: stats, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['dashboard', period, country, city],
+    queryKey: ['dashboard', period, country, city, dateFrom, dateTo],
     queryFn: () => api.get(`/admin/dashboard?${params}`).then((r: any) => r.data),
-    refetchInterval: 30000,
+    refetchInterval: 30_000,
   })
 
   const { data: liveOrders = [], isLoading: liveLoading } = useQuery({
     queryKey: ['live-orders'],
-    queryFn: () => api.get('/admin/orders?status=PAID,IN_PREPARATION,IN_DELIVERY&limit=5').then((r: any) => r?.data?.data ?? r?.data ?? []),
-    refetchInterval: 15000,
+    queryFn: () => api.get('/admin/orders?status=PAID,ACCEPTED,IN_PREPARATION,READY_FOR_PICKUP,DRIVER_ASSIGNED,PICKED_UP,IN_DELIVERY&limit=5')
+      .then((r: any) => r?.data?.data ?? r?.data ?? []),
+    refetchInterval: 15_000,
   })
 
-  const counters = stats?.counters ?? {}
-  const finance  = stats?.finance ?? {}
-  const chartData: any[] = stats?.chartData ?? []
-  const usersByRole = stats?.usersByRole ?? []
-  const topCountries = stats?.topCountries ?? []
-  const topClients   = stats?.topClients ?? []
-  const topDrivers   = stats?.topDrivers ?? []
-  const topPros      = stats?.topPros ?? []
+  const counters      = stats?.counters       ?? {}
+  const finance       = stats?.finance        ?? {}
+  const chartData: any[] = stats?.chartData   ?? []
+  const usersByRole   = stats?.usersByRole    ?? []
+  const topCountries  = stats?.topCountries   ?? []
+  const topClients    = stats?.topClients     ?? []
+  const topDrivers    = stats?.topDrivers     ?? []
+  const topPros       = stats?.topPros        ?? []
   const distinctCities: string[] = stats?.distinctCities ?? []
 
-  const periodLabel = period === 'day' ? "Aujourd'hui" : period === 'month' ? '30 derniers jours' : '7 derniers jours'
+  // Tendances (période précédente)
+  const prevData     = stats?.prev
+  const trendOrders  = prevData ? trendPct(counters.total  ?? 0, prevData.orders?.count ?? 0)        : undefined
+  const trendRevenue = prevData ? trendPct(finance.revenue ?? 0, Number(prevData.orders?.revenue ?? 0)) : undefined
+
+  const periodLabel =
+    period === 'day'    ? "Aujourd'hui"
+    : period === 'month'  ? '30 derniers jours'
+    : period === 'custom' ? `${fmtDate(dateFrom)} → ${fmtDate(dateTo)}`
+    : '7 derniers jours'
 
   return (
     <div className="space-y-6">
@@ -88,10 +112,11 @@ export const Dashboard: React.FC = () => {
       {/* ═══ Bloc 2 — Stats principales (12 cards) ══════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <StatCard title={`Commandes totales — ${periodLabel}`}
-          value={counters.total ?? '—'} icon={ShoppingCart} color="brand-green" loading={isLoading}/>
-        <StatCard title="Commandes à valider"
+          value={counters.total ?? '—'} icon={ShoppingCart} color="brand-green"
+          trend={trendOrders} loading={isLoading}/>
+        <StatCard title="À valider"
           value={counters.toValidate ?? '—'} icon={AlertCircle} color="yellow" loading={isLoading}/>
-        <StatCard title="Commandes en préparation"
+        <StatCard title="En cours de traitement"
           value={counters.inPreparation ?? '—'} icon={ChefHat} color="blue" loading={isLoading}/>
         <StatCard title="Commandes livrées"
           value={counters.delivered ?? '—'} icon={CheckCircle2} color="brand-green" loading={isLoading}/>
@@ -99,15 +124,16 @@ export const Dashboard: React.FC = () => {
         <StatCard title="Commandes annulées"
           value={counters.cancelled ?? '—'} icon={XCircle} color="red" loading={isLoading}/>
         <StatCard title="Chiffre d'affaires"
-          value={isLoading ? '—' : formatCFA(finance.revenue ?? 0)} icon={TrendingUp} color="brand-green" loading={isLoading}/>
-        <StatCard title="Total frais de livraison"
+          value={isLoading ? '—' : formatCFA(finance.revenue ?? 0)} icon={TrendingUp} color="brand-green"
+          trend={trendRevenue} loading={isLoading}/>
+        <StatCard title="Frais de livraison"
           value={isLoading ? '—' : formatCFA(finance.deliveryFees ?? 0)} icon={Receipt} color="teal" loading={isLoading}/>
         <StatCard title="Commissions plateforme"
           value={isLoading ? '—' : formatCFA(finance.platformCommissions ?? 0)} icon={Coins} color="purple" loading={isLoading}/>
 
-        <StatCard title="Commissions professionnels"
+        <StatCard title="Revenus professionnels"
           value={isLoading ? '—' : formatCFA(finance.proRevenue ?? 0)} icon={Briefcase} color="blue" loading={isLoading}/>
-        <StatCard title="Commissions livreurs"
+        <StatCard title="Revenus livreurs"
           value={isLoading ? '—' : formatCFA(finance.driverRevenue ?? 0)} icon={Wallet} color="teal" loading={isLoading}/>
         <StatCard title="Pourboires livreurs"
           value={isLoading ? '—' : formatCFA(finance.driverTips ?? 0)} icon={Gift} color="yellow" loading={isLoading}/>
@@ -117,24 +143,32 @@ export const Dashboard: React.FC = () => {
 
       {/* ═══ Bloc 3 — Graphiques ════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Revenue area (col span 2) */}
+
+        {/* Revenus & Commandes — ComposedChart (Area + Bar, double axe) */}
         <div className="xl:col-span-2 card p-5">
           <ChartHeader title="Revenus & Commandes" subtitle={periodLabel}/>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="gRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3}/>
+                    <stop offset="5%"  stopColor={CHART_COLORS.primary} stopOpacity={0.3}/>
                     <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1E3A6A" vertical={false}/>
-                <XAxis dataKey="day" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${v/1000}k`}/>
+                <XAxis dataKey="day" tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false}/>
+                <YAxis yAxisId="revenue" tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false}
+                  tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`}/>
+                <YAxis yAxisId="orders" orientation="right" tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false}/>
                 <Tooltip content={<CustomTooltip/>}/>
-                <Area type="monotone" dataKey="revenue" stroke={CHART_COLORS.primary} strokeWidth={2.5} fill="url(#gRevenue)" name="revenue" animationDuration={600}/>
-              </AreaChart>
+                <Area yAxisId="revenue" type="monotone" dataKey="revenue"
+                  stroke={CHART_COLORS.primary} strokeWidth={2.5} fill="url(#gRevenue)"
+                  name="revenue" animationDuration={600}/>
+                <Bar yAxisId="orders" dataKey="orders"
+                  fill={CHART_COLORS.yellow} radius={[4, 4, 0, 0]} barSize={8}
+                  name="orders" animationDuration={600}/>
+              </ComposedChart>
             </ResponsiveContainer>
           ) : <EmptyChart loading={isLoading}/>}
         </div>
@@ -158,17 +192,19 @@ export const Dashboard: React.FC = () => {
           ) : <EmptyChart loading={isLoading}/>}
         </div>
 
-        {/* Orders per day bar */}
+        {/* Commandes par jour / heure */}
         <div className="xl:col-span-3 card p-5">
-          <ChartHeader title="Commandes par jour" subtitle={periodLabel}/>
+          <ChartHeader
+            title={period === 'day' ? "Commandes par heure" : "Commandes par jour"}
+            subtitle={periodLabel}/>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1E3A6A" vertical={false}/>
-                <XAxis dataKey="day" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false}/>
+                <XAxis dataKey="day" tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false}/>
                 <Tooltip content={<CustomTooltip/>}/>
-                <Bar dataKey="orders" fill={CHART_COLORS.yellow} radius={[6,6,0,0]} name="orders" animationDuration={600}/>
+                <Bar dataKey="orders" fill={CHART_COLORS.yellow} radius={[6, 6, 0, 0]} name="orders" animationDuration={600}/>
               </BarChart>
             </ResponsiveContainer>
           ) : <EmptyChart loading={isLoading}/>}
@@ -219,7 +255,7 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* ═══ Live orders (conservé) ═════════════════════════════════════════ */}
+      {/* ═══ Live orders ═════════════════════════════════════════════════════ */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -319,4 +355,3 @@ const RankCard: React.FC<{
     </div>
   )
 }
-
