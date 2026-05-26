@@ -103,6 +103,7 @@ const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) =
 // ─── Formulaire produit ───────────────────────────────────────────────────────
 
 interface ProductFormData {
+  proId: string
   name: string
   description: string
   price: string
@@ -115,7 +116,7 @@ interface ProductFormData {
   variants: { name: string; price: string }[]
 }
 
-const EMPTY_PRODUCT: ProductFormData = {
+const EMPTY_PRODUCT: Omit<ProductFormData, 'proId'> = {
   name: '', description: '', price: '', currency: 'XOF',
   isAvailable: true, isMenu: false, categoryId: '', imageUrl: '', stock: '', variants: [],
 }
@@ -123,11 +124,30 @@ const EMPTY_PRODUCT: ProductFormData = {
 const ProductForm: React.FC<{
   form: ProductFormData
   onChange: (f: ProductFormData) => void
-  categories: any[]
-  proId: string
-}> = ({ form, onChange, categories, proId }) => {
+  mode: 'create' | 'edit'
+}> = ({ form, onChange, mode }) => {
   const set = (k: keyof ProductFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     onChange({ ...form, [k]: e.target.value })
+
+  const { data: pros = [] } = useQuery({
+    queryKey: ['all-professionals-selector'],
+    queryFn: () => api.get('/admin/professionals?limit=500').then((r: any) => r?.data?.data ?? r?.data ?? []),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: proCategories = [] } = useQuery({
+    queryKey: ['admin-catalogue-categories', form.proId],
+    queryFn: () => api.get(`/admin/catalogue/${form.proId}`).then((r: any) => {
+      const d = r?.data?.data ?? r?.data
+      return d?.categories ?? []
+    }),
+    enabled: !!form.proId,
+    staleTime: 30_000,
+  })
+
+  const handleProChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange({ ...form, proId: e.target.value, categoryId: '' })
+  }
 
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -156,6 +176,21 @@ const ProductForm: React.FC<{
 
   return (
     <div className="space-y-4">
+      {/* Établissement */}
+      {mode === 'create' && (
+        <div>
+          <label className="label">Établissement *</label>
+          <select value={form.proId} onChange={handleProChange} className="input w-full" required>
+            <option value="">— Sélectionner un établissement —</option>
+            {pros.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {p.businessName}{p.city ? ` · ${p.city}` : ''}{p.country ? ` (${p.country})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Nom */}
       <div>
         <label className="label">Nom du produit *</label>
@@ -189,9 +224,9 @@ const ProductForm: React.FC<{
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label">Catégorie</label>
-          <select value={form.categoryId} onChange={set('categoryId')} className="input w-full">
+          <select value={form.categoryId} onChange={set('categoryId')} className="input w-full" disabled={!form.proId}>
             <option value="">Sans catégorie</option>
-            {categories.map((c: any) => (
+            {proCategories.map((c: any) => (
               <option key={c.id} value={c.id}>{c.name?.fr || c.name?.en || c.name}</option>
             ))}
           </select>
@@ -351,8 +386,15 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   })
 
   const createProductMutation = useMutation({
-    mutationFn: () => api.post(`/admin/catalogue/${pro.id}/products`, buildProductPayload(productForm)),
-    onSuccess: () => { toast.success('Produit créé'); qc.invalidateQueries({queryKey: qKey}); setProductModal(null) },
+    mutationFn: () => api.post(`/admin/catalogue/${productForm.proId || pro.id}/products`, buildProductPayload(productForm)),
+    onSuccess: () => {
+      toast.success('Produit créé')
+      qc.invalidateQueries({queryKey: qKey})
+      if (productForm.proId && productForm.proId !== pro.id) {
+        qc.invalidateQueries({queryKey: ['admin-catalogue', productForm.proId]})
+      }
+      setProductModal(null)
+    },
     onError: (e: any) => toast.error(e.message),
   })
 
@@ -375,13 +417,14 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   })
 
   const openCreateProduct = (categoryId?: string) => {
-    setProductForm({ ...EMPTY_PRODUCT, categoryId: categoryId || '' })
+    setProductForm({ ...EMPTY_PRODUCT, proId: pro.id, categoryId: categoryId || '' })
     setProductModal({ mode: 'create' })
   }
 
   const openEditProduct = (product: any) => {
     const rawVariants: any[] = Array.isArray(product.variants) ? product.variants : []
     setProductForm({
+      proId: pro.id,
       name: product.name?.fr || product.name?.en || '',
       description: product.description?.fr || '',
       price: String(product.price),
@@ -602,8 +645,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
           <ProductForm
             form={productForm}
             onChange={setProductForm}
-            categories={categories}
-            proId={pro.id}
+            mode={productModal?.mode ?? 'create'}
           />
           <div className="flex gap-3 pt-1 sticky bottom-0 bg-navy-900 pb-1">
             <button onClick={() => setProductModal(null)} className="btn-secondary flex-1 justify-center">Annuler</button>
