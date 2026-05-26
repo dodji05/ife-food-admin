@@ -6,7 +6,7 @@ import { formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
 import {
   Plus, Pencil, Trash2, MapPin, Navigation, Building2,
-  Cloud, CloudRain, Sun, Zap, Wind, RefreshCw,
+  Cloud, CloudRain, Sun, Zap, Wind, RefreshCw, Save, Check,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -35,6 +35,7 @@ const COUNTRY_COORDS: Record<string, { city: string; lat: number; lon: number }>
 }
 
 const WEATHER_STORAGE_KEY = 'ife_weather_config'
+const MODES_STORAGE_KEY   = 'ife_delivery_modes'
 
 interface WeatherConfig {
   enabled: boolean
@@ -42,19 +43,41 @@ interface WeatherConfig {
   city: string
   lat: number
   lon: number
+  globalMultiplier: number
+}
+
+interface ModesConfig {
+  zone: boolean
+  km: boolean
+  city: boolean
 }
 
 function loadWeatherConfig(): WeatherConfig {
   try {
     const stored = localStorage.getItem(WEATHER_STORAGE_KEY)
-    if (stored) return JSON.parse(stored)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return { globalMultiplier: 1.5, ...parsed }
+    }
   } catch {}
   const def = COUNTRY_COORDS['BJ']
-  return { enabled: false, country: 'BJ', city: def.city, lat: def.lat, lon: def.lon }
+  return { enabled: false, country: 'BJ', city: def.city, lat: def.lat, lon: def.lon, globalMultiplier: 1.5 }
 }
 
 function saveWeatherConfig(cfg: WeatherConfig) {
   localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify(cfg))
+}
+
+function loadModesConfig(): ModesConfig {
+  try {
+    const stored = localStorage.getItem(MODES_STORAGE_KEY)
+    if (stored) return { zone: true, km: true, city: true, ...JSON.parse(stored) }
+  } catch {}
+  return { zone: true, km: true, city: true }
+}
+
+function saveModesConfig(cfg: ModesConfig) {
+  localStorage.setItem(MODES_STORAGE_KEY, JSON.stringify(cfg))
 }
 
 interface WeatherState {
@@ -67,7 +90,6 @@ interface WeatherState {
   fetchedAt: string
 }
 
-// WMO codes: 0-3 = clair, 45-77 = brouillard/pluie/neige, 80-99 = averses/orage
 function isBadWeather(code: number | null): boolean {
   if (code === null) return false
   return code >= 45
@@ -75,18 +97,18 @@ function isBadWeather(code: number | null): boolean {
 
 function weatherLabel(code: number | null): string {
   if (code === null) return 'Inconnu'
-  if (code === 0)           return 'Ciel dégagé'
-  if (code <= 3)            return 'Partiellement nuageux'
-  if (code <= 19)           return 'Brume / Brouillard'
-  if (code <= 29)           return 'Précipitations légères'
-  if (code <= 39)           return 'Tempête de sable'
-  if (code <= 49)           return 'Brouillard givrant'
-  if (code <= 59)           return 'Bruine'
-  if (code <= 69)           return 'Pluie'
-  if (code <= 79)           return 'Neige'
-  if (code <= 84)           return 'Averses de pluie'
-  if (code <= 86)           return 'Averses de neige'
-  if (code <= 94)           return 'Grêle'
+  if (code === 0)    return 'Ciel dégagé'
+  if (code <= 3)     return 'Partiellement nuageux'
+  if (code <= 19)    return 'Brume / Brouillard'
+  if (code <= 29)    return 'Précipitations légères'
+  if (code <= 39)    return 'Tempête de sable'
+  if (code <= 49)    return 'Brouillard givrant'
+  if (code <= 59)    return 'Bruine'
+  if (code <= 69)    return 'Pluie'
+  if (code <= 79)    return 'Neige'
+  if (code <= 84)    return 'Averses de pluie'
+  if (code <= 86)    return 'Averses de neige'
+  if (code <= 94)    return 'Grêle'
   return 'Orage'
 }
 
@@ -103,24 +125,22 @@ async function fetchWeather(lat: number, lon: number): Promise<WeatherState> {
   const res = await fetch(url)
   if (!res.ok) throw new Error('Open-Meteo unavailable')
   const json = await res.json()
-  const code        = json.current?.weather_code ?? null
+  const code          = json.current?.weather_code ?? null
   const precipitation = json.current?.precipitation ?? 0
-  const windSpeed   = json.current?.wind_speed_10m ?? 0
+  const windSpeed     = json.current?.wind_speed_10m ?? 0
   return {
-    loading: false,
-    code,
+    loading: false, code,
     description: weatherLabel(code),
     isBad: isBadWeather(code),
-    windSpeed,
-    precipitation,
+    windSpeed, precipitation,
     fetchedAt: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
   }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function zoneMode(z: Zone): DeliveryMode {
-  if (z.fromCity && z.toCity)    return 'city'
-  if (z.perKmFee > 0)            return 'km'
+  if (z.fromCity && z.toCity) return 'city'
+  if (z.perKmFee > 0)         return 'km'
   return 'zone'
 }
 
@@ -134,6 +154,32 @@ const MODE_ICONS: Record<DeliveryMode, React.ReactNode> = {
   km:   <Navigation size={16}/>,
   city: <MapPin size={16}/>,
 }
+const MODE_DESC: Record<DeliveryMode, string> = {
+  zone: 'Tarif fixe par zone géographique (quartier, arrondissement…)',
+  km:   'Tarif de base + montant par kilomètre parcouru',
+  city: 'Tarif fixe pour un trajet entre deux villes',
+}
+
+// ─── Toggle switch ─────────────────────────────────────────────────────────────
+const Toggle: React.FC<{
+  checked: boolean
+  onChange: (v: boolean) => void
+  size?: 'sm' | 'md'
+}> = ({ checked, onChange, size = 'md' }) => {
+  const sm = size === 'sm'
+  return (
+    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer"/>
+      <div className={`${sm ? 'w-9 h-5' : 'w-11 h-6'} bg-navy-700 rounded-full peer
+        peer-checked:after:${sm ? 'translate-x-4' : 'translate-x-5'}
+        peer-checked:bg-brand-green
+        after:content-[''] after:absolute after:top-0.5 after:left-[2px]
+        after:bg-white after:rounded-full
+        after:${sm ? 'h-4 after:w-4' : 'h-5 after:w-5'}
+        after:transition-all`}/>
+    </label>
+  )
+}
 
 // ─── Formulaire zone ──────────────────────────────────────────────────────────
 interface ZoneFormProps {
@@ -141,9 +187,11 @@ interface ZoneFormProps {
   initial?: Zone
   onSave: (dto: any) => void
   saving: boolean
+  globalWeatherEnabled?: boolean
+  globalMultiplier?: number
 }
 
-const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving }) => {
+const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, globalWeatherEnabled, globalMultiplier }) => {
   const [form, setForm] = useState({
     name:              initial?.name              ?? '',
     country:           initial?.country           ?? 'BJ',
@@ -166,6 +214,10 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving }) =>
       {children}
     </div>
   )
+
+  const effectiveMultiplier = globalWeatherEnabled && globalMultiplier && globalMultiplier > 1
+    ? globalMultiplier
+    : (form.weatherEnabled ? Number(form.weatherMultiplier) : 1)
 
   const submit = () => {
     if (!form.baseFee) { toast.error('Frais de base requis'); return }
@@ -206,11 +258,23 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving }) =>
           </>
         )}
         <F label="Frais de base (XOF) *">
-          <input className="input" type="number" min="0" value={form.baseFee} onChange={set('baseFee')} placeholder="500"/>
+          <input
+            className="input"
+            inputMode="decimal"
+            value={form.baseFee}
+            onChange={set('baseFee')}
+            placeholder="500"
+          />
         </F>
         {mode === 'km' && (
           <F label="Frais par km (XOF)">
-            <input className="input" type="number" min="0" value={form.perKmFee} onChange={set('perKmFee')} placeholder="100"/>
+            <input
+              className="input"
+              inputMode="decimal"
+              value={form.perKmFee}
+              onChange={set('perKmFee')}
+              placeholder="100"
+            />
           </F>
         )}
         <F label="Devise">
@@ -221,33 +285,46 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving }) =>
         </F>
       </div>
 
-      {/* Facteur météo */}
-      <div className="border border-navy-600 rounded-xl p-3 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CloudRain size={14} className="text-blue-400"/>
-            <span className="text-sm font-bold text-slate-300">Facteur météo</span>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={form.weatherEnabled}
-              onChange={e => setForm(f => ({ ...f, weatherEnabled: e.target.checked }))} className="sr-only peer"/>
-            <div className="w-9 h-5 bg-navy-700 rounded-full peer peer-checked:after:translate-x-4 peer-checked:bg-brand-green after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
-          </label>
+      {/* Facteur météo individuel */}
+      {globalWeatherEnabled && globalMultiplier && globalMultiplier > 1 ? (
+        <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 font-semibold">
+          <CloudRain size={13}/>
+          Multiplicateur météo global actif : ×{globalMultiplier} — la valeur individuelle est ignorée.
         </div>
-        {form.weatherEnabled && (
-          <F label="Multiplicateur (ex: 1.5 = +50%)">
-            <input className="input" type="number" min="1" max="5" step="0.1"
-              value={form.weatherMultiplier} onChange={set('weatherMultiplier')} placeholder="1.5"/>
-          </F>
-        )}
-        {form.weatherEnabled && (
-          <div className="text-xs text-slate-500">
-            Frais effectifs si météo défavorable : <span className="font-bold text-slate-300">
-              {form.baseFee ? formatCFA(Number(form.baseFee) * Number(form.weatherMultiplier)) : '—'}
-            </span>
+      ) : (
+        <div className="border border-navy-600 rounded-xl p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CloudRain size={14} className="text-blue-400"/>
+              <span className="text-sm font-bold text-slate-300">Facteur météo (cette zone)</span>
+            </div>
+            <Toggle
+              checked={form.weatherEnabled}
+              onChange={v => setForm(f => ({ ...f, weatherEnabled: v }))}
+              size="sm"
+            />
           </div>
-        )}
-      </div>
+          {form.weatherEnabled && (
+            <>
+              <F label="Multiplicateur (ex: 1.5 = +50%)">
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  value={form.weatherMultiplier}
+                  onChange={set('weatherMultiplier')}
+                  placeholder="1.5"
+                />
+              </F>
+              <div className="text-xs text-slate-500">
+                Frais effectifs si météo défavorable :{' '}
+                <span className="font-bold text-slate-300">
+                  {form.baseFee ? formatCFA(Number(form.baseFee) * Number(form.weatherMultiplier)) : '—'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Statut */}
       <div className="flex items-center gap-3">
@@ -269,21 +346,46 @@ export const DeliveryFees: React.FC = () => {
   const qc = useQueryClient()
   const confirm = useConfirm()
 
-  // Bloc 1 — filtre pays
   const [filterCountry, setFilterCountry] = useState('')
-
-  // Bloc 2 — mode
   const [mode, setMode] = useState<DeliveryMode>('zone')
-
-  // CRUD modal
   const [modal, setModal] = useState<{ zone?: Zone } | null>(null)
 
-  // Bloc 4 — météo
-  const [weatherCfg, setWeatherCfg] = useState<WeatherConfig>(loadWeatherConfig)
-  const [weather, setWeather] = useState<WeatherState>({ loading: false, code: null, description: '', isBad: false, windSpeed: 0, precipitation: 0, fetchedAt: '' })
+  // Modes actifs par type
+  const [modesConfig, setModesConfig]       = useState<ModesConfig>(loadModesConfig)
+  const [modesDirty, setModesDirty]         = useState(false)
+  const [modesSaved, setModesSaved]         = useState(false)
+
+  const toggleMode = (m: DeliveryMode) => {
+    setModesConfig(prev => ({ ...prev, [m]: !prev[m] }))
+    setModesDirty(true)
+    setModesSaved(false)
+  }
+
+  const saveModes = () => {
+    saveModesConfig(modesConfig)
+    setModesDirty(false)
+    setModesSaved(true)
+    toast.success('Configuration des modes sauvegardée')
+    setTimeout(() => setModesSaved(false), 2000)
+  }
+
+  // Météo
+  const [weatherCfg, setWeatherCfg]     = useState<WeatherConfig>(loadWeatherConfig)
+  const [weather, setWeather]           = useState<WeatherState>({ loading: false, code: null, description: '', isBad: false, windSpeed: 0, precipitation: 0, fetchedAt: '' })
   const [weatherEditing, setWeatherEditing] = useState(false)
-  const [latInput, setLatInput] = useState(String(weatherCfg.lat))
-  const [lonInput, setLonInput] = useState(String(weatherCfg.lon))
+  const [latInput, setLatInput]         = useState(String(weatherCfg.lat))
+  const [lonInput, setLonInput]         = useState(String(weatherCfg.lon))
+  const [globalMultiplierInput, setGlobalMultiplierInput] = useState(String(weatherCfg.globalMultiplier ?? 1.5))
+  const [applyingGlobal, setApplyingGlobal] = useState(false)
+
+  const { data: rawZones = [], isLoading } = useQuery({
+    queryKey: ['delivery-zones'],
+    queryFn: () => api.get('/admin/delivery-zones').then((r: any) => {
+      const d = r?.data?.data ?? r?.data ?? r
+      return Array.isArray(d) ? d : []
+    }),
+  })
+  const zones: Zone[] = rawZones
 
   const loadWeather = async (cfg = weatherCfg) => {
     if (!cfg.enabled) return
@@ -320,22 +422,38 @@ export const DeliveryFees: React.FC = () => {
     }
   }
 
-  // Data
-  const { data: rawZones = [], isLoading } = useQuery({
-    queryKey: ['delivery-zones'],
-    queryFn: () => api.get('/admin/delivery-zones').then((r: any) => {
-      const d = r?.data?.data ?? r?.data ?? r
-      return Array.isArray(d) ? d : []
-    }),
-  })
+  const saveGlobalMultiplier = () => {
+    const val = Number(globalMultiplierInput)
+    if (isNaN(val) || val < 1) { toast.error('Valeur invalide (minimum 1)'); return }
+    saveWeatherCfg({ ...weatherCfg, globalMultiplier: val })
+    toast.success('Multiplicateur global enregistré')
+  }
 
-  const zones: Zone[] = rawZones
-
-  const filtered = useMemo(() => zones.filter((z: Zone) => {
-    const matchCountry = !filterCountry || z.country?.toLowerCase().includes(filterCountry.toLowerCase())
-    const matchMode    = zoneMode(z) === mode
-    return matchCountry && matchMode
-  }), [zones, filterCountry, mode])
+  const applyGlobalToAllZones = async () => {
+    const val = Number(globalMultiplierInput)
+    if (isNaN(val) || val < 1) { toast.error('Valeur invalide (minimum 1)'); return }
+    if (zones.length === 0) { toast.error('Aucune zone à mettre à jour'); return }
+    const ok = await confirm({
+      title: 'Appliquer à toutes les zones ?',
+      message: `Le multiplicateur météo ×${val} sera appliqué aux ${zones.length} zone${zones.length > 1 ? 's' : ''}. Les valeurs individuelles seront écrasées.`,
+      variant: 'info',
+      confirmLabel: 'Appliquer',
+    })
+    if (!ok) return
+    setApplyingGlobal(true)
+    try {
+      await Promise.all(
+        zones.map(z => api.post('/admin/delivery-zones', { id: z.id, weatherMultiplier: val }))
+      )
+      saveWeatherCfg({ ...weatherCfg, globalMultiplier: val })
+      qc.invalidateQueries({ queryKey: ['delivery-zones'] })
+      toast.success(`Multiplicateur ×${val} appliqué à toutes les zones`)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Erreur lors de l\'application')
+    } finally {
+      setApplyingGlobal(false)
+    }
+  }
 
   const upsertMutation = useMutation({
     mutationFn: (dto: any) => api.post('/admin/delivery-zones', dto),
@@ -356,11 +474,18 @@ export const DeliveryFees: React.FC = () => {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
   })
 
+  const filtered = useMemo(() => zones.filter((z: Zone) => {
+    const matchCountry = !filterCountry || z.country?.toLowerCase().includes(filterCountry.toLowerCase())
+    const matchMode    = zoneMode(z) === mode
+    return matchCountry && matchMode
+  }), [zones, filterCountry, mode])
+
   const effectiveFee = (z: Zone) => {
-    if (weatherCfg.enabled && weather.isBad && z.weatherMultiplier > 1) {
-      return z.baseFee * z.weatherMultiplier
-    }
-    return z.baseFee
+    if (!weatherCfg.enabled || !weather.isBad) return z.baseFee
+    const multiplier = weatherCfg.globalMultiplier > 1
+      ? weatherCfg.globalMultiplier
+      : (z.weatherMultiplier > 1 ? z.weatherMultiplier : 1)
+    return z.baseFee * multiplier
   }
 
   return (
@@ -375,9 +500,7 @@ export const DeliveryFees: React.FC = () => {
             <input className="input text-sm" value={filterCountry} onChange={e => setFilterCountry(e.target.value)} placeholder="BJ, SN…"/>
           </div>
           {filterCountry && (
-            <button onClick={() => setFilterCountry('')} className="btn-secondary text-xs px-3 self-end">
-              Effacer
-            </button>
+            <button onClick={() => setFilterCountry('')} className="btn-secondary text-xs px-3 self-end">Effacer</button>
           )}
           <div className="ml-auto self-end text-xs text-slate-500 font-semibold">
             {filtered.length} zone{filtered.length !== 1 ? 's' : ''}
@@ -385,22 +508,60 @@ export const DeliveryFees: React.FC = () => {
         </div>
       </div>
 
-      {/* ── BLOC 2 : Mode ────────────────────────────────── */}
-      <div className="card p-4">
-        <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Mode de calcul</div>
-        <div className="grid grid-cols-3 gap-2">
-          {(['zone', 'km', 'city'] as DeliveryMode[]).map(m => (
-            <button key={m} onClick={() => setMode(m)}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all border ${mode === m ? 'bg-brand-green/15 text-brand-green border-brand-green/40' : 'bg-navy-800 text-slate-400 border-navy-600 hover:text-slate-200 hover:bg-navy-700'}`}>
-              {MODE_ICONS[m]}
-              {MODE_LABELS[m]}
+      {/* ── BLOC 2 : Modes de calcul ─────────────────────── */}
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Modes de calcul</div>
+          <div className="flex items-center gap-2">
+            {modesDirty && (
+              <span className="text-[11px] text-yellow-400 font-semibold">Modifications non sauvegardées</span>
+            )}
+            <button
+              onClick={saveModes}
+              disabled={!modesDirty}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                modesSaved
+                  ? 'bg-brand-green/20 text-brand-green border border-brand-green/40'
+                  : modesDirty
+                    ? 'btn-primary'
+                    : 'bg-navy-800 text-slate-600 border border-navy-700 cursor-not-allowed'
+              }`}
+            >
+              {modesSaved ? <><Check size={12}/> Sauvegardé</> : <><Save size={12}/> Sauvegarder</>}
             </button>
-          ))}
+          </div>
         </div>
-        <div className="mt-3 text-xs text-slate-500">
-          {mode === 'zone'  && 'Tarif fixe par zone géographique (quartier, arrondissement…)'}
-          {mode === 'km'    && 'Tarif de base + montant par kilomètre parcouru'}
-          {mode === 'city'  && 'Tarif fixe pour un trajet entre deux villes'}
+
+        <div className="grid grid-cols-3 gap-2">
+          {(['zone', 'km', 'city'] as DeliveryMode[]).map(m => {
+            const isActive   = modesConfig[m]
+            const isSelected = mode === m
+            return (
+              <div
+                key={m}
+                onClick={() => setMode(m)}
+                className={`flex flex-col gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
+                  isSelected
+                    ? 'bg-brand-green/15 border-brand-green/40'
+                    : 'bg-navy-800 border-navy-600 hover:bg-navy-700'
+                } ${!isActive ? 'opacity-50' : ''}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`flex items-center gap-2 text-sm font-bold ${isSelected ? 'text-brand-green' : 'text-slate-400'}`}>
+                    {MODE_ICONS[m]}
+                    {MODE_LABELS[m]}
+                  </div>
+                  <div onClick={e => { e.stopPropagation(); toggleMode(m) }}>
+                    <Toggle checked={isActive} onChange={() => toggleMode(m)} size="sm"/>
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-500 leading-tight">{MODE_DESC[m]}</div>
+                {!isActive && (
+                  <div className="text-[10px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded w-fit">Désactivé</div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -410,22 +571,34 @@ export const DeliveryFees: React.FC = () => {
           <div className="text-xs font-black text-slate-500 uppercase tracking-widest">
             Zones · {MODE_LABELS[mode]}
           </div>
-          <button onClick={() => setModal({})} className="btn-primary">
+          <button
+            onClick={() => setModal({})}
+            disabled={!modesConfig[mode]}
+            title={!modesConfig[mode] ? `Le mode « ${MODE_LABELS[mode]} » est désactivé` : undefined}
+            className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             <Plus size={15}/> Nouvelle zone
           </button>
         </div>
 
+        {!modesConfig[mode] && (
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 font-semibold">
+            Ce mode est désactivé — activez-le dans le bloc "Modes de calcul" pour ajouter de nouvelles zones.
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-slate-500 text-sm">
-            Aucune zone configurée pour ce mode
-          </div>
+          <div className="text-center py-8 text-slate-500 text-sm">Aucune zone configurée pour ce mode</div>
         ) : (
           <div className="space-y-2">
             {filtered.map(z => {
-              const effective = effectiveFee(z)
-              const weatherActive = weatherCfg.enabled && weather.isBad && z.weatherMultiplier > 1
+              const effective     = effectiveFee(z)
+              const multiplierUsed = weatherCfg.enabled && weather.isBad
+                ? (weatherCfg.globalMultiplier > 1 ? weatherCfg.globalMultiplier : (z.weatherMultiplier > 1 ? z.weatherMultiplier : 1))
+                : 1
+              const weatherActive = weatherCfg.enabled && weather.isBad && multiplierUsed > 1
               return (
                 <div key={z.id} className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${z.isActive ? 'bg-navy-800 border-navy-600' : 'bg-navy-900 border-navy-700 opacity-60'}`}>
                   <div className="flex-1 min-w-0">
@@ -443,17 +616,16 @@ export const DeliveryFees: React.FC = () => {
                         <span className="flex items-center gap-1 text-xs font-bold text-blue-400">
                           <CloudRain size={11}/>
                           Effectif : {formatCFA(effective)}
-                          <span className="text-slate-500 font-normal">(×{z.weatherMultiplier})</span>
+                          <span className="text-slate-500 font-normal">(×{multiplierUsed})</span>
                         </span>
                       )}
-                      {z.weatherMultiplier > 1 && !weatherActive && (
+                      {!weatherActive && z.weatherMultiplier > 1 && (
                         <span className="text-xs text-slate-600">Météo ×{z.weatherMultiplier}</span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => setModal({ zone: z })}
-                      className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
+                    <button onClick={() => setModal({ zone: z })} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
                       <Pencil size={14}/>
                     </button>
                     <button onClick={async () => {
@@ -464,8 +636,7 @@ export const DeliveryFees: React.FC = () => {
                         confirmLabel: 'Supprimer',
                       })
                       if (ok) deleteMutation.mutate(z.id)
-                    }}
-                      className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                    }} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                       <Trash2 size={14}/>
                     </button>
                   </div>
@@ -488,12 +659,14 @@ export const DeliveryFees: React.FC = () => {
               <div className="text-[11px] text-slate-500">via Open-Meteo · invisible au client</div>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={weatherCfg.enabled}
-              onChange={e => { const next = { ...weatherCfg, enabled: e.target.checked }; saveWeatherCfg(next); if (e.target.checked) loadWeather(next) }}
-              className="sr-only peer"/>
-            <div className="w-11 h-6 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"/>
-          </label>
+          <Toggle
+            checked={weatherCfg.enabled}
+            onChange={enabled => {
+              const next = { ...weatherCfg, enabled }
+              saveWeatherCfg(next)
+              if (enabled) loadWeather(next)
+            }}
+          />
         </div>
 
         {weatherCfg.enabled && (
@@ -525,11 +698,47 @@ export const DeliveryFees: React.FC = () => {
               </button>
             </div>
 
-            {/* Config localisation */}
+            {/* Multiplicateur global */}
+            <div className="border border-navy-600 rounded-xl p-3 space-y-3">
+              <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Multiplicateur global</div>
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="label text-[10px]">Valeur (ex: 1.5 = +50%)</label>
+                  <input
+                    className="input w-full"
+                    inputMode="decimal"
+                    value={globalMultiplierInput}
+                    onChange={e => setGlobalMultiplierInput(e.target.value)}
+                    placeholder="1.5"
+                  />
+                </div>
+                <button onClick={saveGlobalMultiplier} className="btn-secondary text-xs px-3 self-end flex items-center gap-1.5">
+                  <Save size={12}/> Enregistrer
+                </button>
+              </div>
+
+              {weatherCfg.globalMultiplier > 1 && (
+                <div className="text-xs text-slate-500">
+                  Multiplicateur actif : <span className="font-bold text-blue-300">×{weatherCfg.globalMultiplier}</span>
+                  {' '}— prioritaire sur les valeurs individuelles des zones.
+                </div>
+              )}
+
+              <button
+                onClick={applyGlobalToAllZones}
+                disabled={applyingGlobal || zones.length === 0}
+                className="btn-primary w-full justify-center text-sm disabled:opacity-40"
+              >
+                {applyingGlobal
+                  ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/>&nbsp;Application…</>
+                  : `Appliquer ×${globalMultiplierInput || '…'} à toutes les zones (${zones.length})`
+                }
+              </button>
+            </div>
+
+            {/* Localisation météo */}
             <div className="space-y-3">
               <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Localisation météo</div>
-
-              {/* Presets pays */}
               <div className="flex flex-wrap gap-2">
                 {Object.entries(COUNTRY_COORDS).map(([code, { city }]) => (
                   <button key={code} onClick={() => pickCountryPreset(code)}
@@ -538,8 +747,6 @@ export const DeliveryFees: React.FC = () => {
                   </button>
                 ))}
               </div>
-
-              {/* Coordonnées manuelles */}
               {!weatherEditing ? (
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-slate-500 font-mono">{weatherCfg.lat}, {weatherCfg.lon}</span>
@@ -548,14 +755,14 @@ export const DeliveryFees: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 flex-wrap">
                   <div className="flex flex-col gap-1">
                     <label className="label text-[10px]">Latitude</label>
-                    <input className="input text-sm w-32" value={latInput} onChange={e => setLatInput(e.target.value)} placeholder="6.3676"/>
+                    <input className="input text-sm w-32" inputMode="decimal" value={latInput} onChange={e => setLatInput(e.target.value)} placeholder="6.3676"/>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="label text-[10px]">Longitude</label>
-                    <input className="input text-sm w-32" value={lonInput} onChange={e => setLonInput(e.target.value)} placeholder="2.4252"/>
+                    <input className="input text-sm w-32" inputMode="decimal" value={lonInput} onChange={e => setLonInput(e.target.value)} placeholder="2.4252"/>
                   </div>
                   <button onClick={applyWeatherCfgEdit} className="btn-primary text-xs px-3 self-end">Appliquer</button>
                   <button onClick={() => setWeatherEditing(false)} className="btn-secondary text-xs px-3 self-end">Annuler</button>
@@ -565,7 +772,7 @@ export const DeliveryFees: React.FC = () => {
 
             {weather.isBad && (
               <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs text-blue-300 font-semibold">
-                Météo défavorable détectée — les multiplicateurs météo des zones sont actifs. Les frais effectifs s'appliquent automatiquement.
+                Météo défavorable détectée — le multiplicateur global ×{weatherCfg.globalMultiplier > 1 ? weatherCfg.globalMultiplier : 'individuel'} est actif sur toutes les zones.
               </div>
             )}
           </>
@@ -585,6 +792,8 @@ export const DeliveryFees: React.FC = () => {
             initial={modal.zone}
             onSave={dto => upsertMutation.mutate(dto)}
             saving={upsertMutation.isPending}
+            globalWeatherEnabled={weatherCfg.enabled}
+            globalMultiplier={weatherCfg.globalMultiplier}
           />
         )}
       </Modal>
