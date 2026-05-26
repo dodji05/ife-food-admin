@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Save, Bell, Clock, Shield, Globe, DollarSign,
   Users, ChevronRight, Plus, Trash2, Pencil, CheckCircle, XCircle,
+  Key, Eye, EyeOff, ChevronDown,
 } from 'lucide-react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
@@ -13,14 +14,43 @@ import { formatDateTime } from '../../utils/format'
 import { unwrap } from '../../utils/api'
 import Toggle from '../../components/ui/Toggle'
 
+// ─── Champs de credentials OTP par fournisseur ───────────────────────────────
+type OtpCredField = { key: string; label: string; type: 'text' | 'password' | 'url'; placeholder?: string }
+const OTP_CRED_FIELDS: Record<string, { label: string; fields: OtpCredField[] }> = {
+  SMS: {
+    label: 'SMS — Twilio',
+    fields: [
+      { key: 'accountSid',  label: 'Account SID',       type: 'text',     placeholder: 'ACxxxxxxxxxxxxxxxx' },
+      { key: 'authToken',   label: 'Auth Token',         type: 'password' },
+      { key: 'phoneNumber', label: 'Numéro expéditeur',  type: 'text',     placeholder: '+12015551234' },
+    ],
+  },
+  WHATSAPP: {
+    label: 'WhatsApp — Meta Business API',
+    fields: [
+      { key: 'apiUrl',      label: 'URL API',            type: 'url',      placeholder: 'https://graph.facebook.com/v19.0' },
+      { key: 'phoneId',     label: 'ID téléphone',       type: 'text' },
+      { key: 'accessToken', label: "Token d'accès",      type: 'password' },
+    ],
+  },
+}
+
 // ─── Onglet Général ──────────────────────────────────────────────────────────
 const GeneralTab: React.FC = () => {
   const confirm = useConfirm()
+  const qc = useQueryClient()
   const [otpChannel, setOtpChannel] = useState('SMS')
   const [cancelDelay, setCancelDelay] = useState('5')
   const [missionDelay, setMissionDelay] = useState('30')
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // OTP credentials
+  const [maskedOtpCreds, setMaskedOtpCreds]   = useState<Record<string, Record<string, string>>>({})
+  const [editedOtpCreds, setEditedOtpCreds]   = useState<Record<string, Record<string, string>>>({})
+  const [otpCredsLoaded, setOtpCredsLoaded]   = useState(false)
+  const [showOtpFields, setShowOtpFields]     = useState<Record<string, boolean>>({})
+  const [expandedOtp, setExpandedOtp]         = useState<Record<string, boolean>>({ SMS: true })
 
   const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ['platform-config'],
@@ -28,6 +58,45 @@ const GeneralTab: React.FC = () => {
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   })
+
+  useQuery({
+    queryKey: ['otp-credentials'],
+    queryFn: () => api.get('/admin/config/otp-credentials').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: !otpCredsLoaded,
+    select: (d: any) => {
+      if (!otpCredsLoaded && d) {
+        setMaskedOtpCreds(d)
+        setOtpCredsLoaded(true)
+      }
+      return d
+    },
+  })
+
+  const saveOtpCredsMutation = useMutation({
+    mutationFn: () => {
+      const payload: Record<string, Record<string, string>> = {}
+      for (const channel of Object.keys(OTP_CRED_FIELDS)) {
+        payload[channel] = {}
+        for (const field of OTP_CRED_FIELDS[channel].fields) {
+          const edited = editedOtpCreds[channel]?.[field.key]
+          payload[channel][field.key] = edited !== undefined && edited !== '' ? edited : '__keep__'
+        }
+      }
+      return api.put('/admin/config/otp-credentials', payload)
+    },
+    onSuccess: () => {
+      toast.success('Clés OTP enregistrées !')
+      setEditedOtpCreds({})
+      setOtpCredsLoaded(false)
+      qc.invalidateQueries({ queryKey: ['otp-credentials'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const setOtpField = (channel: string, key: string, value: string) =>
+    setEditedOtpCreds(prev => ({ ...prev, [channel]: { ...(prev[channel] ?? {}), [key]: value } }))
 
   useEffect(() => {
     if (config) {
@@ -113,6 +182,89 @@ const GeneralTab: React.FC = () => {
       <button onClick={save} disabled={saving} className="btn-primary">
         <Save size={14}/> {saving ? 'Enregistrement…' : 'Enregistrer la configuration'}
       </button>
+
+      {/* Clés API OTP */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+            <Key size={16} className="text-brand-green"/>
+          </div>
+          <h3 className="text-base font-black text-slate-100">Clés API — Canal OTP</h3>
+          <span className="ml-auto text-[10px] text-slate-500 bg-navy-700 px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
+        </div>
+        <p className="text-xs text-slate-500">Laissez un champ vide pour conserver la valeur actuelle. Les valeurs affichées sont masquées.</p>
+
+        <div className="space-y-3">
+          {Object.entries(OTP_CRED_FIELDS).map(([channel, { label, fields }]) => {
+            const isExpanded = expandedOtp[channel] ?? false
+            const hasCreds = fields.some(f => {
+              const v = maskedOtpCreds[channel]?.[f.key]
+              return v && v !== '****'
+            })
+            return (
+              <div key={channel} className="bg-navy-900 rounded-xl border border-navy-700 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setExpandedOtp(p => ({ ...p, [channel]: !p[channel] }))}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-navy-800 transition-colors text-left">
+                  <span className="text-xl flex-shrink-0">{channel === 'SMS' ? '📱' : '💬'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-slate-200">{label}</div>
+                    {hasCreds
+                      ? <div className="text-[10px] text-brand-green font-semibold">Clés configurées</div>
+                      : <div className="text-[10px] text-slate-500">Aucune clé enregistrée</div>
+                    }
+                  </div>
+                  {isExpanded
+                    ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0"/>
+                    : <ChevronRight size={14} className="text-slate-400 flex-shrink-0"/>
+                  }
+                </button>
+
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
+                    {fields.map(field => {
+                      const fieldId = `${channel}__${field.key}`
+                      const maskedVal = maskedOtpCreds[channel]?.[field.key] ?? ''
+                      const editVal   = editedOtpCreds[channel]?.[field.key] ?? ''
+                      const isVisible = showOtpFields[fieldId] ?? false
+                      return (
+                        <div key={field.key} className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">{field.label}</label>
+                          <div className="flex gap-2">
+                            <input
+                              type={field.type === 'url' ? 'url' : (field.type === 'password' && !isVisible ? 'password' : 'text')}
+                              value={editVal}
+                              onChange={e => setOtpField(channel, field.key, e.target.value)}
+                              placeholder={maskedVal || field.placeholder || 'Non configuré'}
+                              className="input flex-1 text-sm font-mono"
+                              autoComplete="off"
+                            />
+                            {field.type === 'password' && (
+                              <button type="button"
+                                onClick={() => setShowOtpFields(p => ({ ...p, [fieldId]: !p[fieldId] }))}
+                                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-navy-700 rounded-lg flex-shrink-0">
+                                {isVisible ? <EyeOff size={14}/> : <Eye size={14}/>}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={() => saveOtpCredsMutation.mutate()}
+          disabled={saveOtpCredsMutation.isPending}
+          className="btn-primary w-full justify-center">
+          <Save size={14}/> Enregistrer les clés OTP
+        </button>
+      </div>
     </div>
   )
 }
