@@ -3,14 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Globe, MapPin, RotateCcw, RefreshCw, Calendar } from 'lucide-react'
 import api from '../../services/api'
 import { useFiltersStore, Period } from '../../store/filters'
-
-const COUNTRIES = [
-  { code: '',   name: 'Tous pays' },
-  { code: 'BJ', name: 'Bénin' },
-  { code: 'SN', name: 'Sénégal' },
-  { code: 'CI', name: "Côte d'Ivoire" },
-  { code: 'TG', name: 'Togo' },
-]
+import { COUNTRIES } from '../../constants/countries'
 
 // Départements du Bénin (région = département administratif local).
 // Filtre dynamiquement les villes proposées dans le dropdown.
@@ -99,6 +92,7 @@ export const LocationPeriodFilters: React.FC<LocationPeriodFiltersProps> = ({
         <select value={country}
           onChange={e => { setCountry(e.target.value); onRegionChange(''); onCityChange('') }}
           className="input h-9 text-sm pr-8 appearance-none cursor-pointer">
+          <option value="">Tous pays</option>
           {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
       </Field>

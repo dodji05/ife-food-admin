@@ -1,19 +1,12 @@
 import React from 'react'
 import { Globe, RotateCcw, Activity } from 'lucide-react'
 import { useFiltersStore, Period } from '../../store/filters'
+import { COUNTRIES } from '../../constants/countries'
 
 const PERIODS: { label: string; value: Period }[] = [
   { label: "Auj.", value: 'day' },
   { label: '7 j', value: 'week' },
   { label: '30 j', value: 'month' },
-]
-
-const COUNTRIES = [
-  { label: 'Tous pays', value: '' },
-  { label: 'Bénin', value: 'BJ' },
-  { label: 'Sénégal', value: 'SN' },
-  { label: "Côte d'Ivoire", value: 'CI' },
-  { label: 'Togo', value: 'TG' },
 ]
 
 // Doit rester synchrone avec DEFAULTS dans store/filters.ts
@@ -48,8 +41,9 @@ export const GlobalFilters: React.FC = () => {
           onChange={(e) => setCountry(e.target.value)}
           className="pl-7 pr-2 py-1.5 text-xs font-bold bg-navy-800 border border-navy-600 rounded-xl text-slate-300 appearance-none cursor-pointer hover:border-navy-500 focus:outline-none focus:border-brand-green transition-colors"
         >
+          <option value="">Tous pays</option>
           {COUNTRIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
+            <option key={c.code} value={c.code}>{c.name}</option>
           ))}
         </select>
       </div>
