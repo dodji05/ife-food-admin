@@ -144,15 +144,7 @@ const CommissionsTab: React.FC = () => {
   const [filterCountry, setFilterCountry] = useState('')
   const [configLoaded, setConfigLoaded] = useState(false)
 
-  const { data: activeCountriesData } = useQuery({
-    queryKey: ['active-countries'],
-    queryFn: () => api.get('/admin/config/countries').then(unwrap),
-    staleTime: 5 * 60 * 1000,
-  })
-  const activeCountries: { code: string; name: string; isActive: boolean }[] =
-    Array.isArray(activeCountriesData)
-      ? activeCountriesData.filter((c: any) => c.isActive)
-      : []
+  const [overrideSelectValue, setOverrideSelectValue] = useState('')
 
   // Global rates
   const [driverRate, setDriverRate] = useState<CommRate>({ type: 'PERCENTAGE', value: '10' })
@@ -355,22 +347,31 @@ const CommissionsTab: React.FC = () => {
             <MapPin size={13} className="text-slate-400"/>
             <span className="text-xs font-bold text-slate-400">Surcharges par pays (optionnel)</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {activeCountries.length === 0 && (
-              <span className="text-xs text-slate-500 italic">Aucun pays actif — activez des pays dans la config plateforme.</span>
-            )}
-            {activeCountries.map(c => {
-              const active = !!countryOverrides[c.code]
-              return (
-                <button key={c.code} onClick={() => toggleCountryOverride(c.code)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${active ? 'bg-brand-green/15 border border-brand-green/40 text-brand-green' : 'bg-navy-800 text-slate-500 border border-navy-600 hover:text-slate-300'}`}>
-                  {active ? '✓ ' : '+ '}{c.name}
-                </button>
-              )
-            })}
+          <div className="flex gap-2 items-center">
+            <select
+              value={overrideSelectValue}
+              onChange={e => setOverrideSelectValue(e.target.value)}
+              className="input text-sm flex-1 max-w-xs appearance-none cursor-pointer"
+            >
+              <option value="">— Choisir un pays —</option>
+              {COUNTRIES.filter(c => !countryOverrides[c.code]).map(c => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                if (!overrideSelectValue) return
+                toggleCountryOverride(overrideSelectValue)
+                setOverrideSelectValue('')
+              }}
+              disabled={!overrideSelectValue}
+              className="btn-secondary text-xs px-3 h-9 disabled:opacity-40"
+            >
+              + Ajouter
+            </button>
           </div>
           {Object.entries(countryOverrides).map(([code, ov]) => {
-            const cName = (activeCountries.find(c => c.code === code) ?? COUNTRIES.find(c => c.code === code))?.name ?? code
+            const cName = COUNTRIES.find(c => c.code === code)?.name ?? code
             return (
               <div key={code} className="card-sm p-4 space-y-3">
                 <div className="flex items-center justify-between">
