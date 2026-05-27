@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Save, Bell, Clock, Shield, Globe, DollarSign,
   Users, ChevronRight, Plus, Trash2, Pencil, CheckCircle, XCircle,
-  Key, Eye, EyeOff, ChevronDown, ArrowUpDown,
+  Key, Eye, EyeOff, ChevronDown, ArrowUpDown, Map as MapIcon,
 } from 'lucide-react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
@@ -659,15 +659,216 @@ const RolesTab: React.FC = () => (
   </div>
 )
 
+// ─── Onglet Géolocalisation / Maps ───────────────────────────────────────────
+type MapsCredField = { key: string; label: string; type: 'text' | 'password' | 'url'; placeholder?: string; optional?: boolean }
+const MAPS_CRED_FIELDS: Record<string, { label: string; emoji: string; fields: MapsCredField[] }> = {
+  GOOGLE_MAPS: {
+    label: 'Google Maps',
+    emoji: '🗺️',
+    fields: [
+      { key: 'apiKey', label: 'Clé API', type: 'password', placeholder: 'AIzaSy...' },
+    ],
+  },
+  OPENSTREETMAP: {
+    label: 'OpenStreetMap (gratuit)',
+    emoji: '🌍',
+    fields: [
+      { key: 'tileUrl',      label: 'URL tuiles',    type: 'url', placeholder: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', optional: true },
+      { key: 'nominatimUrl', label: 'URL Nominatim', type: 'url', placeholder: 'https://nominatim.openstreetmap.org',            optional: true },
+    ],
+  },
+}
+
+const MapsTab: React.FC = () => {
+  const qc = useQueryClient()
+  const [activeProvider, setActiveProvider] = useState<string>('OPENSTREETMAP')
+  const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({ GOOGLE_MAPS: false, OPENSTREETMAP: true })
+  const [maskedCreds, setMaskedCreds] = useState<Record<string, Record<string, string>>>({})
+  const [editedCreds, setEditedCreds] = useState<Record<string, Record<string, string>>>({})
+  const [credsLoaded, setCredsLoaded] = useState(false)
+  const [showFields, setShowFields] = useState<Record<string, boolean>>({})
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ GOOGLE_MAPS: true, OPENSTREETMAP: false })
+
+  useQuery({
+    queryKey: ['maps-credentials'],
+    queryFn: () => api.get('/admin/config/maps-credentials').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: !credsLoaded,
+    select: (d: any) => {
+      if (!credsLoaded && d) {
+        setActiveProvider(d.activeProvider ?? 'OPENSTREETMAP')
+        const masked: Record<string, Record<string, string>> = {}
+        const enabled: Record<string, boolean> = { GOOGLE_MAPS: false, OPENSTREETMAP: true }
+        for (const provider of ['GOOGLE_MAPS', 'OPENSTREETMAP']) {
+          const creds = d[provider] ?? {}
+          masked[provider] = {}
+          for (const [k, v] of Object.entries(creds)) {
+            if (k === 'enabled') { enabled[provider] = Boolean(v) }
+            else (masked[provider] as any)[k] = String(v ?? '')
+          }
+        }
+        setMaskedCreds(masked)
+        setEnabledMap(enabled)
+        setCredsLoaded(true)
+      }
+      return d
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      const payload: any = { activeProvider }
+      for (const provider of Object.keys(MAPS_CRED_FIELDS)) {
+        payload[provider] = { enabled: enabledMap[provider] ?? false }
+        for (const field of MAPS_CRED_FIELDS[provider].fields) {
+          const edited = editedCreds[provider]?.[field.key]
+          payload[provider][field.key] = (edited !== undefined && edited !== '') ? edited : '__keep__'
+        }
+      }
+      return api.put('/admin/config/maps-credentials', payload)
+    },
+    onSuccess: () => {
+      toast.success('Configuration maps enregistrée !')
+      setEditedCreds({})
+      setCredsLoaded(false)
+      qc.invalidateQueries({ queryKey: ['maps-credentials'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const setField = (provider: string, key: string, value: string) =>
+    setEditedCreds(prev => ({ ...prev, [provider]: { ...(prev[provider] ?? {}), [key]: value } }))
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      {/* Fournisseur actif */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+            <MapIcon size={16} className="text-brand-green"/>
+          </div>
+          <h3 className="text-base font-black text-slate-100">Fournisseur de cartes actif</h3>
+        </div>
+        <div className="flex gap-2">
+          {[
+            { key: 'GOOGLE_MAPS', label: '🗺️ Google Maps' },
+            { key: 'OPENSTREETMAP', label: '🌍 OpenStreetMap' },
+          ].map(opt => (
+            <button key={opt.key} onClick={() => setActiveProvider(opt.key)}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${activeProvider === opt.key ? 'bg-brand-green text-white' : 'bg-navy-900 text-slate-400 border border-navy-700'}`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Credentials par fournisseur */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+            <Key size={16} className="text-brand-green"/>
+          </div>
+          <h3 className="text-base font-black text-slate-100">Clés API & Configuration</h3>
+          <span className="ml-auto text-[10px] text-slate-500 bg-navy-700 px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
+        </div>
+        <p className="text-xs text-slate-500">Laissez un champ vide pour conserver la valeur actuelle. Les valeurs affichées sont masquées.</p>
+
+        <div className="space-y-3">
+          {Object.entries(MAPS_CRED_FIELDS).map(([provider, { label, emoji, fields }]) => {
+            const isExpanded = expanded[provider] ?? false
+            const isActive = activeProvider === provider
+            return (
+              <div key={provider} className={`bg-navy-900 rounded-xl border overflow-hidden ${isActive ? 'border-brand-green/40' : 'border-navy-700'}`}>
+                <div
+                  className="w-full flex items-center gap-3 p-3 hover:bg-navy-800 transition-colors cursor-pointer"
+                  onClick={() => setExpanded(p => ({ ...p, [provider]: !p[provider] }))}>
+                  <span className="text-xl flex-shrink-0">{emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-200">{label}</span>
+                      {isActive && <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-brand-green/20 text-brand-green">Actif</span>}
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{enabledMap[provider] ? 'Activé' : 'Désactivé'}</div>
+                  </div>
+                  <div onClick={e => e.stopPropagation()}>
+                    <Toggle
+                      checked={enabledMap[provider] ?? false}
+                      onChange={() => setEnabledMap(p => ({ ...p, [provider]: !p[provider] }))}
+                      disabled={false}
+                    />
+                  </div>
+                  {isExpanded
+                    ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0 ml-1"/>
+                    : <ChevronRight size={14} className="text-slate-400 flex-shrink-0 ml-1"/>
+                  }
+                </div>
+
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
+                    {fields.length === 0 ? (
+                      <p className="text-xs text-slate-500">Aucune clé API requise. OpenStreetMap est entièrement gratuit et open-source.</p>
+                    ) : (
+                      fields.map(field => {
+                        const fieldId = `${provider}__${field.key}`
+                        const maskedVal = maskedCreds[provider]?.[field.key] ?? ''
+                        const editVal   = editedCreds[provider]?.[field.key] ?? ''
+                        const isVisible = showFields[fieldId] ?? false
+                        return (
+                          <div key={field.key} className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-400">
+                              {field.label}
+                              {field.optional && <span className="text-slate-600 font-normal ml-1">(optionnel)</span>}
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type={field.type === 'url' ? 'url' : (field.type === 'password' && !isVisible ? 'password' : 'text')}
+                                value={editVal}
+                                onChange={e => setField(provider, field.key, e.target.value)}
+                                placeholder={maskedVal || field.placeholder || 'Non configuré'}
+                                className="input flex-1 text-sm font-mono"
+                                autoComplete="off"
+                              />
+                              {field.type === 'password' && (
+                                <button type="button"
+                                  onClick={() => setShowFields(p => ({ ...p, [fieldId]: !p[fieldId] }))}
+                                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-navy-700 rounded-lg flex-shrink-0">
+                                  {isVisible ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className="btn-primary w-full justify-center">
+          <Save size={14}/> {saveMutation.isPending ? 'Enregistrement…' : 'Enregistrer la configuration maps'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
-type Tab = 'general' | 'countries' | 'currencies' | 'admins' | 'roles'
+type Tab = 'general' | 'countries' | 'currencies' | 'admins' | 'roles' | 'maps'
 
 const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
-  { key: 'general',    label: 'Général',        Icon: Shield },
-  { key: 'countries',  label: 'Pays',           Icon: Globe },
-  { key: 'currencies', label: 'Devises',        Icon: DollarSign },
-  { key: 'admins',     label: 'Comptes admin',  Icon: Users },
-  { key: 'roles',      label: 'Rôles',          Icon: Shield },
+  { key: 'general',    label: 'Général',          Icon: Shield },
+  { key: 'countries',  label: 'Pays',             Icon: Globe },
+  { key: 'currencies', label: 'Devises',          Icon: DollarSign },
+  { key: 'admins',     label: 'Comptes admin',    Icon: Users },
+  { key: 'roles',      label: 'Rôles',            Icon: Shield },
+  { key: 'maps',       label: 'Géolocalisation',  Icon: MapIcon },
 ]
 
 export const Settings: React.FC = () => {
@@ -691,6 +892,7 @@ export const Settings: React.FC = () => {
       {tab === 'currencies' && <CurrenciesTab/>}
       {tab === 'admins'     && <AdminsTab/>}
       {tab === 'roles'      && <RolesTab/>}
+      {tab === 'maps'       && <MapsTab/>}
     </div>
   )
 }
