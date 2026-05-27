@@ -681,8 +681,8 @@ const MAPS_CRED_FIELDS: Record<string, { label: string; emoji: string; fields: M
 
 const MapsTab: React.FC = () => {
   const qc = useQueryClient()
-  const [activeProvider, setActiveProvider] = useState<string>('OPENSTREETMAP')
-  const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({ GOOGLE_MAPS: false, OPENSTREETMAP: true })
+  const [activeProvider, setActiveProvider] = useState<string>('GOOGLE_MAPS')
+  const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({ GOOGLE_MAPS: true, OPENSTREETMAP: false })
   const [maskedCreds, setMaskedCreds] = useState<Record<string, Record<string, string>>>({})
   const [editedCreds, setEditedCreds] = useState<Record<string, Record<string, string>>>({})
   const [credsLoaded, setCredsLoaded] = useState(false)
