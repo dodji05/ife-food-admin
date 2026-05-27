@@ -182,6 +182,14 @@ const Toggle: React.FC<{
   )
 }
 
+// ─── Champ générique ─────────────────────────────────────────────────────────
+const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="flex flex-col gap-1">
+    <label className="label text-[10px]">{label}</label>
+    {children}
+  </div>
+)
+
 // ─── Formulaire zone ──────────────────────────────────────────────────────────
 interface ZoneFormProps {
   mode: DeliveryMode
@@ -208,13 +216,6 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
-
-  const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="flex flex-col gap-1">
-      <label className="label text-[10px]">{label}</label>
-      {children}
-    </div>
-  )
 
   const effectiveMultiplier = globalWeatherEnabled && globalMultiplier && globalMultiplier > 1
     ? globalMultiplier

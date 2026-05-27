@@ -35,6 +35,13 @@ interface DriverFormProps {
   mode: 'create' | 'edit'
 }
 
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="flex flex-col gap-1">
+    <label className="label text-[11px]">{label}</label>
+    {children}
+  </div>
+)
+
 const DriverForm: React.FC<DriverFormProps> = ({ initial, zones, onSave, saving, mode }) => {
   const initialZoneIds: string[] = initial?.selectedZones?.map((sz: any) => sz.deliveryZoneId) ?? []
 
@@ -76,13 +83,6 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, zones, onSave, saving,
   }
 
   const filteredZones = zones.filter(z => !form.zoneCountry || z.country === form.zoneCountry)
-
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="flex flex-col gap-1">
-      <label className="label text-[11px]">{label}</label>
-      {children}
-    </div>
-  )
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-3">

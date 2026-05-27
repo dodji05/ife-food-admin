@@ -299,73 +299,6 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
 
   const isSubmitting = createProductMutation.isPending || updateProductMutation.isPending || uploadingImage
 
-  // ─── Formulaire produit inline ─────────────────────────────────────────────
-
-  const ProductForm = () => (
-    <div className="card-sm p-4 space-y-3">
-      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-        {editingProduct ? `Modifier — ${typeof editingProduct.name === 'string' ? editingProduct.name : editingProduct.name?.fr}` : 'Nouveau produit'}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <label className="label">Nom *</label>
-          <input className="input w-full" value={productForm.name} onChange={setField('name')} placeholder="ex: Riz sauce graine"/>
-        </div>
-        <div>
-          <label className="label">Prix (XOF) *</label>
-          <input className="input w-full" type="number" min="0" value={productForm.price} onChange={setField('price')} placeholder="2500"/>
-        </div>
-        <div>
-          <label className="label">Catégorie</label>
-          <select className="input w-full appearance-none cursor-pointer" value={productForm.categoryId} onChange={setField('categoryId')}>
-            <option value="">Sans catégorie</option>
-            {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div className="col-span-2">
-          <label className="label">Description</label>
-          <textarea className="input w-full h-16 resize-none text-sm" value={productForm.description} onChange={setField('description')} placeholder="Description optionnelle…"/>
-        </div>
-        <div>
-          <label className="label">Image</label>
-          <input
-            type="file" accept="image/jpeg,image/png,image/webp"
-            onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-navy-700 file:text-slate-300 file:cursor-pointer cursor-pointer"
-          />
-          {(imageFile || productForm.imageUrl) && (
-            <div className="mt-2">
-              <img
-                src={imageFile ? URL.createObjectURL(imageFile) : productForm.imageUrl}
-                alt="aperçu" className="h-16 w-16 rounded-lg object-cover border border-navy-600"
-              />
-            </div>
-          )}
-        </div>
-        <div>
-          <label className="label">Stock</label>
-          <input className="input w-full" type="number" min="0" value={productForm.stock} onChange={setField('stock')} placeholder="Illimité"/>
-        </div>
-        <div className="col-span-2 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setProductForm((f: any) => ({ ...f, isAvailable: !f.isAvailable }))}
-            className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition-colors ${productForm.isAvailable ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-navy-700 border-navy-600 text-slate-400'}`}
-          >
-            {productForm.isAvailable ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
-            {productForm.isAvailable ? 'Disponible' : 'Indisponible'}
-          </button>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={cancelForm} className="btn-secondary flex-1 justify-center">Annuler</button>
-        <button onClick={handleProductSubmit} disabled={isSubmitting} className="btn-primary flex-1 justify-center">
-          {isSubmitting ? 'Enregistrement…' : editingProduct ? 'Enregistrer' : 'Ajouter le produit'}
-        </button>
-      </div>
-    </div>
-  )
-
   if (isLoading) return <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
 
   return (
@@ -403,7 +336,70 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
       )}
 
       {/* Formulaire produit (nouveau ou édition) */}
-      {(showProductForm || editingProduct) && <ProductForm/>}
+      {(showProductForm || editingProduct) && (
+        <div className="card-sm p-4 space-y-3">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            {editingProduct ? `Modifier — ${typeof editingProduct.name === 'string' ? editingProduct.name : editingProduct.name?.fr}` : 'Nouveau produit'}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="label">Nom *</label>
+              <input className="input w-full" value={productForm.name} onChange={setField('name')} placeholder="ex: Riz sauce graine"/>
+            </div>
+            <div>
+              <label className="label">Prix (XOF) *</label>
+              <input className="input w-full" type="number" min="0" value={productForm.price} onChange={setField('price')} placeholder="2500"/>
+            </div>
+            <div>
+              <label className="label">Catégorie</label>
+              <select className="input w-full appearance-none cursor-pointer" value={productForm.categoryId} onChange={setField('categoryId')}>
+                <option value="">Sans catégorie</option>
+                {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="label">Description</label>
+              <textarea className="input w-full h-16 resize-none text-sm" value={productForm.description} onChange={setField('description')} placeholder="Description optionnelle…"/>
+            </div>
+            <div>
+              <label className="label">Image</label>
+              <input
+                type="file" accept="image/jpeg,image/png,image/webp"
+                onChange={e => setImageFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-navy-700 file:text-slate-300 file:cursor-pointer cursor-pointer"
+              />
+              {(imageFile || productForm.imageUrl) && (
+                <div className="mt-2">
+                  <img
+                    src={imageFile ? URL.createObjectURL(imageFile) : productForm.imageUrl}
+                    alt="aperçu" className="h-16 w-16 rounded-lg object-cover border border-navy-600"
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="label">Stock</label>
+              <input className="input w-full" type="number" min="0" value={productForm.stock} onChange={setField('stock')} placeholder="Illimité"/>
+            </div>
+            <div className="col-span-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setProductForm((f: any) => ({ ...f, isAvailable: !f.isAvailable }))}
+                className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition-colors ${productForm.isAvailable ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-navy-700 border-navy-600 text-slate-400'}`}
+              >
+                {productForm.isAvailable ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
+                {productForm.isAvailable ? 'Disponible' : 'Indisponible'}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={cancelForm} className="btn-secondary flex-1 justify-center">Annuler</button>
+            <button onClick={handleProductSubmit} disabled={isSubmitting} className="btn-primary flex-1 justify-center">
+              {isSubmitting ? 'Enregistrement…' : editingProduct ? 'Enregistrer' : 'Ajouter le produit'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Liste des catégories + produits */}
       {categories.length === 0 && !showProductForm ? (
@@ -531,7 +527,7 @@ const PromotionsTab: React.FC<{ proId: string }> = ({ proId }) => {
     }
   }
 
-  const PromoForm = ({ isEdit }: { isEdit: boolean }) => (
+  const promoFormJsx = (isEdit: boolean) => (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -585,9 +581,9 @@ const PromotionsTab: React.FC<{ proId: string }> = ({ proId }) => {
         </button>
       )}
 
-      {showCreate && <div className="card-sm p-4"><div className="text-xs font-bold text-slate-400 mb-3">Nouvelle promotion</div><PromoForm isEdit={false}/></div>}
+      {showCreate && <div className="card-sm p-4"><div className="text-xs font-bold text-slate-400 mb-3">Nouvelle promotion</div>{promoFormJsx(false)}</div>}
 
-      {editPromo && <div className="card-sm p-4"><div className="text-xs font-bold text-slate-400 mb-3">Modifier — {editPromo.code}</div><PromoForm isEdit={true}/></div>}
+      {editPromo && <div className="card-sm p-4"><div className="text-xs font-bold text-slate-400 mb-3">Modifier — {editPromo.code}</div>{promoFormJsx(true)}</div>}
 
       {promos.length === 0 && !showCreate
         ? <div className="text-center py-8 text-slate-500 text-sm">Aucune promotion créée</div>
