@@ -5,6 +5,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import { useConfirm } from '../../hooks/useConfirm'
 import { Modal } from '../../components/ui/Modal'
 import { formatDate, formatCFA } from '../../utils/format'
+import { COUNTRIES } from '../../constants/countries'
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -40,12 +41,6 @@ const EMPTY_FORM = {
   productId: '',
 }
 
-const COUNTRY_OPTIONS = [
-  { code: 'BJ', label: 'Bénin' },
-  { code: 'SN', label: 'Sénégal' },
-  { code: 'CI', label: "Côte d'Ivoire" },
-  { code: 'TG', label: 'Togo' },
-]
 
 const resolveName = (name: any): string => {
   if (!name) return '—'
@@ -161,14 +156,7 @@ export const PromoCodes: React.FC = () => {
     else createMutation.mutate(dto)
   }
 
-  const toggleCountry = (code: string) => {
-    setForm(f => ({
-      ...f,
-      countries: f.countries.includes(code)
-        ? f.countries.filter(c => c !== code)
-        : [...f.countries, code],
-    }))
-  }
+
 
   const isPending = createMutation.isPending || updateMutation.isPending
 
@@ -416,19 +404,32 @@ export const PromoCodes: React.FC = () => {
 
           {/* Pays */}
           <div>
-            <label className="label">Pays <span className="text-slate-600 font-normal">(vide = tous)</span></label>
-            <div className="flex gap-2 flex-wrap mt-1">
-              {COUNTRY_OPTIONS.map(({ code, label }) => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => toggleCountry(code)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${form.countries.includes(code) ? 'bg-brand-green/20 border-brand-green/50 text-brand-green' : 'bg-navy-700 border-navy-600 text-slate-400 hover:text-slate-200'}`}
-                >
-                  {code} — {label}
-                </button>
+            <label className="label">Pays <span className="text-slate-600 font-normal">(vide = tous · Ctrl/Cmd+clic pour sélection multiple)</span></label>
+            <select
+              multiple
+              size={6}
+              value={form.countries}
+              onChange={e => setForm(f => ({ ...f, countries: Array.from(e.target.selectedOptions).map(o => o.value) }))}
+              className="input w-full mt-1"
+            >
+              {COUNTRIES.map(c => (
+                <option key={c.code} value={c.code}>{c.name}</option>
               ))}
-            </div>
+            </select>
+            {form.countries.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {form.countries.map(code => {
+                  const name = COUNTRIES.find(c => c.code === code)?.name ?? code
+                  return (
+                    <span key={code} className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-brand-green/15 border border-brand-green/30 text-brand-green">
+                      {name}
+                      <button type="button" onClick={() => setForm(f => ({ ...f, countries: f.countries.filter(c => c !== code) }))} className="text-brand-green/60 hover:text-brand-green leading-none">×</button>
+                    </span>
+                  )
+                })}
+                <button type="button" onClick={() => setForm(f => ({ ...f, countries: [] }))} className="text-xs text-slate-500 hover:text-slate-300 px-1">tout effacer</button>
+              </div>
+            )}
           </div>
 
           {/* Par utilisateur */}

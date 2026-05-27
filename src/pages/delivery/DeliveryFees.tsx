@@ -4,6 +4,7 @@ import api from '../../services/api'
 import { Modal } from '../../components/ui/Modal'
 import { formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
+import { COUNTRIES } from '../../constants/countries'
 import {
   Plus, Pencil, Trash2, MapPin, Navigation, Building2,
   Cloud, CloudRain, Sun, Zap, Wind, RefreshCw, Save, Check,
@@ -245,7 +246,9 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
           </F>
         )}
         <F label="Pays">
-          <input className="input" value={form.country} onChange={set('country')} placeholder="BJ"/>
+          <select className="input appearance-none cursor-pointer" value={form.country} onChange={set('country')}>
+            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+          </select>
         </F>
         {mode === 'city' && (
           <>
@@ -497,7 +500,10 @@ export const DeliveryFees: React.FC = () => {
         <div className="flex gap-3 items-end">
           <div className="flex flex-col gap-1 min-w-[160px]">
             <label className="label text-[10px]">Pays</label>
-            <input className="input text-sm" value={filterCountry} onChange={e => setFilterCountry(e.target.value)} placeholder="BJ, SN…"/>
+            <select className="input text-sm appearance-none cursor-pointer" value={filterCountry} onChange={e => setFilterCountry(e.target.value)}>
+              <option value="">Tous les pays</option>
+              {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
           </div>
           {filterCountry && (
             <button onClick={() => setFilterCountry('')} className="btn-secondary text-xs px-3 self-end">Effacer</button>
