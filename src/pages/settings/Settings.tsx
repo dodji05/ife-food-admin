@@ -346,11 +346,14 @@ const CountriesTab: React.FC = () => {
   )
 }
 
+type CurrencySort = 'code-asc' | 'code-desc' | 'rate-asc' | 'rate-desc'
+
 // ─── Onglet Devises ───────────────────────────────────────────────────────────
 const CurrenciesTab: React.FC = () => {
   const qc = useQueryClient()
   const [rates, setRates] = useState<Record<string, string>>({})
   const [loaded, setLoaded] = useState(false)
+  const [sort, setSort] = useState<CurrencySort>('code-asc')
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-currencies'],
@@ -378,6 +381,20 @@ const CurrenciesTab: React.FC = () => {
 
   const currencies: any[] = data?.rates ?? []
 
+  const sorted = [...currencies].sort((a, b) => {
+    if (sort === 'code-desc') return b.fromCurrency.localeCompare(a.fromCurrency)
+    if (sort === 'rate-asc')  return (Number(rates[a.fromCurrency]) || a.rate) - (Number(rates[b.fromCurrency]) || b.rate)
+    if (sort === 'rate-desc') return (Number(rates[b.fromCurrency]) || b.rate) - (Number(rates[a.fromCurrency]) || a.rate)
+    return a.fromCurrency.localeCompare(b.fromCurrency)
+  })
+
+  const SORT_OPTIONS: { value: CurrencySort; label: string }[] = [
+    { value: 'code-asc',  label: 'Code A → Z' },
+    { value: 'code-desc', label: 'Code Z → A' },
+    { value: 'rate-asc',  label: 'Taux croissant' },
+    { value: 'rate-desc', label: 'Taux décroissant' },
+  ]
+
   return (
     <div className="space-y-4 max-w-xl">
       <div className="card p-4 flex items-center gap-3 border border-brand-green/20">
@@ -390,11 +407,24 @@ const CurrenciesTab: React.FC = () => {
         </div>
       </div>
 
+      <div className="flex justify-end">
+        <div className="flex items-center gap-1.5">
+          <ArrowUpDown size={13} className="text-slate-500" />
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value as CurrencySort)}
+            className="text-xs bg-navy-800 border border-navy-600 text-slate-300 rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:border-brand-green"
+          >
+            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      </div>
+
       {isLoading
         ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
         : (
-          <div className="card divide-y divide-navy-700 overflow-hidden">
-            {currencies.map((r: any) => (
+          <div className="card divide-y divide-navy-700 overflow-hidden max-h-[520px] overflow-y-auto">
+            {sorted.map((r: any) => (
               <div key={r.fromCurrency} className="flex items-center gap-4 px-4 py-3">
                 <div className="w-12 text-center">
                   <span className="text-xs font-black text-slate-300 bg-navy-700 px-2 py-1 rounded-lg">{r.fromCurrency}</span>
