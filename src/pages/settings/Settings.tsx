@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Save, Bell, Clock, Shield, Globe, DollarSign,
   Users, ChevronRight, Plus, Trash2, Pencil, CheckCircle, XCircle,
-  Key, Eye, EyeOff, ChevronDown,
+  Key, Eye, EyeOff, ChevronDown, ArrowUpDown,
 } from 'lucide-react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
@@ -269,14 +269,26 @@ const GeneralTab: React.FC = () => {
   )
 }
 
+type CountrySort = 'active-first' | 'inactive-first' | 'name-asc' | 'name-desc'
+
 // ─── Onglet Pays ─────────────────────────────────────────────────────────────
 const CountriesTab: React.FC = () => {
   const qc = useQueryClient()
+  const [sort, setSort] = useState<CountrySort>('active-first')
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-countries'],
     queryFn: () => api.get('/admin/config/countries').then(unwrap),
   })
+
   const countries: any[] = Array.isArray(data) ? data : []
+
+  const sorted = [...countries].sort((a, b) => {
+    if (sort === 'active-first')   return (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0) || a.name.localeCompare(b.name)
+    if (sort === 'inactive-first') return (a.isActive ? 1 : 0) - (b.isActive ? 1 : 0) || a.name.localeCompare(b.name)
+    if (sort === 'name-desc')      return b.name.localeCompare(a.name)
+    return a.name.localeCompare(b.name)
+  })
 
   const toggleMutation = useMutation({
     mutationFn: (code: string) => api.patch(`/admin/config/countries/${code}/toggle`),
@@ -284,14 +296,33 @@ const CountriesTab: React.FC = () => {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const SORT_OPTIONS: { value: CountrySort; label: string }[] = [
+    { value: 'active-first',   label: 'Actifs en premier' },
+    { value: 'inactive-first', label: 'Inactifs en premier' },
+    { value: 'name-asc',       label: 'Nom A → Z' },
+    { value: 'name-desc',      label: 'Nom Z → A' },
+  ]
+
   return (
     <div className="space-y-4 max-w-xl">
-      <p className="text-xs text-slate-500">Les pays désactivés n'apparaissent pas dans les filtres et l'app mobile.</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-slate-500">Les pays désactivés n'apparaissent pas dans les filtres et l'app mobile.</p>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <ArrowUpDown size={13} className="text-slate-500" />
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value as CountrySort)}
+            className="text-xs bg-navy-800 border border-navy-600 text-slate-300 rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:border-brand-green"
+          >
+            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      </div>
       {isLoading
         ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
         : (
           <div className="card divide-y divide-navy-700 overflow-hidden max-h-[520px] overflow-y-auto">
-            {countries.map((c: any) => (
+            {sorted.map((c: any) => (
               <div key={c.code} className={`flex items-center gap-3 px-4 py-3 transition-colors ${c.isActive ? '' : 'opacity-50'}`}>
                 <span className="text-xl flex-shrink-0">{c.emoji ?? '🌍'}</span>
                 <div className="flex-1 min-w-0">
