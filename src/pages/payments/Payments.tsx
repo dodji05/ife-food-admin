@@ -155,7 +155,6 @@ const CommissionsTab: React.FC = () => {
       : []
 
   // Global rates
-  const [proRate, setProRate]       = useState<CommRate>({ type: 'PERCENTAGE', value: '15' })
   const [driverRate, setDriverRate] = useState<CommRate>({ type: 'PERCENTAGE', value: '10' })
 
   // RPO tiers (professionnels uniquement)
@@ -182,7 +181,6 @@ const CommissionsTab: React.FC = () => {
       const normType = (t?: string): CommRate['type'] =>
         (t === 'FIXED_AMOUNT' || t === 'FIXED_PER_DISH') ? 'FIXED_PER_DISH' : 'PERCENTAGE'
       if (!configLoaded && d) {
-        setProRate({ type: normType(d.professional?.type), value: String(d.professional?.value ?? '15') })
         setDriverRate({ type: normType(d.driver?.type), value: String(d.driver?.value ?? '10') })
         // Load RPO tiers
         const normTiers = (raw: any[]): CommTier[] =>
@@ -217,14 +215,13 @@ const CommissionsTab: React.FC = () => {
         if (r.type === 'PERCENTAGE' && v > 100) throw new Error(`${label} : taux max 100%`)
         return { type: r.type, value: v }
       }
-      const proBase    = validate(proRate, 'Professionnels')
       const driverBase = validate(driverRate, 'Livreurs')
       const normTierOut = (tiers: CommTier[]) =>
         tiers.map(t => ({
           rate:        t.rate.trim()        ? Number(t.rate)        : null,
           fixedAmount: t.fixedAmount.trim() ? Number(t.fixedAmount) : null,
         }))
-      const professional = { ...proBase, tiers: normTierOut(proTiers) }
+      const professional = { tiers: normTierOut(proTiers) }
       const driver       = { ...driverBase }
       const countries: Record<string, any> = {}
       for (const [code, ov] of Object.entries(countryOverrides)) {
@@ -328,22 +325,16 @@ const CommissionsTab: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarSign size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Taux globaux (par défaut)</span>
+            <span className="font-black text-slate-100 text-sm">Configuration des commissions</span>
           </div>
           <span className="text-[10px] text-slate-500 font-semibold bg-navy-700 px-2 py-1 rounded-lg">
             Commission plateforme = Pros + Livreurs
           </span>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {/* Professionnels */}
-          <div className="card-sm p-4 space-y-3 border-l-2 border-yellow-500/50">
-            <CommRateForm label="Professionnels" rate={proRate} onChange={setProRate}/>
-          </div>
-          {/* Livreurs */}
-          <div className="card-sm p-4 space-y-3 border-l-2 border-blue-500/50">
-            <CommRateForm label="Livreurs" rate={driverRate} onChange={setDriverRate}/>
-          </div>
+        {/* Livreurs */}
+        <div className="card-sm p-4 space-y-3 border-l-2 border-blue-500/50">
+          <CommRateForm label="Livreurs" rate={driverRate} onChange={setDriverRate}/>
         </div>
 
         {/* Paliers RPO */}
