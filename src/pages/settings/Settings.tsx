@@ -408,8 +408,8 @@ const LEVEL_COLORS: Record<string, string> = {
   ANALYST: 'text-slate-400 bg-slate-700',
 }
 
-type AdminForm = { name: string; firstName: string; email: string; phone: string; level: string; pin: string }
-const emptyForm = (): AdminForm => ({ name: '', firstName: '', email: '', phone: '', level: 'ADMIN', pin: '' })
+type AdminForm = { name: string; firstName: string; email: string; phone: string; level: string; password: string }
+const emptyForm = (): AdminForm => ({ name: '', firstName: '', email: '', phone: '', level: 'ADMIN', password: '' })
 
 const AdminsTab: React.FC = () => {
   const qc = useQueryClient()
@@ -451,13 +451,13 @@ const AdminsTab: React.FC = () => {
   const openCreate = () => { setEditing(null); setForm(emptyForm()); setShowModal(true) }
   const openEdit = (a: any) => {
     setEditing(a)
-    setForm({ name: a.name ?? '', firstName: a.firstName ?? '', email: a.email ?? '', phone: a.phone ?? '', level: a.admin?.level ?? 'ADMIN', pin: '' })
+    setForm({ name: a.name ?? '', firstName: a.firstName ?? '', email: a.email ?? '', phone: a.phone ?? '', level: a.admin?.level ?? 'ADMIN', password: '' })
     setShowModal(true)
   }
 
   const handleSubmit = () => {
     if (!form.name || !form.email || !form.phone) { toast.error('Nom, email et téléphone sont requis'); return }
-    if (!editing && !form.pin) { toast.error('Le code PIN est requis à la création'); return }
+    if (!editing && (!form.password || form.password.length < 8)) { toast.error('Le mot de passe doit contenir au minimum 8 caractères'); return }
     if (editing) updateMutation.mutate({ id: editing.id, dto: { name: form.name, firstName: form.firstName, email: form.email, phone: form.phone, level: form.level } })
     else createMutation.mutate(form)
   }
@@ -542,8 +542,8 @@ const AdminsTab: React.FC = () => {
           </div>
           {!editing && (
             <div>
-              <label className="label text-[10px]">Code PIN (4–6 chiffres) *</label>
-              <input type="password" inputMode="numeric" maxLength={6} className="input" value={form.pin} onChange={e => setForm(f => ({ ...f, pin: e.target.value }))} placeholder="••••"/>
+              <label className="label text-[10px]">Mot de passe * <span className="text-slate-600 font-normal">(min. 8 caractères)</span></label>
+              <input type="password" autoComplete="new-password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••"/>
             </div>
           )}
           <div className="flex gap-3 pt-2">
