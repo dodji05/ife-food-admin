@@ -794,7 +794,18 @@ const MapsTab: React.FC = () => {
                   <div onClick={e => e.stopPropagation()}>
                     <Toggle
                       checked={enabledMap[provider] ?? false}
-                      onChange={() => setEnabledMap(p => ({ ...p, [provider]: !p[provider] }))}
+                      onChange={() => {
+                        const willEnable = !(enabledMap[provider] ?? false)
+                        if (willEnable) {
+                          // Activer ce fournisseur désactive tous les autres
+                          const next: Record<string, boolean> = {}
+                          for (const p of Object.keys(MAPS_CRED_FIELDS)) next[p] = p === provider
+                          setEnabledMap(next)
+                          setActiveProvider(provider)
+                        } else {
+                          setEnabledMap(p => ({ ...p, [provider]: false }))
+                        }
+                      }}
                       disabled={false}
                     />
                   </div>
