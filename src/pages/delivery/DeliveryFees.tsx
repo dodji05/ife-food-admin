@@ -367,11 +367,41 @@ export const DeliveryFees: React.FC = () => {
   const [mode, setMode] = useState<DeliveryMode>(() => activeModeFromConfig(loadModesConfig()))
   const [modal, setModal] = useState<{ zone?: Zone } | null>(null)
 
+  // Charge le mode actif depuis le backend au montage — écrase le cache localStorage
+  useQuery({
+    queryKey: ['delivery-mode-config'],
+    queryFn: () => api.get('/admin/config/delivery-mode').then((r: any) => {
+      const m = (r?.data?.activeMode ?? r?.activeMode ?? 'zone') as DeliveryMode
+      const next: ModesConfig = { zone: m === 'zone', km: m === 'km', city: m === 'city' }
+      setModesConfig(next)
+      setMode(m)
+      saveModesConfig(next)
+      return m
+    }),
+    staleTime: Infinity,
+  })
+
+  const modeConfigMutation = useMutation({
+    mutationFn: (m: DeliveryMode) =>
+      api.put('/admin/config/delivery-mode', { activeMode: m }),
+    onError: (_e: any, m, context: any) => {
+      // Revert
+      setModesConfig(context.prev)
+      setMode(context.prevMode)
+      saveModesConfig(context.prev)
+      toast.error('Erreur lors de la sauvegarde du mode de calcul')
+    },
+  })
+
   const activateMode = (m: DeliveryMode) => {
+    const prev = modesConfig
+    const prevMode = mode
     const next: ModesConfig = { zone: m === 'zone', km: m === 'km', city: m === 'city' }
+    // Optimistic update
     setModesConfig(next)
     setMode(m)
     saveModesConfig(next)
+    modeConfigMutation.mutate(m, { context: { prev, prevMode } })
   }
 
   // Météo
