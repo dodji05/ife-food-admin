@@ -6,7 +6,7 @@ import api from '../../services/api'
 import {
   LayoutDashboard, ShoppingCart, Users, Briefcase, Truck,
   Package, CreditCard, FileText, Settings, BarChart3,
-  Tag, Gift, ChevronLeft, ChevronRight, LogOut, X, MapPin,
+  Tag, Gift, ChevronLeft, ChevronRight, LogOut, X, MapPin, MessageSquare,
 } from 'lucide-react'
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
   { to: '/delivery-fees', icon: MapPin,          label: 'Frais livraison' },
   { to: '/promo-codes',   icon: Tag,             label: 'Codes promo' },
   { to: '/referrals',     icon: Gift,            label: 'Parrainage' },
+  { to: '/messages',      icon: MessageSquare,   label: 'Messages' },
   { to: '/payments',      icon: CreditCard,      label: 'Paiements' },
   { to: '/content',       icon: FileText,        label: 'Contenu' },
   { to: '/settings',      icon: Settings,        label: 'Configuration' },
