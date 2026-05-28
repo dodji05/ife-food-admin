@@ -7,7 +7,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import { COUNTRIES } from '../../constants/countries'
 import {
   Plus, Pencil, Trash2, MapPin, Navigation, Building2,
-  Cloud, CloudRain, Sun, Zap, Wind, RefreshCw, Save, Check,
+  Cloud, CloudRain, Sun, Zap, Wind, RefreshCw, Save,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -72,13 +72,24 @@ function saveWeatherConfig(cfg: WeatherConfig) {
 function loadModesConfig(): ModesConfig {
   try {
     const stored = localStorage.getItem(MODES_STORAGE_KEY)
-    if (stored) return { zone: true, km: true, city: true, ...JSON.parse(stored) }
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      for (const m of ['zone', 'km', 'city'] as DeliveryMode[]) {
+        if (parsed[m]) return { zone: m === 'zone', km: m === 'km', city: m === 'city' }
+      }
+    }
   } catch {}
-  return { zone: true, km: true, city: true }
+  return { zone: true, km: false, city: false }
 }
 
 function saveModesConfig(cfg: ModesConfig) {
   localStorage.setItem(MODES_STORAGE_KEY, JSON.stringify(cfg))
+}
+
+function activeModeFromConfig(cfg: ModesConfig): DeliveryMode {
+  if (cfg.km) return 'km'
+  if (cfg.city) return 'city'
+  return 'zone'
 }
 
 interface WeatherState {
@@ -352,26 +363,15 @@ export const DeliveryFees: React.FC = () => {
   const confirm = useConfirm()
 
   const [filterCountry, setFilterCountry] = useState('')
-  const [mode, setMode] = useState<DeliveryMode>('zone')
+  const [modesConfig, setModesConfig] = useState<ModesConfig>(() => loadModesConfig())
+  const [mode, setMode] = useState<DeliveryMode>(() => activeModeFromConfig(loadModesConfig()))
   const [modal, setModal] = useState<{ zone?: Zone } | null>(null)
 
-  // Modes actifs par type
-  const [modesConfig, setModesConfig]       = useState<ModesConfig>(loadModesConfig)
-  const [modesDirty, setModesDirty]         = useState(false)
-  const [modesSaved, setModesSaved]         = useState(false)
-
-  const toggleMode = (m: DeliveryMode) => {
-    setModesConfig(prev => ({ ...prev, [m]: !prev[m] }))
-    setModesDirty(true)
-    setModesSaved(false)
-  }
-
-  const saveModes = () => {
-    saveModesConfig(modesConfig)
-    setModesDirty(false)
-    setModesSaved(true)
-    toast.success('Configuration des modes sauvegardée')
-    setTimeout(() => setModesSaved(false), 2000)
+  const activateMode = (m: DeliveryMode) => {
+    const next: ModesConfig = { zone: m === 'zone', km: m === 'km', city: m === 'city' }
+    setModesConfig(next)
+    setMode(m)
+    saveModesConfig(next)
   }
 
   // Météo
@@ -518,54 +518,31 @@ export const DeliveryFees: React.FC = () => {
 
       {/* ── BLOC 2 : Modes de calcul ─────────────────────── */}
       <div className="card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Modes de calcul</div>
-          <div className="flex items-center gap-2">
-            {modesDirty && (
-              <span className="text-[11px] text-yellow-400 font-semibold">Modifications non sauvegardées</span>
-            )}
-            <button
-              onClick={saveModes}
-              disabled={!modesDirty}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                modesSaved
-                  ? 'bg-brand-green/20 text-brand-green border border-brand-green/40'
-                  : modesDirty
-                    ? 'btn-primary'
-                    : 'bg-navy-800 text-slate-600 border border-navy-700 cursor-not-allowed'
-              }`}
-            >
-              {modesSaved ? <><Check size={12}/> Sauvegardé</> : <><Save size={12}/> Sauvegarder</>}
-            </button>
-          </div>
-        </div>
+        <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Mode de calcul actif</div>
 
         <div className="grid grid-cols-3 gap-2">
           {(['zone', 'km', 'city'] as DeliveryMode[]).map(m => {
-            const isActive   = modesConfig[m]
-            const isSelected = mode === m
+            const isActive = modesConfig[m]
             return (
               <div
                 key={m}
-                onClick={() => setMode(m)}
+                onClick={() => activateMode(m)}
                 className={`flex flex-col gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
-                  isSelected
+                  isActive
                     ? 'bg-brand-green/15 border-brand-green/40'
                     : 'bg-navy-800 border-navy-600 hover:bg-navy-700'
-                } ${!isActive ? 'opacity-50' : ''}`}
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className={`flex items-center gap-2 text-sm font-bold ${isSelected ? 'text-brand-green' : 'text-slate-400'}`}>
+                  <div className={`flex items-center gap-2 text-sm font-bold ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>
                     {MODE_ICONS[m]}
                     {MODE_LABELS[m]}
                   </div>
-                  <div onClick={e => { e.stopPropagation(); toggleMode(m) }}>
-                    <Toggle checked={isActive} onChange={() => toggleMode(m)} size="sm"/>
-                  </div>
+                  <Toggle checked={isActive} onChange={() => activateMode(m)} size="sm"/>
                 </div>
                 <div className="text-[10px] text-slate-500 leading-tight">{MODE_DESC[m]}</div>
-                {!isActive && (
-                  <div className="text-[10px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded w-fit">Désactivé</div>
+                {isActive && (
+                  <div className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded w-fit">Actif</div>
                 )}
               </div>
             )
@@ -581,19 +558,11 @@ export const DeliveryFees: React.FC = () => {
           </div>
           <button
             onClick={() => setModal({})}
-            disabled={!modesConfig[mode]}
-            title={!modesConfig[mode] ? `Le mode « ${MODE_LABELS[mode]} » est désactivé` : undefined}
-            className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn-primary"
           >
             <Plus size={15}/> Nouvelle zone
           </button>
         </div>
-
-        {!modesConfig[mode] && (
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 font-semibold">
-            Ce mode est désactivé — activez-le dans le bloc "Modes de calcul" pour ajouter de nouvelles zones.
-          </div>
-        )}
 
         {isLoading ? (
           <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
