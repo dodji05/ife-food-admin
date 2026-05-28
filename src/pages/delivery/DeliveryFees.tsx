@@ -223,6 +223,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
 
   const submit = () => {
     if (!form.baseFee) { toast.error('Frais de base requis'); return }
+    if (mode === 'km' && (!form.perKmFee || Number(form.perKmFee) <= 0)) { toast.error('Frais par km requis et doit être supérieur à 0'); return }
     if (mode === 'city' && (!form.fromCity || !form.toCity)) { toast.error('Villes de départ et destination requises'); return }
     onSave({
       ...(initial?.id ? { id: initial.id } : {}),
@@ -479,7 +480,7 @@ export const DeliveryFees: React.FC = () => {
   })
 
   const filtered = useMemo(() => zones.filter((z: Zone) => {
-    const matchCountry = !filterCountry || z.country?.toLowerCase().includes(filterCountry.toLowerCase())
+    const matchCountry = !filterCountry || z.country === filterCountry
     const matchMode    = zoneMode(z) === mode
     return matchCountry && matchMode
   }), [zones, filterCountry, mode])
