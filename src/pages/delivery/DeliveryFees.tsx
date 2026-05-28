@@ -377,6 +377,7 @@ export const DeliveryFees: React.FC = () => {
   const [mode, setMode] = useState<DeliveryMode>(() => activeModeFromConfig(loadModesConfig()))
   const [modal, setModal] = useState<{ zone?: Zone } | null>(null)
   const zonesRef = useRef<HTMLDivElement>(null)
+  const prevModeRef = useRef<{ config: ModesConfig; mode: DeliveryMode } | null>(null)
 
   // Charge le mode actif depuis le backend au montage — écrase le cache localStorage
   useQuery({
@@ -395,24 +396,25 @@ export const DeliveryFees: React.FC = () => {
   const modeConfigMutation = useMutation({
     mutationFn: (m: DeliveryMode) =>
       api.put('/admin/config/delivery-mode', { activeMode: m }),
-    onError: (_e: any, m, context: any) => {
-      // Revert
-      setModesConfig(context.prev)
-      setMode(context.prevMode)
-      saveModesConfig(context.prev)
+    onError: () => {
+      const snapshot = prevModeRef.current
+      if (snapshot) {
+        setModesConfig(snapshot.config)
+        setMode(snapshot.mode)
+        saveModesConfig(snapshot.config)
+      }
       toast.error('Erreur lors de la sauvegarde du mode de calcul')
     },
   })
 
   const activateMode = (m: DeliveryMode) => {
     if (m === mode) return
-    const prev = modesConfig
-    const prevMode = mode
+    prevModeRef.current = { config: modesConfig, mode }
     const next: ModesConfig = { zone: m === 'zone', km: m === 'km', city: m === 'city' }
     setModesConfig(next)
     setMode(m)
     saveModesConfig(next)
-    modeConfigMutation.mutate(m, { context: { prev, prevMode } })
+    modeConfigMutation.mutate(m)
     requestAnimationFrame(() => {
       zonesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     })
