@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api'
 import { Modal } from '../../components/ui/Modal'
@@ -366,6 +366,7 @@ export const DeliveryFees: React.FC = () => {
   const [modesConfig, setModesConfig] = useState<ModesConfig>(() => loadModesConfig())
   const [mode, setMode] = useState<DeliveryMode>(() => activeModeFromConfig(loadModesConfig()))
   const [modal, setModal] = useState<{ zone?: Zone } | null>(null)
+  const zonesRef = useRef<HTMLDivElement>(null)
 
   // Charge le mode actif depuis le backend au montage — écrase le cache localStorage
   useQuery({
@@ -394,14 +395,17 @@ export const DeliveryFees: React.FC = () => {
   })
 
   const activateMode = (m: DeliveryMode) => {
+    if (m === mode) return
     const prev = modesConfig
     const prevMode = mode
     const next: ModesConfig = { zone: m === 'zone', km: m === 'km', city: m === 'city' }
-    // Optimistic update
     setModesConfig(next)
     setMode(m)
     saveModesConfig(next)
     modeConfigMutation.mutate(m, { context: { prev, prevMode } })
+    requestAnimationFrame(() => {
+      zonesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
   }
 
   // Météo
@@ -581,10 +585,16 @@ export const DeliveryFees: React.FC = () => {
       </div>
 
       {/* ── BLOC 3 : CRUD zones ──────────────────────────── */}
-      <div className="card p-4 space-y-4">
+      <div ref={zonesRef} className="card p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="text-xs font-black text-slate-500 uppercase tracking-widest">
-            Zones · {MODE_LABELS[mode]}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-brand-green">
+              {MODE_ICONS[mode]}
+              <span className="text-sm font-black">{MODE_LABELS[mode]}</span>
+            </div>
+            <span className="text-xs text-slate-500 font-semibold">
+              — {filtered.length} tarif{filtered.length !== 1 ? 's' : ''} configuré{filtered.length !== 1 ? 's' : ''}
+            </span>
           </div>
           <button
             onClick={() => setModal({})}
@@ -597,9 +607,9 @@ export const DeliveryFees: React.FC = () => {
         {isLoading ? (
           <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-slate-500 text-sm">Aucune zone configurée pour ce mode</div>
+          <div className="text-center py-8 text-slate-500 text-sm">Aucun tarif configuré pour ce mode</div>
         ) : (
-          <div className="space-y-2">
+          <div key={mode} className="space-y-2">
             {filtered.map(z => {
               const effective     = effectiveFee(z)
               const multiplierUsed = weatherCfg.enabled && weather.isBad
