@@ -241,7 +241,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
       name:              mode === 'city' ? `${form.fromCity} → ${form.toCity}` : form.name,
       country:           form.country,
       fromCity:          mode === 'city' ? form.fromCity  : null,
-      toCity:            mode === 'city' ? form.toCity    : null,
+      toCity:            mode === 'city' ? form.toCity    : mode === 'km' ? (form.toCity.trim() || null) : null,
       baseFee:           Number(form.baseFee),
       perKmFee:          mode === 'km'   ? Number(form.perKmFee) : 0,
       currency:          form.currency,
@@ -283,15 +283,25 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
           />
         </F>
         {mode === 'km' && (
-          <F label="Frais par km (XOF)">
-            <input
-              className="input"
-              inputMode="decimal"
-              value={form.perKmFee}
-              onChange={set('perKmFee')}
-              placeholder="100"
-            />
-          </F>
+          <>
+            <F label="Frais par km (XOF) *">
+              <input
+                className="input"
+                inputMode="decimal"
+                value={form.perKmFee}
+                onChange={set('perKmFee')}
+                placeholder="100"
+              />
+            </F>
+            <F label="Ville de livraison (optionnel)">
+              <input
+                className="input"
+                value={form.toCity}
+                onChange={set('toCity')}
+                placeholder="ex: Cotonou — laisser vide pour taux universel"
+              />
+            </F>
+          </>
         )}
         <F label="Devise">
           <select className="input" value={form.currency} onChange={set('currency')}>
