@@ -13,6 +13,7 @@ import { Badge } from '../../components/ui/Badge'
 import { formatDateTime } from '../../utils/format'
 import { unwrap } from '../../utils/api'
 import Toggle from '../../components/ui/Toggle'
+import { ThemeToggleFull } from '../../components/ui/ThemeToggle'
 
 // ─── Champs de credentials OTP par fournisseur ───────────────────────────────
 type OtpCredField = { key: string; label: string; type: 'text' | 'password' | 'url'; placeholder?: string }
@@ -133,6 +134,7 @@ const GeneralTab: React.FC = () => {
 
   return (
     <div className="space-y-5 max-w-2xl">
+      <ThemeToggleFull/>
       {[
         { icon: Bell, title: 'Canal OTP', content: (
           <div className="flex gap-2">

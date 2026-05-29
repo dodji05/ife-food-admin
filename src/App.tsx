@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/auth'
 import { ConfirmProvider } from './hooks/useConfirm'
+import { useThemeInit } from './hooks/useTheme'
 import { Layout } from './components/layout/Layout'
 import { Login } from './pages/auth/Login'
 import { Dashboard } from './pages/dashboard/Dashboard'
@@ -39,6 +40,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 }
 
 export default function App() {
+  useThemeInit()
   return (
     <ConfirmProvider>
       <Routes>

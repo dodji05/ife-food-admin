@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Bell, Menu } from 'lucide-react'
 import api from '../../services/api'
 import { GlobalFilters } from '../ui/GlobalFilters'
+import { ThemeToggleCompact } from '../ui/ThemeToggle'
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Tableau de bord',
@@ -54,10 +55,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </p>
         </div>
 
+        {/* Sélecteur de thème */}
+        <div className="order-3 md:order-4 flex-shrink-0">
+          <ThemeToggleCompact/>
+        </div>
+
         {/* Cloche notifications */}
         <button
           onClick={() => navigate('/orders')}
-          className="order-3 md:order-4 relative p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-xl transition-colors flex-shrink-0"
+          className="order-3 md:order-5 relative p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-xl transition-colors flex-shrink-0"
           title="Notifications"
         >
           <Bell size={18}/>
