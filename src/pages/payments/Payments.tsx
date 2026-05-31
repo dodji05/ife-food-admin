@@ -602,6 +602,7 @@ const CRED_FIELDS: Record<string, CredFieldDef[]> = {
     { key: 'sandbox',       label: 'Mode sandbox',    type: 'boolean' },
   ],
   KKIAPAY: [
+    { key: 'publicKey',  label: 'Clé publique (widget mobile)', type: 'text' },
     { key: 'privateKey', label: 'Clé privée',   type: 'password' },
     { key: 'secret',     label: 'Clé secrète',  type: 'password' },
     { key: 'sandbox',    label: 'Mode sandbox', type: 'boolean' },
