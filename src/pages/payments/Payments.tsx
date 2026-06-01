@@ -608,8 +608,9 @@ const CRED_FIELDS: Record<string, CredFieldDef[]> = {
     { key: 'sandbox',    label: 'Mode sandbox', type: 'boolean' },
   ],
   STRIPE: [
-    { key: 'secretKey',     label: 'Clé secrète',   type: 'password' },
-    { key: 'webhookSecret', label: 'Secret webhook', type: 'password' },
+    { key: 'publishableKey', label: 'Clé publishable (app mobile)', type: 'text' },
+    { key: 'secretKey',      label: 'Clé secrète',    type: 'password' },
+    { key: 'webhookSecret',  label: 'Secret webhook',  type: 'password' },
   ],
   PAYPAL: [
     { key: 'clientId',     label: 'Client ID',     type: 'text' },
