@@ -7,7 +7,7 @@ import { formatCFA } from '../../utils/format'
 import { COUNTRIES } from '../../constants/countries'
 import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, FolderPlus,
-  ChevronDown, ChevronRight, Building2, X, ImageIcon, Package, Tag,
+  Building2, X, ImageIcon, Package, Tag, ArrowUpDown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useConfirm } from '../../hooks/useConfirm'
@@ -314,18 +314,17 @@ const ProductForm: React.FC<{
 
 // ─── Vue catalogue d'un pro ───────────────────────────────────────────────────
 
+type SortKey = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'available_first'
+
 const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack }) => {
   const qc = useQueryClient()
   const confirm = useConfirm()
   const qKey = ['admin-catalogue', pro.id]
 
-  const [openCats, setOpenCats] = useState<Set<string>>(new Set())
   const [productModal, setProductModal] = useState<{ mode: 'create' | 'edit'; product?: any } | null>(null)
-  const [productForm, setProductForm] = useState<ProductFormData>(EMPTY_PRODUCT)
-
-  const [priceMin, setPriceMin]       = useState('')
-  const [priceMax, setPriceMax]       = useState('')
-  const [availFilter, setAvailFilter] = useState<'all' | 'available' | 'unavailable'>('all')
+  const [productForm, setProductForm]   = useState<ProductFormData>(EMPTY_PRODUCT)
+  const [catFilter, setCatFilter]       = useState<string>('all')
+  const [sortKey, setSortKey]           = useState<SortKey>('name_asc')
 
   const { data, isLoading } = useQuery({
     queryKey: qKey,
@@ -333,34 +332,34 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   })
   const categories: any[] = data?.categories ?? []
 
-  const toggleCat = (id: string) => setOpenCats(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
-  const hasProductFilters = priceMin || priceMax || availFilter !== 'all'
+  // Aplatir tous les produits depuis toutes les catégories
+  const allProducts = useMemo(() => {
+    const seen = new Set<string>()
+    const list: any[] = []
+    for (const cat of categories) {
+      for (const p of cat.products ?? []) {
+        if (!seen.has(p.id)) { seen.add(p.id); list.push({ ...p, _catName: cat.name?.fr || cat.name?.en || 'Sans catégorie', _catIcon: cat.icon }) }
+      }
+    }
+    return list
+  }, [categories])
 
-  const filterProducts = (products: any[]) => {
-    if (!hasProductFilters) return products
-    return products.filter(p => {
-      if (priceMin && p.price < Number(priceMin)) return false
-      if (priceMax && p.price > Number(priceMax)) return false
-      if (availFilter === 'available'   && !p.isAvailable) return false
-      if (availFilter === 'unavailable' && p.isAvailable)  return false
-      return true
-    })
-  }
+  const visibleProducts = useMemo(() => {
+    let list = catFilter === 'all'
+      ? allProducts
+      : catFilter === '__none__'
+        ? allProducts.filter(p => !p.categoryId)
+        : allProducts.filter(p => p.categoryId === catFilter)
 
-  const visibleCategories = useMemo(() => {
-    if (!hasProductFilters) return categories
-    return categories
-      .map(cat => ({ ...cat, products: filterProducts(cat.products ?? []) }))
-      .filter(cat => cat.products.length > 0)
-  }, [categories, priceMin, priceMax, availFilter])
-
-  const totalProducts = categories.reduce((sum: number, c: any) => sum + (c.products?.length ?? 0), 0)
-
-  const deleteCatMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/admin/catalogue/categories/${id}`),
-    onSuccess: () => { toast.success('Catégorie supprimée'); qc.invalidateQueries({queryKey: qKey}) },
-    onError: (e: any) => toast.error(e.message),
-  })
+    switch (sortKey) {
+      case 'name_asc':         list = [...list].sort((a, b) => (a.name?.fr || '').localeCompare(b.name?.fr || '')); break
+      case 'name_desc':        list = [...list].sort((a, b) => (b.name?.fr || '').localeCompare(a.name?.fr || '')); break
+      case 'price_asc':        list = [...list].sort((a, b) => a.price - b.price); break
+      case 'price_desc':       list = [...list].sort((a, b) => b.price - a.price); break
+      case 'available_first':  list = [...list].sort((a, b) => (b.isAvailable ? 1 : 0) - (a.isAvailable ? 1 : 0)); break
+    }
+    return list
+  }, [allProducts, catFilter, sortKey])
 
   const buildProductPayload = (f: ProductFormData) => ({
     name: { fr: f.name, en: f.name },
@@ -378,15 +377,8 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   })
 
   const createProductMutation = useMutation({
-    mutationFn: () => api.post(`/admin/catalogue/${productForm.proId || pro.id}/products`, buildProductPayload(productForm)),
-    onSuccess: () => {
-      toast.success('Produit créé')
-      qc.invalidateQueries({queryKey: qKey})
-      if (productForm.proId && productForm.proId !== pro.id) {
-        qc.invalidateQueries({queryKey: ['admin-catalogue', productForm.proId]})
-      }
-      setProductModal(null)
-    },
+    mutationFn: () => api.post(`/admin/catalogue/${pro.id}/products`, buildProductPayload(productForm)),
+    onSuccess: () => { toast.success('Produit créé'); qc.invalidateQueries({queryKey: qKey}); setProductModal(null) },
     onError: (e: any) => toast.error(e.message),
   })
 
@@ -408,8 +400,8 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
     onError: (e: any) => toast.error(e.message),
   })
 
-  const openCreateProduct = (categoryId?: string) => {
-    setProductForm({ ...EMPTY_PRODUCT, proId: pro.id, categoryId: categoryId || '' })
+  const openCreateProduct = () => {
+    setProductForm({ ...EMPTY_PRODUCT, proId: pro.id })
     setProductModal({ mode: 'create' })
   }
 
@@ -431,8 +423,15 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
     setProductModal({ mode: 'edit', product })
   }
 
+  // Catégories avec au moins un produit pour ce pro
+  const catsWithProducts = useMemo(() =>
+    categories.filter(c => (c.products ?? []).length > 0),
+  [categories])
+
+  const hasFilters = catFilter !== 'all' || sortKey !== 'name_asc'
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-4 flex-wrap">
         <button onClick={onBack} className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-xl transition-colors text-sm font-bold">
@@ -445,162 +444,134 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
           <div>
             <div className="font-black text-slate-100">{pro.businessName}</div>
             <div className="text-xs text-slate-500">
-              {pro.category} · {pro.city}
-              {' · '}{totalProducts} produit{totalProducts !== 1 ? 's' : ''}
-              {' · '}{categories.length} catégorie{categories.length !== 1 ? 's' : ''}
+              {pro.category} · {pro.city} · {allProducts.length} produit{allProducts.length !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
-        <button onClick={() => openCreateProduct()} className="btn-primary">
+        <button onClick={openCreateProduct} className="btn-primary">
           <Plus size={15}/> Produit
         </button>
       </div>
 
-      {/* Filtres */}
-      <div className="card p-4 flex flex-wrap gap-3 items-end">
-        <div className="flex flex-col gap-1 min-w-[120px]">
-          <label className="label text-[10px]">Prix min</label>
-          <input className="input text-sm" type="number" min="0" value={priceMin} onChange={e => setPriceMin(e.target.value)} placeholder="0"/>
-        </div>
-        <div className="flex flex-col gap-1 min-w-[120px]">
-          <label className="label text-[10px]">Prix max</label>
-          <input className="input text-sm" type="number" min="0" value={priceMax} onChange={e => setPriceMax(e.target.value)} placeholder="∞"/>
-        </div>
-        <div className="flex flex-col gap-1 min-w-[160px]">
-          <label className="label text-[10px]">Disponibilité</label>
-          <select className="input text-sm" value={availFilter} onChange={e => setAvailFilter(e.target.value as any)}>
-            <option value="all">Tous</option>
-            <option value="available">Disponibles</option>
-            <option value="unavailable">Indisponibles</option>
-          </select>
-        </div>
-        {hasProductFilters && (
-          <>
-            <button onClick={() => { setPriceMin(''); setPriceMax(''); setAvailFilter('all') }} className="btn-secondary text-xs px-3 self-end">
-              Réinitialiser
+      {/* Barre filtres + tri */}
+      <div className="card p-3 flex flex-wrap gap-2 items-center">
+        {/* Filtre catégorie — chips */}
+        <div className="flex flex-wrap gap-1.5 flex-1">
+          {[{ id: 'all', label: 'Toutes', icon: null }, ...catsWithProducts.map((c: any) => ({
+            id: c.id, label: c.name?.fr || c.name?.en || 'Catégorie', icon: c.icon,
+          }))].map(chip => (
+            <button key={chip.id} onClick={() => setCatFilter(chip.id)}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
+                catFilter === chip.id
+                  ? 'bg-brand-green text-white border-brand-green'
+                  : 'bg-navy-800 text-slate-400 border-navy-600 hover:border-brand-green/40 hover:text-slate-200'
+              }`}>
+              {chip.icon && <span className="mr-1">{chip.icon}</span>}{chip.label}
             </button>
-            <div className="self-end text-xs text-slate-500 font-semibold">
-              {visibleCategories.reduce((s, c) => s + c.products.length, 0)} résultat{visibleCategories.reduce((s, c) => s + c.products.length, 0) !== 1 ? 's' : ''}
-            </div>
-          </>
-        )}
+          ))}
+        </div>
+
+        {/* Tri */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <ArrowUpDown size={13} className="text-slate-500"/>
+          <select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)}
+            className="input text-xs py-1.5 px-2 min-w-[150px]">
+            <option value="name_asc">Nom A → Z</option>
+            <option value="name_desc">Nom Z → A</option>
+            <option value="price_asc">Prix croissant</option>
+            <option value="price_desc">Prix décroissant</option>
+            <option value="available_first">Disponibles d'abord</option>
+          </select>
+          {hasFilters && (
+            <button onClick={() => { setCatFilter('all'); setSortKey('name_asc') }}
+              className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-navy-700 rounded-lg transition-colors" title="Réinitialiser">
+              <X size={13}/>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Catalogue */}
+      {/* Liste produits */}
       {isLoading ? (
-        <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
-      ) : categories.length === 0 ? (
+        <div className="space-y-2">{Array.from({length: 5}).map((_, i) => (
+          <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>
+        ))}</div>
+      ) : allProducts.length === 0 ? (
         <div className="card p-12 text-center">
-          <Tag size={28} className="text-slate-600 mx-auto mb-3"/>
-          <p className="text-slate-500 font-semibold mb-1">Aucune catégorie disponible</p>
-          <p className="text-slate-600 text-sm">Crée des catégories générales depuis la page principale du catalogue</p>
+          <Package size={32} className="text-slate-600 mx-auto mb-3"/>
+          <p className="text-slate-500 font-semibold mb-1">Aucun produit dans ce catalogue</p>
+          <button onClick={openCreateProduct} className="btn-primary mx-auto mt-3">
+            <Plus size={14}/> Ajouter le premier produit
+          </button>
         </div>
-      ) : hasProductFilters && visibleCategories.length === 0 ? (
-        <div className="card p-12 text-center">
-          <p className="text-slate-500 font-semibold">Aucun produit ne correspond aux filtres</p>
+      ) : visibleProducts.length === 0 ? (
+        <div className="card p-10 text-center">
+          <p className="text-slate-500 font-semibold text-sm">Aucun produit dans cette catégorie</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {(hasProductFilters ? visibleCategories : categories).map((cat: any) => {
-            const products = cat.products ?? []
-            const isOpen = hasProductFilters || openCats.has(cat.id)
+        <div className="card overflow-hidden divide-y divide-navy-800">
+          {visibleProducts.map((product: any) => {
+            const variantCount = Array.isArray(product.variants) ? product.variants.length : 0
+            const catLabel = product._catIcon ? `${product._catIcon} ${product._catName}` : product._catName
             return (
-              <div key={cat.id} className="card overflow-hidden">
-                <div className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-navy-800/50 transition-colors"
-                  onClick={() => !hasProductFilters && toggleCat(cat.id)}>
-                  {!hasProductFilters && (isOpen ? <ChevronDown size={16} className="text-slate-400"/> : <ChevronRight size={16} className="text-slate-400"/>)}
-                  <span className="text-base">{cat.icon || '📦'}</span>
-                  <span className="font-bold text-slate-200 flex-1">{cat.name?.fr || cat.name?.en || 'Catégorie'}</span>
-                  <span className="text-xs text-slate-500 font-semibold">
-                    {hasProductFilters ? `${products.length} / ${cat.products?.length ?? 0}` : `${products.length}`} produit{products.length !== 1 ? 's' : ''}
-                  </span>
-                  <button onClick={(e) => { e.stopPropagation(); openCreateProduct(cat.id) }}
-                    className="p-1.5 text-brand-green hover:bg-brand-green/10 rounded-lg" title="Ajouter un produit">
-                    <Plus size={14}/>
-                  </button>
-                  <button onClick={async (e) => {
-                    e.stopPropagation()
-                    const ok = await confirm({
-                      title: 'Supprimer cette catégorie ?',
-                      message: `« ${cat.name?.fr ?? cat.name} » sera supprimée. Les produits qu'elle contient resteront sans catégorie.`,
-                      variant: 'danger', confirmLabel: 'Supprimer',
-                    })
-                    if (ok) deleteCatMutation.mutate(cat.id)
-                  }}
-                    className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg" title="Supprimer">
-                    <Trash2 size={14}/>
-                  </button>
-                </div>
-
-                {isOpen && (
-                  <div className="border-t border-navy-700">
-                    {products.length === 0 ? (
-                      <div className="px-8 py-6 text-center">
-                        <p className="text-slate-500 text-sm font-semibold mb-2">Aucun produit dans cette catégorie</p>
-                        <button onClick={() => openCreateProduct(cat.id)} className="btn-secondary text-xs py-1.5 px-3">
-                          <Plus size={12}/> Ajouter un produit
-                        </button>
-                      </div>
-                    ) : (
-                      products.map((product: any, idx: number) => {
-                        const variantCount = Array.isArray(product.variants) ? product.variants.length : 0
-                        return (
-                          <div key={product.id} className={`flex items-center gap-4 px-6 py-3 ${idx < products.length - 1 ? 'border-b border-navy-800' : ''} hover:bg-navy-800/30 transition-colors`}>
-                            {product.imageUrl ? (
-                              <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-navy-700"/>
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-navy-700 flex items-center justify-center flex-shrink-0 text-lg">🍽️</div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-slate-200 text-sm truncate flex items-center gap-2">
-                                {product.name?.fr || product.name?.en || '—'}
-                                {product.isMenu && <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">MENU</span>}
-                              </div>
-                              <div className="flex items-center gap-3 mt-0.5">
-                                {product.description?.fr && (
-                                  <span className="text-xs text-slate-500 truncate max-w-[180px]">{product.description.fr}</span>
-                                )}
-                                {variantCount > 0 && (
-                                  <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded flex-shrink-0">
-                                    {variantCount} variante{variantCount !== 1 ? 's' : ''}
-                                  </span>
-                                )}
-                                {product.stock != null && (
-                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0 ${product.stock === 0 ? 'text-red-400 bg-red-400/10' : 'text-slate-400 bg-navy-700'}`}>
-                                    <Package size={9}/> {product.stock}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <span className="font-black text-brand-green text-sm w-24 text-right flex-shrink-0">{formatCFA(product.price)}</span>
-                            <button onClick={() => toggleProductMutation.mutate(product.id)}
-                              title={product.isAvailable ? 'Masquer' : 'Rendre disponible'}
-                              className={`p-1.5 rounded-lg transition-colors ${product.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-slate-500 hover:bg-navy-700'}`}>
-                              {product.isAvailable ? <Eye size={14}/> : <EyeOff size={14}/>}
-                            </button>
-                            <button onClick={() => openEditProduct(product)} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg">
-                              <Pencil size={14}/>
-                            </button>
-                            <button onClick={async () => {
-                              const ok = await confirm({
-                                title: 'Supprimer ce produit ?',
-                                message: `« ${product.name?.fr ?? product.name} » sera retiré du catalogue.`,
-                                variant: 'danger', confirmLabel: 'Supprimer',
-                              })
-                              if (ok) deleteProductMutation.mutate(product.id)
-                            }} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg">
-                              <Trash2 size={14}/>
-                            </button>
-                          </div>
-                        )
-                      })
+              <div key={product.id} className="flex items-center gap-4 px-5 py-3 hover:bg-navy-800/30 transition-colors">
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-navy-700"/>
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-navy-700 flex items-center justify-center flex-shrink-0 text-lg">🍽️</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-slate-200 text-sm truncate flex items-center gap-2">
+                    {product.name?.fr || product.name?.en || '—'}
+                    {product.isMenu && <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">MENU</span>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="text-[10px] text-slate-600 font-semibold">{catLabel}</span>
+                    {product.description?.fr && (
+                      <span className="text-xs text-slate-500 truncate max-w-[160px]">{product.description.fr}</span>
+                    )}
+                    {variantCount > 0 && (
+                      <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                        {variantCount} variante{variantCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {product.stock != null && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${product.stock === 0 ? 'text-red-400 bg-red-400/10' : 'text-slate-400 bg-navy-700'}`}>
+                        <Package size={9}/> {product.stock}
+                      </span>
                     )}
                   </div>
-                )}
+                </div>
+                <span className="font-black text-brand-green text-sm w-24 text-right flex-shrink-0">{formatCFA(product.price)}</span>
+                <button onClick={() => toggleProductMutation.mutate(product.id)}
+                  title={product.isAvailable ? 'Masquer' : 'Rendre disponible'}
+                  className={`p-1.5 rounded-lg transition-colors ${product.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-slate-500 hover:bg-navy-700'}`}>
+                  {product.isAvailable ? <Eye size={14}/> : <EyeOff size={14}/>}
+                </button>
+                <button onClick={() => openEditProduct(product)} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg">
+                  <Pencil size={14}/>
+                </button>
+                <button onClick={async () => {
+                  const ok = await confirm({
+                    title: 'Supprimer ce produit ?',
+                    message: `« ${product.name?.fr ?? product.name} » sera retiré du catalogue.`,
+                    variant: 'danger', confirmLabel: 'Supprimer',
+                  })
+                  if (ok) deleteProductMutation.mutate(product.id)
+                }} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg">
+                  <Trash2 size={14}/>
+                </button>
               </div>
             )
           })}
         </div>
+      )}
+
+      {/* Compteur résultats filtrés */}
+      {catFilter !== 'all' && visibleProducts.length > 0 && (
+        <p className="text-xs text-slate-600 font-semibold text-right">
+          {visibleProducts.length} / {allProducts.length} produit{allProducts.length !== 1 ? 's' : ''}
+        </p>
       )}
 
       {/* Modal — Créer / Éditer produit */}
