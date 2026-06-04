@@ -357,6 +357,37 @@ const CurrenciesTab: React.FC = () => {
   const [loaded, setLoaded] = useState(false)
   const [sort, setSort] = useState<CurrencySort>('code-asc')
 
+  // ── Clé API Exchange Rate ──────────────────────────────────────────────────
+  const [apiKey, setApiKey] = useState('')
+  const [apiKeyMasked, setApiKeyMasked] = useState('')
+  const [apiUrl, setApiUrl] = useState('')
+  const [showKey, setShowKey] = useState(false)
+  const [keyEdited, setKeyEdited] = useState(false)
+
+  useQuery({
+    queryKey: ['exchange-rate-credentials'],
+    queryFn: () => api.get('/admin/config/exchange-rate-credentials').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    select: (d: any) => {
+      if (d) { setApiKeyMasked(d.apiKey ?? ''); setApiUrl(d.apiUrl ?? '') }
+      return d
+    },
+  })
+
+  const saveKeyMutation = useMutation({
+    mutationFn: () => api.put('/admin/config/exchange-rate-credentials', {
+      apiKey: keyEdited && apiKey ? apiKey : '__keep__',
+      apiUrl: apiUrl || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Clé taux de change enregistrée !')
+      setKeyEdited(false); setApiKey('')
+      qc.invalidateQueries({ queryKey: ['exchange-rate-credentials'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-currencies'],
     queryFn: () => api.get('/admin/config/currencies').then(unwrap),
@@ -407,6 +438,51 @@ const CurrenciesTab: React.FC = () => {
           <div className="text-sm font-black text-slate-100">Devise de base : XOF</div>
           <div className="text-xs text-slate-500">Franc CFA Ouest-Africain — toutes les conversions sont relatives au XOF.</div>
         </div>
+      </div>
+
+      {/* ── Clé API taux de change ───────────────────────────────────────── */}
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Key size={15} className="text-brand-green"/>
+          <div className="text-sm font-black text-slate-100">Clé API taux de change</div>
+        </div>
+        <p className="text-xs text-slate-500">
+          Service exchangerate-api.com — utilisé pour rafraîchir automatiquement les taux.
+          Crée une clé gratuite sur le site puis colle-la ici.
+        </p>
+        <div>
+          <label className="text-xs font-semibold text-slate-400">Clé API</label>
+          <div className="relative mt-1">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={keyEdited ? apiKey : apiKeyMasked}
+              onChange={e => { setKeyEdited(true); setApiKey(e.target.value) }}
+              placeholder="ex: 1a2b3c4d5e6f..."
+              className="w-full bg-navy-900 border border-navy-600 rounded-lg px-3 py-2 pr-10 text-sm text-slate-200 focus:outline-none focus:border-brand-green"
+            />
+            <button type="button" onClick={() => setShowKey(s => !s)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+              {showKey ? <EyeOff size={15}/> : <Eye size={15}/>}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-400">URL API (optionnel)</label>
+          <input
+            type="url"
+            value={apiUrl}
+            onChange={e => setApiUrl(e.target.value)}
+            placeholder="https://v6.exchangerate-api.com/v6"
+            className="w-full mt-1 bg-navy-900 border border-navy-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-green"
+          />
+        </div>
+        <button
+          onClick={() => saveKeyMutation.mutate()}
+          disabled={saveKeyMutation.isPending}
+          className="flex items-center gap-2 bg-brand-green text-white text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-50"
+        >
+          <Save size={15}/> Enregistrer la clé
+        </button>
       </div>
 
       <div className="flex justify-end">
