@@ -391,6 +391,18 @@ const CurrenciesTab: React.FC = () => {
     onError: (e: any) => toast.error(e.message),
   })
 
+  const refreshRatesMutation = useMutation({
+    mutationFn: () => api.post('/admin/config/exchange-rate-credentials/refresh'),
+    onSuccess: (r: any) => {
+      const rates = r?.data?.data?.rates ?? r?.data?.rates ?? []
+      const count = Array.isArray(rates) ? rates.length : 0
+      toast.success(`Taux mis à jour — ${count} devises rafraîchies`)
+      qc.invalidateQueries({ queryKey: ['admin-currencies'] })
+      setLoaded(false)
+    },
+    onError: (e: any) => toast.error(`Rafraîchissement échoué : ${e.message}`),
+  })
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-currencies'],
     queryFn: () => api.get('/admin/config/currencies').then(unwrap),
@@ -479,13 +491,23 @@ const CurrenciesTab: React.FC = () => {
             className="w-full mt-1 bg-navy-900 border border-navy-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-green"
           />
         </div>
-        <button
-          onClick={() => saveKeyMutation.mutate()}
-          disabled={saveKeyMutation.isPending}
-          className="flex items-center gap-2 bg-brand-green text-white text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-50"
-        >
-          <Save size={15}/> Enregistrer la clé
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => saveKeyMutation.mutate()}
+            disabled={saveKeyMutation.isPending}
+            className="flex items-center gap-2 bg-brand-green text-white text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-50"
+          >
+            <Save size={15}/> Enregistrer la clé
+          </button>
+          <button
+            onClick={() => refreshRatesMutation.mutate()}
+            disabled={refreshRatesMutation.isPending}
+            className="flex items-center gap-2 bg-navy-700 border border-navy-600 text-slate-300 hover:text-white text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw size={15} className={refreshRatesMutation.isPending ? 'animate-spin' : ''}/>
+            {refreshRatesMutation.isPending ? 'Rafraîchissement…' : 'Tester / Rafraîchir maintenant'}
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-end">
