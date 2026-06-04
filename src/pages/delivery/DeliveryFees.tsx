@@ -79,7 +79,7 @@ function loadModesConfig(): ModesConfig {
       }
     }
   } catch {}
-  return { zone: true, km: false, city: false }
+  return { zone: false, km: true, city: false }
 }
 
 function saveModesConfig(cfg: ModesConfig) {
@@ -87,9 +87,8 @@ function saveModesConfig(cfg: ModesConfig) {
 }
 
 function activeModeFromConfig(cfg: ModesConfig): DeliveryMode {
-  if (cfg.km) return 'km'
   if (cfg.city) return 'city'
-  return 'zone'
+  return 'km'
 }
 
 interface WeatherState {
@@ -394,11 +393,17 @@ export const DeliveryFees: React.FC = () => {
   useQuery({
     queryKey: ['delivery-mode-config'],
     queryFn: () => api.get('/admin/config/delivery-mode').then((r: any) => {
-      const m = (r?.data?.activeMode ?? r?.activeMode ?? 'zone') as DeliveryMode
-      const next: ModesConfig = { zone: m === 'zone', km: m === 'km', city: m === 'city' }
+      const raw = (r?.data?.activeMode ?? r?.activeMode ?? 'km') as DeliveryMode
+      // Zone mode désactivé — migration automatique vers km
+      const m: DeliveryMode = raw === 'zone' ? 'km' : raw
+      const next: ModesConfig = { zone: false, km: m === 'km', city: m === 'city' }
       setModesConfig(next)
       setMode(m)
       saveModesConfig(next)
+      // Persiste la migration en DB si la valeur stockée était encore 'zone'
+      if (raw === 'zone') {
+        api.put('/admin/config/delivery-mode', { activeMode: 'km' })
+      }
       return m
     }),
     staleTime: Infinity,
@@ -577,8 +582,8 @@ export const DeliveryFees: React.FC = () => {
       <div className="card p-4 space-y-3">
         <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Mode de calcul actif</div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {(['zone', 'km', 'city'] as DeliveryMode[]).map(m => {
+        <div className="grid grid-cols-2 gap-2">
+          {(['km', 'city'] as DeliveryMode[]).map(m => {
             const isActive = modesConfig[m]
             return (
               <div
