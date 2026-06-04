@@ -7,7 +7,7 @@ import { formatCFA } from '../../utils/format'
 import { COUNTRIES } from '../../constants/countries'
 import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, FolderPlus,
-  ChevronDown, ChevronRight, Building2, X, ImageIcon, Package,
+  ChevronDown, ChevronRight, Building2, X, ImageIcon, Package, Tag,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useConfirm } from '../../hooks/useConfirm'
@@ -135,14 +135,14 @@ const ProductForm: React.FC<{
     staleTime: 5 * 60 * 1000,
   })
 
+  // Catégories globales (indépendantes d'un pro)
   const { data: proCategories = [] } = useQuery({
-    queryKey: ['admin-catalogue-categories', form.proId],
-    queryFn: () => api.get(`/admin/catalogue/${form.proId}`).then((r: any) => {
+    queryKey: ['admin-global-categories'],
+    queryFn: () => api.get('/admin/catalogue/categories').then((r: any) => {
       const d = r?.data?.data ?? r?.data
-      return d?.categories ?? []
+      return Array.isArray(d) ? d : []
     }),
-    enabled: !!form.proId,
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   const handleProChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -224,10 +224,10 @@ const ProductForm: React.FC<{
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label">Catégorie</label>
-          <select value={form.categoryId} onChange={set('categoryId')} className="input w-full" disabled={!form.proId}>
+          <select value={form.categoryId} onChange={set('categoryId')} className="input w-full">
             <option value="">Sans catégorie</option>
             {proCategories.map((c: any) => (
-              <option key={c.id} value={c.id}>{c.name?.fr || c.name?.en || c.name}</option>
+              <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name?.fr || c.name?.en || c.name}</option>
             ))}
           </select>
         </div>
@@ -320,9 +320,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   const qKey = ['admin-catalogue', pro.id]
 
   const [openCats, setOpenCats] = useState<Set<string>>(new Set())
-  const [catModal, setCatModal] = useState(false)
   const [productModal, setProductModal] = useState<{ mode: 'create' | 'edit'; product?: any } | null>(null)
-  const [catForm, setCatForm] = useState({ name: '', icon: '' })
   const [productForm, setProductForm] = useState<ProductFormData>(EMPTY_PRODUCT)
 
   const [priceMin, setPriceMin]       = useState('')
@@ -357,12 +355,6 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   }, [categories, priceMin, priceMax, availFilter])
 
   const totalProducts = categories.reduce((sum: number, c: any) => sum + (c.products?.length ?? 0), 0)
-
-  const createCatMutation = useMutation({
-    mutationFn: () => api.post(`/admin/catalogue/${pro.id}/categories`, { name: { fr: catForm.name, en: catForm.name }, icon: catForm.icon || undefined }),
-    onSuccess: () => { toast.success('Catégorie créée'); qc.invalidateQueries({queryKey: qKey}); setCatModal(false); setCatForm({ name: '', icon: '' }) },
-    onError: (e: any) => toast.error(e.message),
-  })
 
   const deleteCatMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/catalogue/categories/${id}`),
@@ -459,9 +451,6 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
             </div>
           </div>
         </div>
-        <button onClick={() => { setCatForm({ name: '', icon: '' }); setCatModal(true) }} className="btn-secondary">
-          <FolderPlus size={15}/> Catégorie
-        </button>
         <button onClick={() => openCreateProduct()} className="btn-primary">
           <Plus size={15}/> Produit
         </button>
@@ -502,10 +491,9 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
         <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
       ) : categories.length === 0 ? (
         <div className="card p-12 text-center">
-          <p className="text-slate-500 font-semibold mb-4">Aucune catégorie pour le moment</p>
-          <button onClick={() => { setCatForm({ name: '', icon: '' }); setCatModal(true) }} className="btn-primary mx-auto">
-            <FolderPlus size={15}/> Créer la première catégorie
-          </button>
+          <Tag size={28} className="text-slate-600 mx-auto mb-3"/>
+          <p className="text-slate-500 font-semibold mb-1">Aucune catégorie disponible</p>
+          <p className="text-slate-600 text-sm">Crée des catégories générales depuis la page principale du catalogue</p>
         </div>
       ) : hasProductFilters && visibleCategories.length === 0 ? (
         <div className="card p-12 text-center">
@@ -615,29 +603,6 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
         </div>
       )}
 
-      {/* Modal — Nouvelle catégorie */}
-      <Modal open={catModal} onClose={() => setCatModal(false)} title="Nouvelle catégorie" size="sm">
-        <div className="space-y-4">
-          <div>
-            <label className="label">Nom de la catégorie *</label>
-            <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))}
-              placeholder="Ex : Plats, Boissons, Entrées…" className="input w-full"/>
-          </div>
-          <div>
-            <label className="label">Icône (emoji, optionnel)</label>
-            <input value={catForm.icon} onChange={e => setCatForm(f => ({...f, icon: e.target.value}))}
-              placeholder="🍕" className="input w-full"/>
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button onClick={() => setCatModal(false)} className="btn-secondary flex-1 justify-center">Annuler</button>
-            <button onClick={() => createCatMutation.mutate()} disabled={!catForm.name.trim() || createCatMutation.isPending}
-              className="btn-primary flex-1 justify-center">
-              <FolderPlus size={15}/> Créer
-            </button>
-          </div>
-        </div>
-      </Modal>
-
       {/* Modal — Créer / Éditer produit */}
       <Modal open={!!productModal} onClose={() => setProductModal(null)}
         title={productModal?.mode === 'edit' ? 'Modifier le produit' : 'Nouveau produit'} size="lg">
@@ -665,6 +630,123 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
   )
 }
 
+// ─── Gestion des catégories globales ─────────────────────────────────────────
+
+const GlobalCategoriesPanel: React.FC = () => {
+  const qc = useQueryClient()
+  const confirm = useConfirm()
+  const qKey = ['admin-global-categories']
+
+  const [catModal, setCatModal]   = useState(false)
+  const [catForm, setCatForm]     = useState({ name: '', icon: '' })
+
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: qKey,
+    queryFn: () => api.get('/admin/catalogue/categories').then((r: any) => {
+      const d = r?.data?.data ?? r?.data
+      return Array.isArray(d) ? d : []
+    }),
+    staleTime: 60_000,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post('/admin/catalogue/categories', {
+      name: { fr: catForm.name, en: catForm.name },
+      icon: catForm.icon || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Catégorie créée')
+      qc.invalidateQueries({ queryKey: qKey })
+      setCatModal(false)
+      setCatForm({ name: '', icon: '' })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/catalogue/categories/${id}`),
+    onSuccess: () => { toast.success('Catégorie supprimée'); qc.invalidateQueries({ queryKey: qKey }) },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-base font-black text-slate-100 flex items-center gap-2">
+            <Tag size={17} className="text-brand-green"/> Catégories générales
+          </h2>
+          <p className="text-sm text-slate-500 font-semibold mt-0.5">
+            Ces catégories sont disponibles pour tous les établissements
+          </p>
+        </div>
+        <button onClick={() => { setCatForm({ name: '', icon: '' }); setCatModal(true) }} className="btn-primary">
+          <FolderPlus size={15}/> Nouvelle catégorie
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{Array.from({length:3}).map((_,i) => <div key={i} className="h-11 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+      ) : categories.length === 0 ? (
+        <div className="py-10 text-center">
+          <Tag size={24} className="text-slate-600 mx-auto mb-2"/>
+          <p className="text-slate-500 font-semibold text-sm">Aucune catégorie pour l'instant</p>
+          <p className="text-slate-600 text-xs mt-1">Crée des catégories générales (Plats, Boissons, Entrées…)</p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat: any) => (
+            <div key={cat.id}
+              className="flex items-center gap-2 px-3 py-2 bg-navy-800 border border-navy-600 rounded-xl text-sm font-semibold text-slate-200">
+              {cat.icon && <span className="text-base leading-none">{cat.icon}</span>}
+              <span>{cat.name?.fr || cat.name?.en || cat.name}</span>
+              <button
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: 'Supprimer cette catégorie ?',
+                    message: `« ${cat.name?.fr ?? cat.name} » sera supprimée. Les produits associés resteront sans catégorie.`,
+                    variant: 'danger', confirmLabel: 'Supprimer',
+                  })
+                  if (ok) deleteMutation.mutate(cat.id)
+                }}
+                className="ml-1 p-0.5 text-slate-500 hover:text-red-400 rounded transition-colors"
+                title="Supprimer"
+              >
+                <X size={13}/>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Modal open={catModal} onClose={() => setCatModal(false)} title="Nouvelle catégorie" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="label">Nom de la catégorie *</label>
+            <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))}
+              placeholder="Ex : Plats, Boissons, Entrées…" className="input w-full" autoFocus/>
+          </div>
+          <div>
+            <label className="label">Icône (emoji, optionnel)</label>
+            <input value={catForm.icon} onChange={e => setCatForm(f => ({...f, icon: e.target.value}))}
+              placeholder="🍕" className="input w-full"/>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setCatModal(false)} className="btn-secondary flex-1 justify-center">Annuler</button>
+            <button onClick={() => createMutation.mutate()} disabled={!catForm.name.trim() || createMutation.isPending}
+              className="btn-primary flex-1 justify-center">
+              {createMutation.isPending
+                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                : <><FolderPlus size={15}/> Créer</>
+              }
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export const Catalogue: React.FC = () => {
@@ -675,7 +757,11 @@ export const Catalogue: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="space-y-5">
+      {/* Section catégories générales */}
+      <GlobalCategoriesPanel/>
+
+      {/* Section sélection établissement */}
       <div className="card p-6">
         <h2 className="text-base font-black text-slate-100 mb-1">Gérer un catalogue</h2>
         <p className="text-sm text-slate-500 font-semibold mb-5">Sélectionne un établissement pour créer ou modifier son catalogue</p>
