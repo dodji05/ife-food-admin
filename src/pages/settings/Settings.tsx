@@ -364,16 +364,19 @@ const CurrenciesTab: React.FC = () => {
   const [showKey, setShowKey] = useState(false)
   const [keyEdited, setKeyEdited] = useState(false)
 
-  useQuery({
+  const { data: exchangeRateCreds } = useQuery({
     queryKey: ['exchange-rate-credentials'],
     queryFn: () => api.get('/admin/config/exchange-rate-credentials').then(unwrap),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
-    select: (d: any) => {
-      if (d) { setApiKeyMasked(d.apiKey ?? ''); setApiUrl(d.apiUrl ?? '') }
-      return d
-    },
   })
+
+  useEffect(() => {
+    if (exchangeRateCreds) {
+      setApiKeyMasked(exchangeRateCreds.apiKey ?? '')
+      setApiUrl(exchangeRateCreds.apiUrl ?? '')
+    }
+  }, [exchangeRateCreds])
 
   const saveKeyMutation = useMutation({
     mutationFn: () => api.put('/admin/config/exchange-rate-credentials', {
@@ -393,16 +396,16 @@ const CurrenciesTab: React.FC = () => {
     queryFn: () => api.get('/admin/config/currencies').then(unwrap),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
-    select: (d: any) => {
-      if (!loaded && d?.rates) {
-        const m: Record<string, string> = {}
-        d.rates.forEach((r: any) => { m[r.fromCurrency] = String(r.rate) })
-        setRates(m)
-        setLoaded(true)
-      }
-      return d
-    },
   })
+
+  useEffect(() => {
+    if (!loaded && data?.rates) {
+      const m: Record<string, string> = {}
+      ;(data.rates as any[]).forEach((r: any) => { m[r.fromCurrency] = String(r.rate) })
+      setRates(m)
+      setLoaded(true)
+    }
+  }, [data, loaded])
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/admin/config/currencies', {
