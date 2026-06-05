@@ -83,7 +83,7 @@ api.interceptors.response.use(
       err.response?.data?.message && typeof err.response.data.message === 'string'
         ? err.response.data.message
         : undefined
-    const message = serverMessage || ERROR_MESSAGES[status] ?? 'Une erreur est survenue'
+    const message = serverMessage || ERROR_MESSAGES[status] || 'Une erreur est survenue'
     return Promise.reject(new Error(message))
   },
 )
