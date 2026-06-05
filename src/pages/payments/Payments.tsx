@@ -80,7 +80,7 @@ function TiersForm({ label, tiers, onChange }: { label: string; tiers: CommTier[
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-500 font-semibold">Montant fixe (FCFA)</label>
+              <label className="text-[10px] text-slate-500 font-semibold">Montant fixe / plat (FCFA)</label>
               <input
                 inputMode="decimal"
                 value={tiers[i]?.fixedAmount ?? ''}
