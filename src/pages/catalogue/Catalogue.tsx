@@ -637,7 +637,10 @@ const GlobalCategoriesPanel: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/catalogue/categories/${id}`),
     onSuccess: () => { toast.success('Catégorie supprimée'); qc.invalidateQueries({ queryKey: qKey }) },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = e?.response?.data?.message ?? e.message
+      toast.error(msg)
+    },
   })
 
   return (
@@ -666,27 +669,47 @@ const GlobalCategoriesPanel: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {categories.map((cat: any) => (
-            <div key={cat.id}
-              className="flex items-center gap-2 px-3 py-2 bg-navy-800 border border-navy-600 rounded-xl text-sm font-semibold text-slate-200">
-              {cat.icon && <span className="text-base leading-none">{cat.icon}</span>}
-              <span>{cat.name?.fr || cat.name?.en || cat.name}</span>
-              <button
-                onClick={async () => {
-                  const ok = await confirm({
-                    title: 'Supprimer cette catégorie ?',
-                    message: `« ${cat.name?.fr ?? cat.name} » sera supprimée. Les produits associés resteront sans catégorie.`,
-                    variant: 'danger', confirmLabel: 'Supprimer',
-                  })
-                  if (ok) deleteMutation.mutate(cat.id)
-                }}
-                className="ml-1 p-0.5 text-slate-500 hover:text-red-400 rounded transition-colors"
-                title="Supprimer"
-              >
-                <X size={13}/>
-              </button>
-            </div>
-          ))}
+          {categories.map((cat: any) => {
+            const productCount: number = cat._count?.products ?? 0
+            const hasProducts = productCount > 0
+            return (
+              <div key={cat.id}
+                className="flex items-center gap-2 px-3 py-2 bg-navy-800 border border-navy-600 rounded-xl text-sm font-semibold text-slate-200">
+                {cat.icon && <span className="text-base leading-none">{cat.icon}</span>}
+                <span>{cat.name?.fr || cat.name?.en || cat.name}</span>
+                {/* Badge produits — visible uniquement si la catégorie est utilisée */}
+                {hasProducts && (
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full leading-none">
+                    {productCount} produit{productCount > 1 ? 's' : ''}
+                  </span>
+                )}
+                {hasProducts ? (
+                  /* Bouton désactivé avec tooltip explicatif */
+                  <span
+                    title={`Impossible de supprimer : ${productCount} produit${productCount > 1 ? 's' : ''} utilise${productCount > 1 ? 'nt' : ''} cette catégorie`}
+                    className="ml-1 p-0.5 text-slate-600 cursor-not-allowed rounded"
+                  >
+                    <X size={13}/>
+                  </span>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Supprimer cette catégorie ?',
+                        message: `« ${cat.name?.fr ?? cat.name} » sera définitivement supprimée.`,
+                        variant: 'danger', confirmLabel: 'Supprimer',
+                      })
+                      if (ok) deleteMutation.mutate(cat.id)
+                    }}
+                    className="ml-1 p-0.5 text-slate-500 hover:text-red-400 rounded transition-colors"
+                    title="Supprimer"
+                  >
+                    <X size={13}/>
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
