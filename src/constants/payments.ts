@@ -1,9 +1,10 @@
 export const TX_TYPE_LABELS: Record<string, string> = {
-  COMMISSION: 'Commission',
-  PAYOUT: 'Virement',
-  REFUND: 'Remboursement',
+  COMMISSION:   'Commission',
+  PAYOUT:       'Virement plateforme',
+  WITHDRAWAL:   'Demande de virement',
+  REFUND:       'Remboursement',
   DELIVERY_FEE: 'Frais livraison',
-  TIP: 'Pourboire',
+  TIP:          'Pourboire',
 }
 
 export const TX_STATUS_LABELS: Record<string, string> = {

@@ -978,6 +978,137 @@ const PayoutsTab: React.FC = () => {
   )
 }
 
+// ─── Onglet Demandes de virement ─────────────────────────────────────────────
+const WithdrawalsTab: React.FC = () => {
+  const qc = useQueryClient()
+  const [statusFilter, setStatusFilter] = useState('PENDING')
+  const [countryFilter, setCountryFilter] = useState('')
+
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['withdrawals', statusFilter, countryFilter],
+    queryFn: () => {
+      const p = new URLSearchParams({ type: 'WITHDRAWAL', limit: '200' })
+      if (statusFilter)  p.set('status',  statusFilter)
+      if (countryFilter) p.set('country', countryFilter)
+      return api.get(`/admin/payments/transactions?${p}`).then(unwrap)
+    },
+  })
+
+  const withdrawals: any[] = Array.isArray(data) ? data : []
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      api.patch(`/admin/transactions/${id}/status`, { status }),
+    onSuccess: () => {
+      toast.success('Statut mis à jour')
+      qc.invalidateQueries({ queryKey: ['withdrawals'] })
+      qc.invalidateQueries({ queryKey: ['payment-stats'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const columns = [
+    {
+      key: 'recipient', label: 'Demandeur',
+      render: (r: any) => (
+        <div>
+          <div className="text-sm font-bold text-slate-200">
+            {r.professional?.businessName || r.driver?.user?.name || '—'}
+          </div>
+          <div className="text-xs text-slate-500">{r.driver?.user?.phone || '—'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'amount', label: 'Montant',
+      sortable: true,
+      sortValue: (r: any) => r.amount,
+      exportValue: (r: any) => r.amount,
+      render: (r: any) => <span className="font-black text-slate-100">{formatCFA(r.amount)}</span>,
+    },
+    {
+      key: 'status', label: 'Statut',
+      exportValue: (r: any) => TX_STATUS_LABELS[r.status] ?? r.status,
+      render: (r: any) => <Badge status={r.status}/>,
+    },
+    {
+      key: 'description', label: 'Détails', hideOnMobile: true,
+      render: (r: any) => (
+        <span className="text-xs text-slate-400 max-w-[220px] block truncate" title={r.description ?? ''}>
+          {r.description || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt', label: 'Date', hideOnMobile: true,
+      sortable: true,
+      sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
+      exportValue: (r: any) => r.createdAt,
+      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span>,
+    },
+    {
+      key: 'actions', label: '',
+      render: (r: any) => r.status === 'PENDING' ? (
+        <div className="flex gap-1">
+          <button
+            title="Approuver"
+            onClick={e => { e.stopPropagation(); statusMutation.mutate({ id: r.id, status: 'COMPLETED' }) }}
+            className="p-1.5 text-green-400 hover:bg-green-500/10 rounded-lg transition-colors">
+            <CheckCircle size={14}/>
+          </button>
+          <button
+            title="Refuser"
+            onClick={e => { e.stopPropagation(); statusMutation.mutate({ id: r.id, status: 'FAILED' }) }}
+            className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+            <XCircle size={14}/>
+          </button>
+        </div>
+      ) : null,
+    },
+  ]
+
+  const pendingCount = withdrawals.filter(w => w.status === 'PENDING').length
+
+  return (
+    <div className="space-y-4">
+      {/* Filtres statut */}
+      <div className="card p-4 flex flex-wrap gap-3 items-center">
+        {[
+          { value: 'PENDING',   label: 'En attente',  icon: Clock,       cls: 'text-yellow-400' },
+          { value: 'COMPLETED', label: 'Approuvés',   icon: CheckCircle, cls: 'text-green-400' },
+          { value: 'FAILED',    label: 'Refusés',     icon: XCircle,     cls: 'text-red-400' },
+          { value: '',          label: 'Tous',        icon: ArrowUpDown, cls: 'text-slate-400' },
+        ].map(opt => (
+          <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+            <opt.icon size={12}/> {opt.label}
+            {opt.value === 'PENDING' && pendingCount > 0 && statusFilter !== 'PENDING' && (
+              <span className="ml-1 px-1.5 py-0.5 bg-yellow-500 text-navy-900 rounded-full text-[10px] font-black">{pendingCount}</span>
+            )}
+          </button>
+        ))}
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="input text-xs py-1.5 min-w-[130px]">
+          <option value="">Tous les pays</option>
+          {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+        </select>
+        <button onClick={() => refetch()} className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/>
+        </button>
+      </div>
+      <div className="card p-5">
+        <DataTable
+          columns={columns}
+          data={withdrawals}
+          loading={isLoading}
+          exportable
+          exportFilename="demandes-virement"
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Onglet Transactions ──────────────────────────────────────────────────────
 const TransactionsTab: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('')
@@ -1101,19 +1232,26 @@ const TransactionsTab: React.FC = () => {
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 export const Payments: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'commissions' | 'delivery' | 'gateways' | 'payouts' | 'transactions'>('commissions')
+  const [activeTab, setActiveTab] = useState<'commissions' | 'delivery' | 'gateways' | 'withdrawals' | 'transactions'>('commissions')
 
   const { data: payStats } = useQuery({
     queryKey: ['payment-stats'],
     queryFn: () => api.get('/admin/payments/stats').then(unwrap),
   })
 
+  const { data: pendingWithdrawalsData } = useQuery({
+    queryKey: ['withdrawals-pending-count'],
+    queryFn: () => api.get('/admin/payments/transactions?type=WITHDRAWAL&status=PENDING&limit=1').then(unwrap),
+    refetchInterval: 60_000,
+  })
+  const pendingWithdrawalsCount: number = Array.isArray(pendingWithdrawalsData) ? pendingWithdrawalsData.length : 0
+
   const tabs = [
-    { key: 'commissions',  label: 'Commissions',       icon: DollarSign },
-    { key: 'delivery',     label: 'Frais livraison',   icon: Truck },
-    { key: 'gateways',     label: 'Passerelles',        icon: CreditCard },
-    { key: 'payouts',      label: 'Virements',          icon: ArrowUpDown },
-    { key: 'transactions', label: 'Transactions',       icon: ArrowUpDown },
+    { key: 'commissions',  label: 'Commissions',          icon: DollarSign,  badge: 0 },
+    { key: 'delivery',     label: 'Frais livraison',      icon: Truck,       badge: 0 },
+    { key: 'gateways',     label: 'Passerelles',          icon: CreditCard,  badge: 0 },
+    { key: 'withdrawals',  label: 'Demandes de virement', icon: ArrowUpDown, badge: pendingWithdrawalsCount },
+    { key: 'transactions', label: 'Transactions',         icon: ArrowUpDown, badge: 0 },
   ] as const
 
   return (
@@ -1160,13 +1298,18 @@ export const Payments: React.FC = () => {
 
       {/* Menu horizontal */}
       <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {tabs.map(({ key, label, icon: Icon }) => (
+        {tabs.map(({ key, label, icon: Icon, badge }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0
               ${activeTab === key ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
             <Icon size={14}/>{label}
+            {badge > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.5 bg-yellow-500 text-navy-900 rounded-full text-[10px] font-black leading-none">
+                {badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1175,7 +1318,7 @@ export const Payments: React.FC = () => {
       {activeTab === 'commissions'  && <CommissionsTab/>}
       {activeTab === 'delivery'     && <DeliveryFeesTab/>}
       {activeTab === 'gateways'     && <GatewaysTab/>}
-      {activeTab === 'payouts'      && <PayoutsTab/>}
+      {activeTab === 'withdrawals'  && <WithdrawalsTab/>}
       {activeTab === 'transactions' && <TransactionsTab/>}
     </div>
   )

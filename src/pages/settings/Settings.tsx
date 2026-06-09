@@ -267,6 +267,69 @@ const GeneralTab: React.FC = () => {
           <Save size={14}/> Enregistrer les clés OTP
         </button>
       </div>
+
+      {/* Notifications virement */}
+      <WithdrawalNotificationCard/>
+    </div>
+  )
+}
+
+// ─── Carte config email notifications virement ───────────────────────────────
+const WithdrawalNotificationCard: React.FC = () => {
+  const qc = useQueryClient()
+  const [email, setEmail] = useState('')
+  const [loaded, setLoaded] = useState(false)
+
+  useQuery({
+    queryKey: ['withdrawal-notification-config'],
+    queryFn: () => api.get('/admin/config/withdrawal-notification').then(unwrap),
+    staleTime: Infinity,
+    enabled: !loaded,
+    select: (d: any) => {
+      if (!loaded && d) { setEmail(d.email ?? ''); setLoaded(true) }
+      return d
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: () => api.put('/admin/config/withdrawal-notification', { email }),
+    onSuccess: () => {
+      toast.success('Email de notification enregistré !')
+      qc.invalidateQueries({ queryKey: ['withdrawal-notification-config'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  return (
+    <div className="card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+          <Bell size={16} className="text-brand-green"/>
+        </div>
+        <div>
+          <h3 className="text-base font-black text-slate-100">Notifications virement</h3>
+          <p className="text-xs text-slate-500">Email qui reçoit les alertes lors d'une nouvelle demande de virement</p>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <label className="label text-xs">Adresse email de notification</label>
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="dgaservicesint@gmail.com"
+          className="input text-sm w-full"
+        />
+        <p className="text-[11px] text-slate-500">
+          Chaque demande de virement enverra un email à cette adresse (si le serveur SMTP est configuré) ainsi qu'une notification in-app aux administrateurs.
+        </p>
+      </div>
+      <button
+        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending}
+        className="btn-primary">
+        <Save size={14}/> {saveMutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
+      </button>
     </div>
   )
 }
