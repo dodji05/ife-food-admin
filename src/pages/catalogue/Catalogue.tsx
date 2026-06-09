@@ -223,9 +223,9 @@ const ProductForm: React.FC<{
       {/* Catégorie + stock */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label">Catégorie</label>
-          <select value={form.categoryId} onChange={set('categoryId')} className="input w-full">
-            <option value="">Sans catégorie</option>
+          <label className="label">Catégorie <span className="text-red-400">*</span></label>
+          <select value={form.categoryId} onChange={set('categoryId')} className={`input w-full ${!form.categoryId ? 'border-red-500/40' : ''}`}>
+            <option value="">— Sélectionner une catégorie —</option>
             {proCategories.map((c: any) => (
               <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name?.fr || c.name?.en || c.name}</option>
             ))}
@@ -590,7 +590,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
                 ? updateProductMutation.mutate(productModal.product.id)
                 : createProductMutation.mutate()
               }
-              disabled={!productForm.name.trim() || !productForm.price || createProductMutation.isPending || updateProductMutation.isPending}
+              disabled={!productForm.name.trim() || !productForm.price || !productForm.categoryId || createProductMutation.isPending || updateProductMutation.isPending}
               className="btn-primary flex-1 justify-center">
               <Plus size={15}/> {productModal?.mode === 'edit' ? 'Enregistrer' : 'Créer le produit'}
             </button>

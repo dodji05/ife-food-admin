@@ -259,6 +259,7 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
   const handleProductSubmit = async () => {
     if (!productForm.name.trim()) { toast.error('Nom requis'); return }
     if (!productForm.price || isNaN(Number(productForm.price))) { toast.error('Prix valide requis'); return }
+    if (!productForm.categoryId) { toast.error('Catégorie requise'); return }
 
     const imageUrl = await handleImageUpload()
 
@@ -351,9 +352,9 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
               <input className="input w-full" type="number" min="0" value={productForm.price} onChange={setField('price')} placeholder="2500"/>
             </div>
             <div>
-              <label className="label">Catégorie</label>
-              <select className="input w-full appearance-none cursor-pointer" value={productForm.categoryId} onChange={setField('categoryId')}>
-                <option value="">Sans catégorie</option>
+              <label className="label">Catégorie <span className="text-red-400">*</span></label>
+              <select className={`input w-full appearance-none cursor-pointer ${!productForm.categoryId ? 'border-red-500/40' : ''}`} value={productForm.categoryId} onChange={setField('categoryId')}>
+                <option value="">— Sélectionner une catégorie —</option>
                 {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
