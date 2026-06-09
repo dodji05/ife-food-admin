@@ -331,18 +331,25 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
     queryFn: () => api.get(`/admin/catalogue/${pro.id}`).then((r: any) => r?.data?.data ?? r?.data),
   })
   const categories: any[] = data?.categories ?? []
+  // Produits sans catégorie (categoryId = null) — chargés séparément par l'API
+  // car ils sont invisibles dans la vue par catégories classique.
+  const uncategorized: any[] = data?.uncategorizedProducts ?? []
 
-  // Aplatir tous les produits depuis toutes les catégories
+  // Aplatir tous les produits : catégorisés + sans catégorie
   const allProducts = useMemo(() => {
     const seen = new Set<string>()
     const list: any[] = []
     for (const cat of categories) {
       for (const p of cat.products ?? []) {
-        if (!seen.has(p.id)) { seen.add(p.id); list.push({ ...p, _catName: cat.name?.fr || cat.name?.en || 'Sans catégorie', _catIcon: cat.icon }) }
+        if (!seen.has(p.id)) { seen.add(p.id); list.push({ ...p, _catName: cat.name?.fr || cat.name?.en || 'Catégorie', _catIcon: cat.icon }) }
       }
     }
+    // Produits sans catégorie — ajoutés à la fin avec un marqueur visuel
+    for (const p of uncategorized) {
+      if (!seen.has(p.id)) { seen.add(p.id); list.push({ ...p, _catName: 'Sans catégorie', _catIcon: '⚠️' }) }
+    }
     return list
-  }, [categories])
+  }, [categories, uncategorized])
 
   const visibleProducts = useMemo(() => {
     let list = catFilter === 'all'
@@ -428,6 +435,8 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
     categories.filter(c => (c.products ?? []).length > 0),
   [categories])
 
+  const totalProductCount = allProducts.length
+
   const hasFilters = catFilter !== 'all' || sortKey !== 'name_asc'
 
   return (
@@ -443,8 +452,11 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
           </div>
           <div>
             <div className="font-black text-slate-100">{pro.businessName}</div>
-            <div className="text-xs text-slate-500">
-              {pro.category} · {pro.city} · {allProducts.length} produit{allProducts.length !== 1 ? 's' : ''}
+            <div className="text-xs text-slate-500 flex items-center gap-2">
+              {pro.category} · {pro.city} · {totalProductCount} produit{totalProductCount !== 1 ? 's' : ''}
+              {uncategorized.length > 0 && (
+                <span className="text-yellow-400 font-bold">⚠️ {uncategorized.length} sans catégorie</span>
+              )}
             </div>
           </div>
         </div>
@@ -457,9 +469,11 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
       <div className="card p-3 flex flex-wrap gap-2 items-center">
         {/* Filtre catégorie — chips */}
         <div className="flex flex-wrap gap-1.5 flex-1">
-          {[{ id: 'all', label: 'Toutes', icon: null }, ...catsWithProducts.map((c: any) => ({
-            id: c.id, label: c.name?.fr || c.name?.en || 'Catégorie', icon: c.icon,
-          }))].map(chip => (
+          {[
+            { id: 'all', label: 'Toutes', icon: null },
+            ...catsWithProducts.map((c: any) => ({ id: c.id, label: c.name?.fr || c.name?.en || 'Catégorie', icon: c.icon })),
+            ...(uncategorized.length > 0 ? [{ id: '__none__', label: `Sans catégorie (${uncategorized.length})`, icon: '⚠️' }] : []),
+          ].map(chip => (
             <button key={chip.id} onClick={() => setCatFilter(chip.id)}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
                 catFilter === chip.id
