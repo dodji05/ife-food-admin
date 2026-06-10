@@ -7,7 +7,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import { COUNTRIES } from '../../constants/countries'
 import {
   Plus, Pencil, Trash2, MapPin, Navigation, Building2,
-  Cloud, CloudRain, Sun, Zap, Wind, RefreshCw, Save,
+  Cloud, CloudRain, Sun, Zap, Wind, RefreshCw, Save, Settings2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -377,6 +377,133 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
   )
 }
 
+// ─── Carte config KM globale ──────────────────────────────────────────────────
+interface KmConfig {
+  baseFee:  number
+  perKmFee: number
+  currency: string
+}
+
+const GlobalKmConfigCard: React.FC = () => {
+  const qc = useQueryClient()
+  const [baseFee,  setBaseFee]  = useState('')
+  const [perKmFee, setPerKmFee] = useState('')
+  const [currency, setCurrency] = useState('XOF')
+  const [loaded,   setLoaded]   = useState(false)
+
+  const { data: kmData, isLoading } = useQuery<KmConfig>({
+    queryKey: ['km-delivery-config'],
+    queryFn:  () => api.get('/admin/config/km-delivery').then((r: any) => {
+      const d: KmConfig = r?.data?.data ?? r?.data ?? r
+      return d
+    }),
+  })
+
+  useEffect(() => {
+    if (kmData && !loaded) {
+      setBaseFee(String(kmData.baseFee  ?? 500))
+      setPerKmFee(String(kmData.perKmFee ?? 150))
+      setCurrency(kmData.currency ?? 'XOF')
+      setLoaded(true)
+    }
+  }, [kmData, loaded])
+
+  const saveMutation = useMutation({
+    mutationFn: (dto: KmConfig) => api.put('/admin/config/km-delivery', dto),
+    onSuccess: () => {
+      toast.success('Configuration KM enregistrée')
+      qc.invalidateQueries({ queryKey: ['km-delivery-config'] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const submit = () => {
+    if (!baseFee || isNaN(Number(baseFee)) || Number(baseFee) < 0) {
+      toast.error('Frais de base invalide')
+      return
+    }
+    if (!perKmFee || isNaN(Number(perKmFee)) || Number(perKmFee) <= 0) {
+      toast.error('Frais par km invalide (doit être > 0)')
+      return
+    }
+    saveMutation.mutate({ baseFee: Number(baseFee), perKmFee: Number(perKmFee), currency })
+  }
+
+  const exampleFee = (km: number) =>
+    baseFee && perKmFee
+      ? formatCFA(Math.round(Number(baseFee) + Number(perKmFee) * km))
+      : '—'
+
+  return (
+    <div className="card p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+          <Settings2 size={15} className="text-brand-green"/>
+        </div>
+        <div>
+          <div className="text-sm font-black text-slate-200">Configuration globale — Par km</div>
+          <div className="text-[11px] text-slate-500">Unique pour toutes les livraisons en mode km</div>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-10 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <F label="Frais de base *">
+              <input
+                className="input"
+                inputMode="decimal"
+                value={baseFee}
+                onChange={e => setBaseFee(e.target.value)}
+                placeholder="500"
+              />
+            </F>
+            <F label="Frais par km *">
+              <input
+                className="input"
+                inputMode="decimal"
+                value={perKmFee}
+                onChange={e => setPerKmFee(e.target.value)}
+                placeholder="150"
+              />
+            </F>
+            <F label="Devise">
+              <select className="input" value={currency} onChange={e => setCurrency(e.target.value)}>
+                <option value="XOF">XOF (FCFA)</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </F>
+          </div>
+
+          {/* Exemples de frais calculés */}
+          <div className="flex flex-wrap gap-2">
+            {[1, 3, 5, 10].map(km => (
+              <div key={km} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-navy-800 border border-navy-600 rounded-lg text-xs">
+                <Navigation size={10} className="text-brand-green"/>
+                <span className="text-slate-500">{km} km</span>
+                <span className="font-bold text-slate-200">→ {exampleFee(km)}</span>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={submit}
+            disabled={saveMutation.isPending}
+            className="btn-primary w-full justify-center"
+          >
+            {saveMutation.isPending
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/>&nbsp;Enregistrement…</>
+              : <><Save size={14}/>&nbsp;Enregistrer la configuration</>
+            }
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 export const DeliveryFees: React.FC = () => {
   const qc = useQueryClient()
@@ -558,25 +685,27 @@ export const DeliveryFees: React.FC = () => {
   return (
     <div className="space-y-5 max-w-3xl">
 
-      {/* ── BLOC 1 : Filtre pays ─────────────────────────── */}
-      <div className="card p-4">
-        <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Filtre</div>
-        <div className="flex gap-3 items-end">
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="label text-[10px]">Pays</label>
-            <select className="input text-sm appearance-none cursor-pointer" value={filterCountry} onChange={e => setFilterCountry(e.target.value)}>
-              <option value="">Tous les pays</option>
-              {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
-          </div>
-          {filterCountry && (
-            <button onClick={() => setFilterCountry('')} className="btn-secondary text-xs px-3 self-end">Effacer</button>
-          )}
-          <div className="ml-auto self-end text-xs text-slate-500 font-semibold">
-            {filtered.length} zone{filtered.length !== 1 ? 's' : ''}
+      {/* ── BLOC 1 : Filtre pays (mode city uniquement) ───── */}
+      {mode === 'city' && (
+        <div className="card p-4">
+          <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Filtre</div>
+          <div className="flex gap-3 items-end">
+            <div className="flex flex-col gap-1 min-w-[160px]">
+              <label className="label text-[10px]">Pays</label>
+              <select className="input text-sm appearance-none cursor-pointer" value={filterCountry} onChange={e => setFilterCountry(e.target.value)}>
+                <option value="">Tous les pays</option>
+                {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+            </div>
+            {filterCountry && (
+              <button onClick={() => setFilterCountry('')} className="btn-secondary text-xs px-3 self-end">Effacer</button>
+            )}
+            <div className="ml-auto self-end text-xs text-slate-500 font-semibold">
+              {filtered.length} zone{filtered.length !== 1 ? 's' : ''}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── BLOC 2 : Modes de calcul ─────────────────────── */}
       <div className="card p-4 space-y-3">
@@ -612,85 +741,94 @@ export const DeliveryFees: React.FC = () => {
         </div>
       </div>
 
-      {/* ── BLOC 3 : CRUD zones ──────────────────────────── */}
-      <div ref={zonesRef} className="card p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-brand-green">
-              {MODE_ICONS[mode]}
-              <span className="text-sm font-black">{MODE_LABELS[mode]}</span>
-            </div>
-            <span className="text-xs text-slate-500 font-semibold">
-              — {filtered.length} tarif{filtered.length !== 1 ? 's' : ''} configuré{filtered.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <button
-            onClick={() => setModal({})}
-            className="btn-primary"
-          >
-            <Plus size={15}/> Nouvelle zone
-          </button>
+      {/* ── BLOC 3a : Config globale KM ──────────────────── */}
+      {mode === 'km' && (
+        <div ref={zonesRef}>
+          <GlobalKmConfigCard/>
         </div>
+      )}
 
-        {isLoading ? (
-          <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-slate-500 text-sm">Aucun tarif configuré pour ce mode</div>
-        ) : (
-          <div key={mode} className="space-y-2">
-            {filtered.map(z => {
-              const effective     = effectiveFee(z)
-              const multiplierUsed = weatherCfg.enabled && weather.isBad
-                ? (weatherCfg.globalMultiplier > 1 ? weatherCfg.globalMultiplier : (z.weatherMultiplier > 1 ? z.weatherMultiplier : 1))
-                : 1
-              const weatherActive = weatherCfg.enabled && weather.isBad && multiplierUsed > 1
-              return (
-                <div key={z.id} className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${z.isActive ? 'bg-navy-800 border-navy-600' : 'bg-navy-900 border-navy-700 opacity-60'}`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-200 text-sm truncate">{z.name}</span>
-                      <span className="text-[10px] font-bold text-slate-500 bg-navy-700 px-1.5 py-0.5 rounded">{z.country}</span>
-                      {!z.isActive && <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Inactif</span>}
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs text-slate-500">
-                        Base : <span className="font-bold text-slate-300">{formatCFA(z.baseFee)}</span>
-                        {mode === 'km' && z.perKmFee > 0 && ` + ${formatCFA(z.perKmFee)}/km`}
-                      </span>
-                      {weatherActive && (
-                        <span className="flex items-center gap-1 text-xs font-bold text-blue-400">
-                          <CloudRain size={11}/>
-                          Effectif : {formatCFA(effective)}
-                          <span className="text-slate-500 font-normal">(×{multiplierUsed})</span>
-                        </span>
-                      )}
-                      {!weatherActive && z.weatherMultiplier > 1 && (
-                        <span className="text-xs text-slate-600">Météo ×{z.weatherMultiplier}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setModal({ zone: z })} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
-                      <Pencil size={14}/>
-                    </button>
-                    <button onClick={async () => {
-                      const ok = await confirm({
-                        title: 'Supprimer cette zone ?',
-                        message: `« ${z.name} » sera définitivement supprimée.`,
-                        variant: 'danger',
-                        confirmLabel: 'Supprimer',
-                      })
-                      if (ok) deleteMutation.mutate(z.id)
-                    }} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                      <Trash2 size={14}/>
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+      {/* ── BLOC 3b : CRUD zones (mode city uniquement) ──── */}
+      {mode === 'city' && (
+        <div ref={zonesRef} className="card p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-brand-green">
+                {MODE_ICONS[mode]}
+                <span className="text-sm font-black">{MODE_LABELS[mode]}</span>
+              </div>
+              <span className="text-xs text-slate-500 font-semibold">
+                — {filtered.length} tarif{filtered.length !== 1 ? 's' : ''} configuré{filtered.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <button
+              onClick={() => setModal({})}
+              className="btn-primary"
+            >
+              <Plus size={15}/> Nouvelle zone
+            </button>
           </div>
-        )}
-      </div>
+
+          {isLoading ? (
+            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-sm">Aucun tarif configuré pour ce mode</div>
+          ) : (
+            <div key={mode} className="space-y-2">
+              {filtered.map(z => {
+                const effective     = effectiveFee(z)
+                const multiplierUsed = weatherCfg.enabled && weather.isBad
+                  ? (weatherCfg.globalMultiplier > 1 ? weatherCfg.globalMultiplier : (z.weatherMultiplier > 1 ? z.weatherMultiplier : 1))
+                  : 1
+                const weatherActive = weatherCfg.enabled && weather.isBad && multiplierUsed > 1
+                return (
+                  <div key={z.id} className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${z.isActive ? 'bg-navy-800 border-navy-600' : 'bg-navy-900 border-navy-700 opacity-60'}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-200 text-sm truncate">{z.name}</span>
+                        <span className="text-[10px] font-bold text-slate-500 bg-navy-700 px-1.5 py-0.5 rounded">{z.country}</span>
+                        {!z.isActive && <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Inactif</span>}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-slate-500">
+                          Base : <span className="font-bold text-slate-300">{formatCFA(z.baseFee)}</span>
+                          {z.perKmFee > 0 && ` + ${formatCFA(z.perKmFee)}/km`}
+                        </span>
+                        {weatherActive && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-blue-400">
+                            <CloudRain size={11}/>
+                            Effectif : {formatCFA(effective)}
+                            <span className="text-slate-500 font-normal">(×{multiplierUsed})</span>
+                          </span>
+                        )}
+                        {!weatherActive && z.weatherMultiplier > 1 && (
+                          <span className="text-xs text-slate-600">Météo ×{z.weatherMultiplier}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setModal({ zone: z })} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
+                        <Pencil size={14}/>
+                      </button>
+                      <button onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Supprimer cette zone ?',
+                          message: `« ${z.name} » sera définitivement supprimée.`,
+                          variant: 'danger',
+                          confirmLabel: 'Supprimer',
+                        })
+                        if (ok) deleteMutation.mutate(z.id)
+                      }} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                        <Trash2 size={14}/>
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── BLOC 4 : Facteur météo global ────────────────── */}
       <div className="card p-4 space-y-4">
@@ -765,20 +903,22 @@ export const DeliveryFees: React.FC = () => {
               {weatherCfg.globalMultiplier > 1 && (
                 <div className="text-xs text-slate-500">
                   Multiplicateur actif : <span className="font-bold text-blue-300">×{weatherCfg.globalMultiplier}</span>
-                  {' '}— prioritaire sur les valeurs individuelles des zones.
+                  {mode === 'city' && ' — prioritaire sur les valeurs individuelles des zones.'}
                 </div>
               )}
 
-              <button
-                onClick={applyGlobalToAllZones}
-                disabled={applyingGlobal || zones.length === 0}
-                className="btn-primary w-full justify-center text-sm disabled:opacity-40"
-              >
-                {applyingGlobal
-                  ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/>&nbsp;Application…</>
-                  : `Appliquer ×${globalMultiplierInput || '…'} à toutes les zones (${zones.length})`
-                }
-              </button>
+              {mode === 'city' && (
+                <button
+                  onClick={applyGlobalToAllZones}
+                  disabled={applyingGlobal || zones.length === 0}
+                  className="btn-primary w-full justify-center text-sm disabled:opacity-40"
+                >
+                  {applyingGlobal
+                    ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"/>&nbsp;Application…</>
+                    : `Appliquer ×${globalMultiplierInput || '…'} à toutes les zones (${zones.length})`
+                  }
+                </button>
+              )}
             </div>
 
             {/* Localisation météo */}
@@ -824,24 +964,26 @@ export const DeliveryFees: React.FC = () => {
         )}
       </div>
 
-      {/* ── Modal CRUD ────────────────────────────────────── */}
-      <Modal
-        open={!!modal}
-        onClose={() => setModal(null)}
-        title={modal?.zone ? 'Modifier la zone' : `Nouvelle zone — ${MODE_LABELS[mode]}`}
-        size="md"
-      >
-        {modal && (
-          <ZoneForm
-            mode={modal.zone ? zoneMode(modal.zone) : mode}
-            initial={modal.zone}
-            onSave={dto => upsertMutation.mutate(dto)}
-            saving={upsertMutation.isPending}
-            globalWeatherEnabled={weatherCfg.enabled}
-            globalMultiplier={weatherCfg.globalMultiplier}
-          />
-        )}
-      </Modal>
+      {/* ── Modal CRUD (mode city uniquement) ────────────── */}
+      {mode === 'city' && (
+        <Modal
+          open={!!modal}
+          onClose={() => setModal(null)}
+          title={modal?.zone ? 'Modifier la zone' : `Nouvelle zone — ${MODE_LABELS[mode]}`}
+          size="md"
+        >
+          {modal && (
+            <ZoneForm
+              mode={modal.zone ? zoneMode(modal.zone) : mode}
+              initial={modal.zone}
+              onSave={dto => upsertMutation.mutate(dto)}
+              saving={upsertMutation.isPending}
+              globalWeatherEnabled={weatherCfg.enabled}
+              globalMultiplier={weatherCfg.globalMultiplier}
+            />
+          )}
+        </Modal>
+      )}
     </div>
   )
 }
