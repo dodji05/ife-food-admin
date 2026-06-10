@@ -4,7 +4,10 @@ import {
   Save, Bell, Clock, Shield, Globe, DollarSign,
   Users, ChevronRight, Plus, Trash2, Pencil, CheckCircle, XCircle,
   Key, Eye, EyeOff, ChevronDown, ArrowUpDown, Map as MapIcon, RefreshCw,
+  Phone, Mail, MessageCircle, HeadphonesIcon,
 } from 'lucide-react'
+// génère un id local simple pour les nouveaux contacts avant sauvegarde
+const newId = () => Math.random().toString(36).slice(2, 10)
 import api from '../../services/api'
 import toast from 'react-hot-toast'
 import { useConfirm } from '../../hooks/useConfirm'
@@ -268,8 +271,198 @@ const GeneralTab: React.FC = () => {
         </button>
       </div>
 
+      {/* Contacts support */}
+      <SupportContactsCard/>
+
       {/* Notifications virement */}
       <WithdrawalNotificationCard/>
+    </div>
+  )
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type ContactType = 'email' | 'phone' | 'whatsapp'
+type SupportContact = { id: string; type: ContactType; label: string; value: string }
+
+const CONTACT_TYPES: { value: ContactType; label: string; icon: React.ElementType; placeholder: string }[] = [
+  { value: 'email',    label: 'Email',    icon: Mail,           placeholder: 'support@ifefood.com' },
+  { value: 'phone',    label: 'Téléphone', icon: Phone,          placeholder: '+22967000000' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle,  placeholder: '+22967000000' },
+]
+
+// ─── Carte contacts support ───────────────────────────────────────────────────
+const SupportContactsCard: React.FC = () => {
+  const qc = useQueryClient()
+  const confirm = useConfirm()
+  const [contacts, setContacts] = useState<SupportContact[]>([])
+  const [loaded, setLoaded]     = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editing, setEditing]   = useState<SupportContact | null>(null)
+  const [form, setForm]         = useState<Omit<SupportContact, 'id'>>({ type: 'email', label: '', value: '' })
+
+  useQuery({
+    queryKey: ['support-contacts'],
+    queryFn: () => api.get('/admin/config/support-contacts').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: !loaded,
+    select: (d: any) => {
+      if (!loaded && d?.contacts) { setContacts(d.contacts); setLoaded(true) }
+      return d
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: (list: SupportContact[]) =>
+      api.put('/admin/config/support-contacts', { contacts: list }),
+    onSuccess: (_: any, list: SupportContact[]) => {
+      toast.success('Contacts enregistrés !')
+      setContacts(list)
+      qc.invalidateQueries({ queryKey: ['support-contacts'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const openCreate = () => {
+    setEditing(null)
+    setForm({ type: 'email', label: '', value: '' })
+    setShowModal(true)
+  }
+
+  const openEdit = (c: SupportContact) => {
+    setEditing(c)
+    setForm({ type: c.type, label: c.label, value: c.value })
+    setShowModal(true)
+  }
+
+  const handleSubmit = () => {
+    if (!form.value.trim()) { toast.error('La valeur est requise'); return }
+    let next: SupportContact[]
+    if (editing) {
+      next = contacts.map(c => c.id === editing.id ? { ...editing, ...form } : c)
+    } else {
+      next = [...contacts, { id: newId(), ...form }]
+    }
+    saveMutation.mutate(next)
+    setShowModal(false)
+  }
+
+  const handleDelete = async (c: SupportContact) => {
+    const ok = await confirm({
+      title: 'Supprimer ce contact ?',
+      message: `${c.label || c.value} sera retiré des contacts support.`,
+      variant: 'danger',
+      confirmLabel: 'Supprimer',
+    })
+    if (!ok) return
+    const next = contacts.filter(x => x.id !== c.id)
+    saveMutation.mutate(next)
+  }
+
+  const typeInfo = (type: ContactType) => CONTACT_TYPES.find(t => t.value === type)!
+
+  return (
+    <div className="card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+          <HeadphonesIcon size={16} className="text-brand-green"/>
+        </div>
+        <h3 className="text-base font-black text-slate-100">Contacts support</h3>
+        <button onClick={openCreate} className="ml-auto btn-primary text-xs px-3 py-1.5 gap-1.5">
+          <Plus size={13}/> Ajouter
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">
+        Numéros de téléphone, emails et WhatsApp affichés aux utilisateurs dans la section aide de l'application.
+      </p>
+
+      {contacts.length === 0 ? (
+        <div className="py-6 text-center text-sm text-slate-500">
+          Aucun contact configuré — cliquez sur <strong>Ajouter</strong> pour en créer un.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {contacts.map(c => {
+            const { icon: Icon, label: typeLabel } = typeInfo(c.type)
+            return (
+              <div key={c.id}
+                className="flex items-center gap-3 px-4 py-3 bg-navy-900 rounded-xl border border-navy-700">
+                <div className="w-8 h-8 rounded-lg bg-navy-700 flex items-center justify-center flex-shrink-0">
+                  <Icon size={15} className="text-brand-green"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-black text-slate-400 uppercase tracking-wide">{c.label || typeLabel}</div>
+                  <div className="text-sm font-semibold text-slate-200 truncate">{c.value}</div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-navy-700 text-slate-400 flex-shrink-0">
+                  {typeLabel}
+                </span>
+                <button onClick={() => openEdit(c)}
+                  className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg flex-shrink-0">
+                  <Pencil size={13}/>
+                </button>
+                <button onClick={() => handleDelete(c)}
+                  className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg flex-shrink-0">
+                  <Trash2 size={13}/>
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={editing ? 'Modifier le contact' : 'Nouveau contact support'}>
+        <div className="space-y-4 p-1">
+          {/* Type */}
+          <div>
+            <label className="label text-[10px]">Type</label>
+            <div className="flex gap-2 mt-1">
+              {CONTACT_TYPES.map(t => (
+                <button key={t.value} type="button"
+                  onClick={() => setForm(f => ({ ...f, type: t.value }))}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors
+                    ${form.type === t.value
+                      ? 'bg-brand-green text-white'
+                      : 'bg-navy-900 text-slate-400 border border-navy-700 hover:border-brand-green/40'}`}>
+                  <t.icon size={13}/> {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Label */}
+          <div>
+            <label className="label text-[10px]">Libellé <span className="text-slate-600 font-normal">(optionnel)</span></label>
+            <input
+              className="input mt-1"
+              value={form.label}
+              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+              placeholder={`ex: ${form.type === 'email' ? 'Support général' : form.type === 'whatsapp' ? 'WhatsApp support' : 'Hotline'}`}
+            />
+          </div>
+          {/* Valeur */}
+          <div>
+            <label className="label text-[10px]">
+              {form.type === 'email' ? 'Adresse email' : 'Numéro'} *
+            </label>
+            <input
+              className="input mt-1 font-mono"
+              type={form.type === 'email' ? 'email' : 'tel'}
+              value={form.value}
+              onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
+              placeholder={typeInfo(form.type).placeholder}
+            />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button className="btn-secondary flex-1" onClick={() => setShowModal(false)}>Annuler</button>
+            <button className="btn-primary flex-1" onClick={handleSubmit} disabled={saveMutation.isPending}>
+              {editing ? 'Enregistrer' : 'Ajouter'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
