@@ -608,9 +608,10 @@ const CRED_FIELDS: Record<string, CredFieldDef[]> = {
     { key: 'sandbox',    label: 'Mode sandbox', type: 'boolean' },
   ],
   STRIPE: [
-    { key: 'publishableKey', label: 'Clé publishable (app mobile)', type: 'text' },
-    { key: 'secretKey',      label: 'Clé secrète',    type: 'password' },
-    { key: 'webhookSecret',  label: 'Secret webhook',  type: 'password' },
+    { key: 'sandbox',        label: 'Mode sandbox',                   type: 'boolean' },
+    { key: 'publishableKey', label: 'Clé publishable (app mobile)',   type: 'text' },
+    { key: 'secretKey',      label: 'Clé secrète',                    type: 'password' },
+    { key: 'webhookSecret',  label: 'Secret webhook',                 type: 'password' },
   ],
   PAYPAL: [
     { key: 'clientId',     label: 'Client ID',     type: 'text' },
@@ -784,20 +785,40 @@ const GatewaysTab: React.FC = () => {
             })
             return (
               <div key={gw} className="bg-navy-900 rounded-xl border border-navy-700 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(gw)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-navy-800 transition-colors text-left">
-                  <span className="text-xl flex-shrink-0">{GATEWAY_ICONS[gw] ?? '💰'}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-200">{GATEWAY_LABELS[gw] ?? gw}</div>
-                    {hasSavedCreds
-                      ? <div className="text-[10px] text-brand-green font-semibold">Clés configurées</div>
-                      : <div className="text-[10px] text-slate-500">Aucune clé enregistrée</div>
-                    }
-                  </div>
-                  {isExpanded ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0"/> : <ChevronRight size={14} className="text-slate-400 flex-shrink-0"/>}
-                </button>
+                <div className="w-full flex items-center gap-3 p-3">
+                  {/* Expand toggle */}
+                  <button type="button" onClick={() => toggleExpand(gw)}
+                    className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity text-left">
+                    <span className="text-xl flex-shrink-0">{GATEWAY_ICONS[gw] ?? '💰'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-200">{GATEWAY_LABELS[gw] ?? gw}</div>
+                      {hasSavedCreds
+                        ? <div className="text-[10px] text-brand-green font-semibold">Clés configurées</div>
+                        : <div className="text-[10px] text-slate-500">Aucune clé enregistrée</div>
+                      }
+                    </div>
+                  </button>
+
+                  {/* Badge + bascule sandbox/live rapide (Stripe & PayPal uniquement) */}
+                  {fields.some(f => f.key === 'sandbox') && (
+                    <button
+                      type="button"
+                      title="Basculer sandbox / live"
+                      onClick={e => { e.stopPropagation(); setCredField(gw, 'sandbox', !getSandboxValue(gw)) }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black border transition-colors flex-shrink-0
+                        ${getSandboxValue(gw)
+                          ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20'
+                          : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'}`}>
+                      <span>{getSandboxValue(gw) ? '🧪' : '🟢'}</span>
+                      {getSandboxValue(gw) ? 'SANDBOX' : 'LIVE'}
+                    </button>
+                  )}
+
+                  <button type="button" onClick={() => toggleExpand(gw)}
+                    className="p-1 text-slate-400 hover:text-slate-200 flex-shrink-0">
+                    {isExpanded ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
+                  </button>
+                </div>
 
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
