@@ -263,12 +263,34 @@ const GeneralTab: React.FC = () => {
           })}
         </div>
 
-        <button
-          onClick={() => saveOtpCredsMutation.mutate(editedOtpCreds)}
-          disabled={saveOtpCredsMutation.isPending}
-          className="btn-primary w-full justify-center">
-          <Save size={14}/> Enregistrer les clés OTP
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => saveOtpCredsMutation.mutate(editedOtpCreds)}
+            disabled={saveOtpCredsMutation.isPending}
+            className="btn-primary flex-1 justify-center">
+            <Save size={14}/> Enregistrer les clés OTP
+          </button>
+          <button
+            onClick={async () => {
+              const toastId = toast.loading('Test en cours…')
+              try {
+                const res: any = await api.post('/admin/config/otp-credentials/test')
+                const d = res?.data ?? res
+                toast.dismiss(toastId)
+                if (d?.ok) {
+                  toast.success(`✅ Connexion Twilio OK — ${d.accountName} (${d.status}) · source: ${d.source} · numéro: ${d.phoneNumber}`, { duration: 8000 })
+                } else {
+                  toast.error(`❌ Twilio KO — ${d?.error ?? 'Erreur inconnue'}${d?.code ? ` (code ${d.code})` : ''} · source: ${d?.source}`, { duration: 8000 })
+                }
+              } catch (e: any) {
+                toast.dismiss(toastId)
+                toast.error(`Erreur: ${e.message}`)
+              }
+            }}
+            className="btn-secondary flex-shrink-0">
+            <RefreshCw size={14}/> Tester
+          </button>
+        </div>
       </div>
 
       {/* Contacts support */}
