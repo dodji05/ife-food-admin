@@ -79,13 +79,13 @@ const GeneralTab: React.FC = () => {
   })
 
   const saveOtpCredsMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (edited: Record<string, Record<string, string>>) => {
       const payload: Record<string, Record<string, string>> = {}
       for (const channel of Object.keys(OTP_CRED_FIELDS)) {
         payload[channel] = {}
         for (const field of OTP_CRED_FIELDS[channel].fields) {
-          const edited = editedOtpCreds[channel]?.[field.key]
-          payload[channel][field.key] = edited !== undefined && edited !== '' ? edited : '__keep__'
+          const val = edited[channel]?.[field.key]
+          payload[channel][field.key] = val !== undefined && val !== '' ? val : '__keep__'
         }
       }
       return api.put('/admin/config/otp-credentials', payload)
@@ -264,7 +264,7 @@ const GeneralTab: React.FC = () => {
         </div>
 
         <button
-          onClick={() => saveOtpCredsMutation.mutate()}
+          onClick={() => saveOtpCredsMutation.mutate(editedOtpCreds)}
           disabled={saveOtpCredsMutation.isPending}
           className="btn-primary w-full justify-center">
           <Save size={14}/> Enregistrer les clés OTP
