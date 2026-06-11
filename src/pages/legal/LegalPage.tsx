@@ -6,6 +6,8 @@ const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api/v1`
   : '/api/v1'
 
+const APP_URL: string = import.meta.env.VITE_APP_URL ?? ''
+
 const LEGAL_TYPES: Record<string, { label: string; slug: string }> = {
   about:          { label: 'À propos',                  slug: 'ABOUT' },
   cgu:            { label: 'CGU',                       slug: 'CGU' },
@@ -62,6 +64,20 @@ export const LegalPage: React.FC = () => {
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [meta?.slug, lang])
+
+  // Canonical + title dynamiques
+  useEffect(() => {
+    if (!meta) return
+    document.title = `${data?.title || meta.label} — ifè FOOD`
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+    if (!canonical) {
+      canonical = document.createElement('link')
+      canonical.rel = 'canonical'
+      document.head.appendChild(canonical)
+    }
+    canonical.href = APP_URL ? `${APP_URL}/legal/${pageSlug}` : window.location.href
+    return () => { document.title = 'ifè FOOD Admin' }
+  }, [meta, data, pageSlug])
 
   const setLang = (l: string) => setSearchParams({ lang: l })
 
