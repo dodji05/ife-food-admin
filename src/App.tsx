@@ -19,6 +19,7 @@ import { PromoCodes } from './pages/promos/PromoCodes'
 import { Referrals } from './pages/referrals/Referrals'
 import { DeliveryFees } from './pages/delivery/DeliveryFees'
 import { Messages } from './pages/messages/Messages'
+import { LegalPage } from './pages/legal/LegalPage'
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, initializing, initialize } = useAuthStore()
@@ -45,6 +46,7 @@ export default function App() {
     <ConfirmProvider>
       <Routes>
         <Route path="/login" element={<Login/>}/>
+        <Route path="/legal/:pageSlug" element={<LegalPage/>}/>
         <Route path="/" element={<ProtectedRoute><Layout/></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace/>}/>
           <Route path="dashboard"     element={<Dashboard/>}/>
