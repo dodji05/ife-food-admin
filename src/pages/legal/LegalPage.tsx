@@ -39,7 +39,19 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('target', '_blank')
     node.setAttribute('rel', 'noopener noreferrer')
   }
+  // Strip inline color/background styles so prose CSS can control readability
+  const style = node.getAttribute('style')
+  if (style) {
+    const cleaned = style
+      .replace(/\bcolor\s*:[^;]+;?/gi, '')
+      .replace(/\bbackground(-color)?\s*:[^;]+;?/gi, '')
+      .trim()
+    cleaned ? node.setAttribute('style', cleaned) : node.removeAttribute('style')
+  }
 })
+
+// Module-level cache: slug/lang → data (cleared on page reload)
+const legalCache = new Map<string, LegalData>()
 
 export const LegalPage: React.FC = () => {
   const { pageSlug } = useParams<{ pageSlug: string }>()
@@ -53,13 +65,18 @@ export const LegalPage: React.FC = () => {
 
   useEffect(() => {
     if (!meta) { setLoading(false); return }
+    const cacheKey = `${meta.slug}/${lang}`
+    const cached = legalCache.get(cacheKey)
+    if (cached) { setData(cached); setLoading(false); return }
     setLoading(true)
     setError(false)
     fetch(`${API_BASE}/config/legal/${meta.slug}/${lang}`)
       .then((r) => r.json())
       .then((res) => {
         const d = res?.data ?? res
-        setData(d?.content ? d : null)
+        const payload = d?.content ? d : null
+        if (payload) legalCache.set(cacheKey, payload)
+        setData(payload)
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
@@ -198,7 +215,10 @@ export const LegalPage: React.FC = () => {
                 prose-li:text-gray-700
                 prose-blockquote:border-green-400 prose-blockquote:text-gray-600
                 prose-hr:border-gray-200
-                prose-table:text-sm"
+                prose-table:text-sm
+                [&_*]:text-gray-700 [&_h1]:text-gray-900 [&_h2]:text-gray-900
+                [&_h3]:text-gray-900 [&_h4]:text-gray-800 [&_strong]:text-gray-900
+                [&_a]:text-green-700"
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(data.content, PURIFY_CFG) as string,
               }}
