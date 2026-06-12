@@ -37,12 +37,12 @@ const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) =
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3"/>
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher par nom d'établissement ou ville…"
           className="input pl-9 h-9 text-sm w-full"/>
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink3 hover:text-ink2">
             <X size={14}/>
           </button>
         )}
@@ -68,28 +68,28 @@ const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) =
       </div>
 
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-500 font-semibold">
+        <span className="text-ink3 font-semibold">
           {filtered.length} établissement{filtered.length !== 1 ? 's' : ''}
           {hasFilters ? ' trouvé' + (filtered.length !== 1 ? 's' : '') : ''}
         </span>
-        <span className="text-slate-600">{pros.length} au total</span>
+        <span className="text-ink3">{pros.length} au total</span>
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{Array.from({length:4}).map((_,i) => <div key={i} className="h-14 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+        <div className="space-y-2">{Array.from({length:4}).map((_,i) => <div key={i} className="h-14 bg-card rounded-xl animate-pulse"/>)}</div>
       ) : filtered.length === 0 ? (
-        <p className="text-slate-500 text-sm text-center py-8">Aucun établissement trouvé</p>
+        <p className="text-ink3 text-sm text-center py-8">Aucun établissement trouvé</p>
       ) : (
         <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
           {filtered.map((p: any) => (
             <button key={p.id} onClick={() => onSelect(p)}
-              className="w-full flex items-center gap-3 p-3 bg-navy-800 border border-navy-600 rounded-xl hover:border-brand-green/50 hover:bg-navy-700 transition-all text-left">
+              className="w-full flex items-center gap-3 p-3 bg-card border border-edge rounded-xl hover:border-brand-green/50 hover:bg-lift transition-all text-left">
               <div className="w-9 h-9 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
                 <Building2 size={16} className="text-brand-green"/>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-slate-200 text-sm truncate">{p.businessName}</div>
-                <div className="text-xs text-slate-500">{p.category} · {p.city}{p.country ? ` (${p.country})` : ''}</div>
+                <div className="font-bold text-ink text-sm truncate">{p.businessName}</div>
+                <div className="text-xs text-ink3">{p.category} · {p.city}{p.country ? ` (${p.country})` : ''}</div>
               </div>
               <Badge status={p.status}/>
             </button>
@@ -242,7 +242,7 @@ const ProductForm: React.FC<{
         <label className="label">Image du produit</label>
         {form.imageUrl ? (
           <div className="flex items-center gap-3">
-            <img src={form.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover border border-navy-600"/>
+            <img src={form.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover border border-edge"/>
             <div className="flex flex-col gap-1.5">
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="btn-secondary text-xs py-1 px-3">{uploading ? 'Upload…' : 'Changer'}</button>
@@ -253,7 +253,7 @@ const ProductForm: React.FC<{
         ) : (
           <button type="button" onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="w-full flex items-center justify-center gap-2 p-6 border-2 border-dashed border-navy-600 rounded-xl text-slate-500 hover:text-slate-300 hover:border-navy-500 transition-colors disabled:opacity-50">
+            className="w-full flex items-center justify-center gap-2 p-6 border-2 border-dashed border-edge rounded-xl text-ink3 hover:text-ink2 hover:border-edge transition-colors disabled:opacity-50">
             {uploading ? (
               <div className="w-4 h-4 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/>
             ) : (
@@ -275,7 +275,7 @@ const ProductForm: React.FC<{
           </button>
         </div>
         {form.variants.length === 0 ? (
-          <p className="text-xs text-slate-600 font-semibold italic">Ex : Petite / Grande, Sans sauce…</p>
+          <p className="text-xs text-ink3 font-semibold italic">Ex : Petite / Grande, Sans sauce…</p>
         ) : (
           <div className="space-y-2">
             {form.variants.map((v, i) => (
@@ -299,13 +299,13 @@ const ProductForm: React.FC<{
           <input type="checkbox" checked={form.isAvailable}
             onChange={e => onChange({ ...form, isAvailable: e.target.checked })}
             className="w-4 h-4 rounded accent-brand-green"/>
-          <span className="text-sm font-semibold text-slate-300">Disponible à la commande</span>
+          <span className="text-sm font-semibold text-ink2">Disponible à la commande</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={form.isMenu}
             onChange={e => onChange({ ...form, isMenu: e.target.checked })}
             className="w-4 h-4 rounded accent-brand-green"/>
-          <span className="text-sm font-semibold text-slate-300">Menu du jour</span>
+          <span className="text-sm font-semibold text-ink2">Menu du jour</span>
         </label>
       </div>
     </div>
@@ -443,7 +443,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-4 flex-wrap">
-        <button onClick={onBack} className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-xl transition-colors text-sm font-bold">
+        <button onClick={onBack} className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-xl transition-colors text-sm font-bold">
           ← Retour
         </button>
         <div className="flex items-center gap-3 flex-1">
@@ -451,8 +451,8 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
             <Building2 size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="font-black text-slate-100">{pro.businessName}</div>
-            <div className="text-xs text-slate-500 flex items-center gap-2">
+            <div className="font-black text-ink">{pro.businessName}</div>
+            <div className="text-xs text-ink3 flex items-center gap-2">
               {pro.category} · {pro.city} · {totalProductCount} produit{totalProductCount !== 1 ? 's' : ''}
               {uncategorized.length > 0 && (
                 <span className="text-yellow-400 font-bold">⚠️ {uncategorized.length} sans catégorie</span>
@@ -478,7 +478,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
                 catFilter === chip.id
                   ? 'bg-brand-green text-white border-brand-green'
-                  : 'bg-navy-800 text-slate-400 border-navy-600 hover:border-brand-green/40 hover:text-slate-200'
+                  : 'bg-card text-ink2 border-edge hover:border-brand-green/40 hover:text-ink'
               }`}>
               {chip.icon && <span className="mr-1">{chip.icon}</span>}{chip.label}
             </button>
@@ -487,7 +487,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
 
         {/* Tri */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <ArrowUpDown size={13} className="text-slate-500"/>
+          <ArrowUpDown size={13} className="text-ink3"/>
           <select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)}
             className="input text-xs py-1.5 px-2 min-w-[150px]">
             <option value="name_asc">Nom A → Z</option>
@@ -498,7 +498,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
           </select>
           {hasFilters && (
             <button onClick={() => { setCatFilter('all'); setSortKey('name_asc') }}
-              className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-navy-700 rounded-lg transition-colors" title="Réinitialiser">
+              className="p-1.5 text-ink3 hover:text-ink hover:bg-lift rounded-lg transition-colors" title="Réinitialiser">
               <X size={13}/>
             </button>
           )}
@@ -508,19 +508,19 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
       {/* Liste produits */}
       {isLoading ? (
         <div className="space-y-2">{Array.from({length: 5}).map((_, i) => (
-          <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>
+          <div key={i} className="h-16 bg-card rounded-xl animate-pulse"/>
         ))}</div>
       ) : allProducts.length === 0 ? (
         <div className="card p-12 text-center">
-          <Package size={32} className="text-slate-600 mx-auto mb-3"/>
-          <p className="text-slate-500 font-semibold mb-1">Aucun produit dans ce catalogue</p>
+          <Package size={32} className="text-ink3 mx-auto mb-3"/>
+          <p className="text-ink3 font-semibold mb-1">Aucun produit dans ce catalogue</p>
           <button onClick={openCreateProduct} className="btn-primary mx-auto mt-3">
             <Plus size={14}/> Ajouter le premier produit
           </button>
         </div>
       ) : visibleProducts.length === 0 ? (
         <div className="card p-10 text-center">
-          <p className="text-slate-500 font-semibold text-sm">Aucun produit dans cette catégorie</p>
+          <p className="text-ink3 font-semibold text-sm">Aucun produit dans cette catégorie</p>
         </div>
       ) : (
         <div className="card overflow-hidden divide-y divide-navy-800">
@@ -528,21 +528,21 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
             const variantCount = Array.isArray(product.variants) ? product.variants.length : 0
             const catLabel = product._catIcon ? `${product._catIcon} ${product._catName}` : product._catName
             return (
-              <div key={product.id} className="flex items-center gap-4 px-5 py-3 hover:bg-navy-800/30 transition-colors">
+              <div key={product.id} className="flex items-center gap-4 px-5 py-3 hover:bg-card/30 transition-colors">
                 {product.imageUrl ? (
-                  <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-navy-700"/>
+                  <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-edge2"/>
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-navy-700 flex items-center justify-center flex-shrink-0 text-lg">🍽️</div>
+                  <div className="w-10 h-10 rounded-lg bg-lift flex items-center justify-center flex-shrink-0 text-lg">🍽️</div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-slate-200 text-sm truncate flex items-center gap-2">
+                  <div className="font-semibold text-ink text-sm truncate flex items-center gap-2">
                     {product.name?.fr || product.name?.en || '—'}
                     {product.isMenu && <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">MENU</span>}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-[10px] text-slate-600 font-semibold">{catLabel}</span>
+                    <span className="text-[10px] text-ink3 font-semibold">{catLabel}</span>
                     {product.description?.fr && (
-                      <span className="text-xs text-slate-500 truncate max-w-[160px]">{product.description.fr}</span>
+                      <span className="text-xs text-ink3 truncate max-w-[160px]">{product.description.fr}</span>
                     )}
                     {variantCount > 0 && (
                       <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
@@ -550,7 +550,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
                       </span>
                     )}
                     {product.stock != null && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${product.stock === 0 ? 'text-red-400 bg-red-400/10' : 'text-slate-400 bg-navy-700'}`}>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${product.stock === 0 ? 'text-red-400 bg-red-400/10' : 'text-ink2 bg-lift'}`}>
                         <Package size={9}/> {product.stock}
                       </span>
                     )}
@@ -559,7 +559,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
                 <span className="font-black text-brand-green text-sm w-24 text-right flex-shrink-0">{formatCFA(product.price)}</span>
                 <button onClick={() => toggleProductMutation.mutate(product.id)}
                   title={product.isAvailable ? 'Masquer' : 'Rendre disponible'}
-                  className={`p-1.5 rounded-lg transition-colors ${product.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-slate-500 hover:bg-navy-700'}`}>
+                  className={`p-1.5 rounded-lg transition-colors ${product.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-ink3 hover:bg-lift'}`}>
                   {product.isAvailable ? <Eye size={14}/> : <EyeOff size={14}/>}
                 </button>
                 <button onClick={() => openEditProduct(product)} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg">
@@ -583,7 +583,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
 
       {/* Compteur résultats filtrés */}
       {catFilter !== 'all' && visibleProducts.length > 0 && (
-        <p className="text-xs text-slate-600 font-semibold text-right">
+        <p className="text-xs text-ink3 font-semibold text-right">
           {visibleProducts.length} / {allProducts.length} produit{allProducts.length !== 1 ? 's' : ''}
         </p>
       )}
@@ -597,7 +597,7 @@ const CatalogueView: React.FC<{ pro: any; onBack: () => void }> = ({ pro, onBack
             onChange={setProductForm}
             mode={productModal?.mode ?? 'create'}
           />
-          <div className="flex gap-3 pt-1 sticky bottom-0 bg-navy-900 pb-1">
+          <div className="flex gap-3 pt-1 sticky bottom-0 bg-panel pb-1">
             <button onClick={() => setProductModal(null)} className="btn-secondary flex-1 justify-center">Annuler</button>
             <button
               onClick={() => productModal?.mode === 'edit'
@@ -661,10 +661,10 @@ const GlobalCategoriesPanel: React.FC = () => {
     <div className="card p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-base font-black text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-black text-ink flex items-center gap-2">
             <Tag size={17} className="text-brand-green"/> Catégories générales
           </h2>
-          <p className="text-sm text-slate-500 font-semibold mt-0.5">
+          <p className="text-sm text-ink3 font-semibold mt-0.5">
             Ces catégories sont disponibles pour tous les établissements
           </p>
         </div>
@@ -674,12 +674,12 @@ const GlobalCategoriesPanel: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{Array.from({length:3}).map((_,i) => <div key={i} className="h-11 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+        <div className="space-y-2">{Array.from({length:3}).map((_,i) => <div key={i} className="h-11 bg-card rounded-xl animate-pulse"/>)}</div>
       ) : categories.length === 0 ? (
         <div className="py-10 text-center">
-          <Tag size={24} className="text-slate-600 mx-auto mb-2"/>
-          <p className="text-slate-500 font-semibold text-sm">Aucune catégorie pour l'instant</p>
-          <p className="text-slate-600 text-xs mt-1">Crée des catégories générales (Plats, Boissons, Entrées…)</p>
+          <Tag size={24} className="text-ink3 mx-auto mb-2"/>
+          <p className="text-ink3 font-semibold text-sm">Aucune catégorie pour l'instant</p>
+          <p className="text-ink3 text-xs mt-1">Crée des catégories générales (Plats, Boissons, Entrées…)</p>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -688,7 +688,7 @@ const GlobalCategoriesPanel: React.FC = () => {
             const hasProducts = productCount > 0
             return (
               <div key={cat.id}
-                className="flex items-center gap-2 px-3 py-2 bg-navy-800 border border-navy-600 rounded-xl text-sm font-semibold text-slate-200">
+                className="flex items-center gap-2 px-3 py-2 bg-card border border-edge rounded-xl text-sm font-semibold text-ink">
                 {cat.icon && <span className="text-base leading-none">{cat.icon}</span>}
                 <span>{cat.name?.fr || cat.name?.en || cat.name}</span>
                 {/* Badge produits — visible uniquement si la catégorie est utilisée */}
@@ -701,7 +701,7 @@ const GlobalCategoriesPanel: React.FC = () => {
                   /* Bouton désactivé avec tooltip explicatif */
                   <span
                     title={`Impossible de supprimer : ${productCount} produit${productCount > 1 ? 's' : ''} utilise${productCount > 1 ? 'nt' : ''} cette catégorie`}
-                    className="ml-1 p-0.5 text-slate-600 cursor-not-allowed rounded"
+                    className="ml-1 p-0.5 text-ink3 cursor-not-allowed rounded"
                   >
                     <X size={13}/>
                   </span>
@@ -715,7 +715,7 @@ const GlobalCategoriesPanel: React.FC = () => {
                       })
                       if (ok) deleteMutation.mutate(cat.id)
                     }}
-                    className="ml-1 p-0.5 text-slate-500 hover:text-red-400 rounded transition-colors"
+                    className="ml-1 p-0.5 text-ink3 hover:text-red-400 rounded transition-colors"
                     title="Supprimer"
                   >
                     <X size={13}/>
@@ -771,8 +771,8 @@ export const Catalogue: React.FC = () => {
 
       {/* Section sélection établissement */}
       <div className="card p-6">
-        <h2 className="text-base font-black text-slate-100 mb-1">Gérer un catalogue</h2>
-        <p className="text-sm text-slate-500 font-semibold mb-5">Sélectionne un établissement pour créer ou modifier son catalogue</p>
+        <h2 className="text-base font-black text-ink mb-1">Gérer un catalogue</h2>
+        <p className="text-sm text-ink3 font-semibold mb-5">Sélectionne un établissement pour créer ou modifier son catalogue</p>
         <ProSelector onSelect={setSelectedPro}/>
       </div>
     </div>

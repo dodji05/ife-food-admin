@@ -56,7 +56,7 @@ export const Orders: React.FC = () => {
   const columns = [
     { key: 'id', label: 'ID', width: '120px',
       exportValue: (r: any) => r.id,
-      render: (r: any) => <span className="text-xs font-black text-slate-400">#{r.id?.substring(0,8).toUpperCase()}</span> },
+      render: (r: any) => <span className="text-xs font-black text-ink2">#{r.id?.substring(0,8).toUpperCase()}</span> },
     { key: 'client', label: 'Client',
       sortable: true,
       sortValue: (r: any) => (r.client?.name ?? '').toLowerCase(),
@@ -67,8 +67,8 @@ export const Orders: React.FC = () => {
             <span className="text-brand-green font-black text-[10px]">{(r.client?.name || 'C')[0].toUpperCase()}</span>
           </div>
           <div>
-            <div className="text-sm font-semibold text-slate-200">{r.client?.name || 'Client'}</div>
-            <div className="text-xs text-slate-500">{r.client?.phone || '—'}</div>
+            <div className="text-sm font-semibold text-ink">{r.client?.name || 'Client'}</div>
+            <div className="text-xs text-ink3">{r.client?.phone || '—'}</div>
           </div>
         </div>
     )},
@@ -76,7 +76,7 @@ export const Orders: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => (r.professional?.businessName ?? '').toLowerCase(),
       exportValue: (r: any) => r.professional?.businessName ?? '',
-      render: (r: any) => <span className="text-sm text-slate-300 font-medium">{r.professional?.businessName || '—'}</span> },
+      render: (r: any) => <span className="text-sm text-ink2 font-medium">{r.professional?.businessName || '—'}</span> },
     { key: 'status', label: 'Statut',
       sortable: true,
       exportValue: (r: any) => r.status,
@@ -94,9 +94,9 @@ export const Orders: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span> },
     { key: 'actions', label: '', width: '40px', render: (r: any) => (
-      <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(r) }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+      <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(r) }} className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg">
         <ExternalLink size={14}/>
       </button>
     )},
@@ -113,7 +113,7 @@ export const Orders: React.FC = () => {
         <div className="flex gap-1.5 flex-wrap">
           {statusFilters.map(f => (
             <button key={f.value} onClick={() => setStatusFilter(f.value)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === f.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 hover:text-slate-200 border border-navy-600'}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === f.value ? 'bg-brand-green text-white' : 'bg-card text-ink2 hover:text-ink border border-edge'}`}>
               {f.label}
             </button>
           ))}
@@ -147,13 +147,13 @@ export const Orders: React.FC = () => {
             {/* Ligne 1 — Client / Établissement */}
             <div className="grid grid-cols-2 gap-3">
               <div className="card-sm p-3">
-                <div className="text-xs text-slate-500 font-bold mb-1">Client</div>
-                <div className="font-bold text-slate-200">{selectedOrder.client?.name || '—'}</div>
-                <div className="text-xs text-slate-400">{selectedOrder.client?.phone || '—'}</div>
+                <div className="text-xs text-ink3 font-bold mb-1">Client</div>
+                <div className="font-bold text-ink">{selectedOrder.client?.name || '—'}</div>
+                <div className="text-xs text-ink2">{selectedOrder.client?.phone || '—'}</div>
               </div>
               <div className="card-sm p-3">
-                <div className="text-xs text-slate-500 font-bold mb-1">Établissement</div>
-                <div className="font-bold text-slate-200">{selectedOrder.professional?.businessName || '—'}</div>
+                <div className="text-xs text-ink3 font-bold mb-1">Établissement</div>
+                <div className="font-bold text-ink">{selectedOrder.professional?.businessName || '—'}</div>
               </div>
             </div>
 
@@ -162,20 +162,20 @@ export const Orders: React.FC = () => {
               <div className="card-sm p-3 flex items-center gap-2">
                 <Truck size={14} className="text-teal-400 flex-shrink-0"/>
                 <div>
-                  <div className="text-xs text-slate-500 font-bold mb-0.5">Livreur</div>
-                  <div className="text-sm font-semibold text-slate-300">
-                    {selectedOrder.driver?.user?.name || <span className="text-slate-500 italic">Non assigné</span>}
+                  <div className="text-xs text-ink3 font-bold mb-0.5">Livreur</div>
+                  <div className="text-sm font-semibold text-ink2">
+                    {selectedOrder.driver?.user?.name || <span className="text-ink3 italic">Non assigné</span>}
                   </div>
                   {selectedOrder.driver?.user?.phone && (
-                    <div className="text-xs text-slate-500">{selectedOrder.driver.user.phone}</div>
+                    <div className="text-xs text-ink3">{selectedOrder.driver.user.phone}</div>
                   )}
                 </div>
               </div>
               <div className="card-sm p-3 flex items-center gap-2">
                 <CreditCard size={14} className="text-purple-400 flex-shrink-0"/>
                 <div>
-                  <div className="text-xs text-slate-500 font-bold mb-0.5">Paiement</div>
-                  <div className="text-sm font-semibold text-slate-300">{selectedOrder.paymentMethod || '—'}</div>
+                  <div className="text-xs text-ink3 font-bold mb-0.5">Paiement</div>
+                  <div className="text-sm font-semibold text-ink2">{selectedOrder.paymentMethod || '—'}</div>
                   <Badge status={selectedOrder.paymentStatus} size="sm"/>
                 </div>
               </div>
@@ -184,19 +184,19 @@ export const Orders: React.FC = () => {
             {/* Adresse de livraison */}
             <div className="card-sm p-3 flex items-center gap-3">
               <MapPin size={16} className="text-brand-green flex-shrink-0"/>
-              <span className="text-sm text-slate-300">{selectedOrder.deliveryAddress || '—'}</span>
+              <span className="text-sm text-ink2">{selectedOrder.deliveryAddress || '—'}</span>
             </div>
 
             {/* Articles */}
             {selectedOrder.items?.length > 0 && (
               <div className="card-sm p-3">
-                <div className="text-xs text-slate-500 font-bold mb-2">Articles</div>
+                <div className="text-xs text-ink3 font-bold mb-2">Articles</div>
                 {selectedOrder.items.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between text-sm py-1.5 border-b border-navy-700 last:border-0">
-                    <span className="text-slate-300">
+                  <div key={i} className="flex justify-between text-sm py-1.5 border-b border-edge2 last:border-0">
+                    <span className="text-ink2">
                       {item.quantity}× {resolveProductName(item.product?.name)}
                     </span>
-                    <span className="font-bold text-slate-200">{formatCFA(item.totalPrice)}</span>
+                    <span className="font-bold text-ink">{formatCFA(item.totalPrice)}</span>
                   </div>
                 ))}
               </div>
@@ -205,11 +205,11 @@ export const Orders: React.FC = () => {
             {/* Récapitulatif financier */}
             <div className={`grid gap-3 ${selectedOrder.tipAmount > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <div className="card-sm p-3 text-center">
-                <div className="text-xs text-slate-500 font-bold mb-1">Sous-total</div>
-                <div className="font-black text-slate-200">{formatCFA(selectedOrder.subtotal)}</div>
+                <div className="text-xs text-ink3 font-bold mb-1">Sous-total</div>
+                <div className="font-black text-ink">{formatCFA(selectedOrder.subtotal)}</div>
               </div>
               <div className="card-sm p-3 text-center">
-                <div className="text-xs text-slate-500 font-bold mb-1">Commission</div>
+                <div className="text-xs text-ink3 font-bold mb-1">Commission</div>
                 <div className="font-black text-brand-green">{formatCFA(selectedOrder.commissionAmount)}</div>
               </div>
               {selectedOrder.tipAmount > 0 && (
@@ -219,13 +219,13 @@ export const Orders: React.FC = () => {
                 </div>
               )}
               <div className="card-sm p-3 text-center">
-                <div className="text-xs text-slate-500 font-bold mb-1">Total</div>
-                <div className="font-black text-slate-100">{formatCFA(selectedOrder.totalAmount)}</div>
+                <div className="text-xs text-ink3 font-bold mb-1">Total</div>
+                <div className="font-black text-ink">{formatCFA(selectedOrder.totalAmount)}</div>
               </div>
             </div>
 
             {/* Date de création */}
-            <div className="text-xs text-slate-500 text-right font-semibold">
+            <div className="text-xs text-ink3 text-right font-semibold">
               Créée le {formatDateTime(selectedOrder.createdAt)}
             </div>
 

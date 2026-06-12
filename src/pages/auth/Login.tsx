@@ -80,15 +80,15 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-page flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         {/* Brand */}
         <div className="text-center space-y-2">
           <div className="w-16 h-16 bg-brand-green rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-brand-green/30">
             <span className="text-white font-black text-xl">ifè</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-100">ifè FOOD Admin</h1>
-          <p className="text-slate-400 text-sm font-semibold">
+          <h1 className="text-2xl font-black text-ink">ifè FOOD Admin</h1>
+          <p className="text-ink2 text-sm font-semibold">
             {step === 'login' ? 'Tableau de bord administrateur' : 'Réinitialisation du mot de passe'}
           </p>
         </div>
@@ -100,7 +100,7 @@ export const Login: React.FC = () => {
             <div>
               <label className="label">Adresse e-mail</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3"/>
                 <input
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -116,7 +116,7 @@ export const Login: React.FC = () => {
             <div>
               <label className="label">Mot de passe</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3"/>
                 <input
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -129,7 +129,7 @@ export const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink3 hover:text-ink2"
                 >
                   {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
                 </button>
@@ -149,7 +149,7 @@ export const Login: React.FC = () => {
 
             <button
               onClick={() => { setResetEmail(email); setStep('reset-request') }}
-              className="text-sm text-slate-400 hover:text-slate-200 w-full text-center font-semibold transition-colors"
+              className="text-sm text-ink2 hover:text-ink w-full text-center font-semibold transition-colors"
             >
               Mot de passe oublié ?
             </button>
@@ -157,13 +157,13 @@ export const Login: React.FC = () => {
 
           {/* ── Step: Reset request ── */}
           {step === 'reset-request' && <>
-            <button onClick={() => setStep('login')} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 font-semibold">
+            <button onClick={() => setStep('login')} className="flex items-center gap-1 text-sm text-ink2 hover:text-ink font-semibold">
               <ArrowLeft size={14}/> Retour
             </button>
             <div>
               <label className="label">Adresse e-mail admin</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3"/>
                 <input
                   value={resetEmail}
                   onChange={e => setResetEmail(e.target.value)}
@@ -172,7 +172,7 @@ export const Login: React.FC = () => {
                   placeholder="admin@ifefood.com"
                 />
               </div>
-              <p className="text-xs text-slate-500 mt-1.5 font-medium">
+              <p className="text-xs text-ink3 mt-1.5 font-medium">
                 Un code OTP sera envoyé au numéro associé à ce compte.
               </p>
             </div>
@@ -187,7 +187,7 @@ export const Login: React.FC = () => {
 
           {/* ── Step: Reset confirm ── */}
           {step === 'reset-confirm' && <>
-            <button onClick={() => setStep('reset-request')} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 font-semibold">
+            <button onClick={() => setStep('reset-request')} className="flex items-center gap-1 text-sm text-ink2 hover:text-ink font-semibold">
               <ArrowLeft size={14}/> Retour
             </button>
             <div>
@@ -203,7 +203,7 @@ export const Login: React.FC = () => {
             <div>
               <label className="label">Nouveau mot de passe</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3"/>
                 <input
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
@@ -214,7 +214,7 @@ export const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink3 hover:text-ink2"
                 >
                   {showNewPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
                 </button>
@@ -231,7 +231,7 @@ export const Login: React.FC = () => {
 
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-xs text-slate-600 font-semibold">
+        <div className="flex items-center justify-center gap-2 text-xs text-ink3 font-semibold">
           <Shield size={12}/> Connexion sécurisée · Ets SWK FAKEYE
         </div>
       </div>

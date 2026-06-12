@@ -14,7 +14,7 @@ export const ThemeToggleCompact: React.FC = () => {
   const { override, setOverride } = useTheme()
 
   return (
-    <div className="flex items-center gap-1 bg-navy-800 border border-navy-600 rounded-xl p-1">
+    <div className="flex items-center gap-1 bg-panel border border-edge rounded-xl p-1">
       {OPTIONS.map((opt) => (
         <button
           key={opt.value}
@@ -25,7 +25,7 @@ export const ThemeToggleCompact: React.FC = () => {
             transition-all duration-150
             ${override === opt.value
               ? 'bg-brand-green text-white'
-              : 'text-slate-400 hover:text-slate-200'}
+              : 'text-ink2 hover:text-ink'}
           `}
         >
           {opt.icon}
@@ -48,8 +48,8 @@ export const ThemeToggleFull: React.FC = () => {
             : <Sun  size={18} className="text-brand-green"/>}
         </div>
         <div>
-          <h3 className="text-sm font-bold text-slate-100">Apparence</h3>
-          <p className="text-xs text-slate-400 font-semibold">{label}</p>
+          <h3 className="text-sm font-bold text-ink">Apparence</h3>
+          <p className="text-xs text-ink2 font-semibold">{label}</p>
         </div>
       </div>
 
@@ -63,13 +63,13 @@ export const ThemeToggleFull: React.FC = () => {
               transition-all duration-150
               ${override === opt.value
                 ? 'bg-brand-green/10 border-brand-green text-brand-green'
-                : 'bg-navy-900 border-navy-600 text-slate-400 hover:text-slate-200 hover:border-navy-500'}
+                : 'bg-panel border-edge text-ink2 hover:text-ink hover:border-edge'}
             `}
           >
             {opt.icon}
             <span>{opt.label}</span>
             {opt.sub && (
-              <span className={`text-[10px] font-semibold ${override === opt.value ? 'text-brand-green/70' : 'text-slate-600'}`}>
+              <span className={`text-[10px] font-semibold ${override === opt.value ? 'text-brand-green/70' : 'text-ink3'}`}>
                 {opt.sub}
               </span>
             )}
@@ -78,12 +78,12 @@ export const ThemeToggleFull: React.FC = () => {
       </div>
 
       {override === 'auto' && (
-        <div className="flex items-start gap-2 p-3 bg-navy-900 rounded-xl border border-navy-700">
+        <div className="flex items-start gap-2 p-3 bg-panel rounded-xl border border-edge2">
           <Sparkles size={14} className="text-brand-yellow mt-0.5 flex-shrink-0"/>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">
+          <p className="text-xs text-ink2 font-medium leading-relaxed">
             Le thème bascule automatiquement en{' '}
-            <span className="text-slate-300 font-bold">sombre à 19h00</span> et revient en{' '}
-            <span className="text-slate-300 font-bold">clair à 6h00</span>.{' '}
+            <span className="text-ink2 font-bold">sombre à 19h00</span> et revient en{' '}
+            <span className="text-ink2 font-bold">clair à 6h00</span>.{' '}
             Actuellement : {isNight ? 'nuit 🌙' : 'jour ☀️'}.
           </p>
         </div>

@@ -61,43 +61,43 @@ const LinkQRPanel: React.FC<{ user: any; onClose: () => void }> = ({ user, onClo
           <span className="text-brand-green font-black text-sm">{(user.firstName || user.name || '?')[0].toUpperCase()}</span>
         </div>
         <div>
-          <div className="font-black text-slate-100">{[user.firstName, user.name].filter(Boolean).join(' ') || '—'}</div>
-          <div className="text-xs text-slate-500 font-mono">{user.phone}</div>
+          <div className="font-black text-ink">{[user.firstName, user.name].filter(Boolean).join(' ') || '—'}</div>
+          <div className="text-xs text-ink3 font-mono">{user.phone}</div>
         </div>
       </div>
 
       <div className="card-sm p-4">
-        <div className="text-xs text-slate-500 font-bold mb-2">Code de parrainage</div>
+        <div className="text-xs text-ink3 font-bold mb-2">Code de parrainage</div>
         <div className="flex items-center gap-3">
           <span className="flex-1 font-black text-2xl text-brand-green tracking-widest">{user.referralCode}</span>
           <button onClick={() => copy(user.referralCode, 'code')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all">
+            className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-all">
             {copied === 'code' ? <Check size={16} className="text-brand-green"/> : <Copy size={16}/>}
           </button>
         </div>
       </div>
 
       <div className="card-sm p-4">
-        <div className="text-xs text-slate-500 font-bold mb-2">Lien de parrainage</div>
+        <div className="text-xs text-ink3 font-bold mb-2">Lien de parrainage</div>
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-xs font-mono text-slate-300 truncate">{url}</span>
+          <span className="flex-1 text-xs font-mono text-ink2 truncate">{url}</span>
           <button onClick={() => copy(url, 'link')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all flex-shrink-0">
+            className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-all flex-shrink-0">
             {copied === 'link' ? <Check size={16} className="text-brand-green"/> : <Copy size={16}/>}
           </button>
           <button onClick={share}
-            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all flex-shrink-0">
+            className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-all flex-shrink-0">
             <Share2 size={16}/>
           </button>
         </div>
       </div>
 
       <div className="card-sm p-4 flex flex-col items-center gap-3">
-        <div className="text-xs text-slate-500 font-bold self-start">QR Code</div>
+        <div className="text-xs text-ink3 font-bold self-start">QR Code</div>
         {qrDataUrl
           ? <img src={qrDataUrl} alt="QR Code" className="rounded-xl" width={200} height={200}/>
-          : <div className="w-48 h-48 rounded-xl bg-navy-700 flex items-center justify-center">
-              <QrCode size={40} className="text-slate-600 animate-pulse"/>
+          : <div className="w-48 h-48 rounded-xl bg-lift flex items-center justify-center">
+              <QrCode size={40} className="text-ink3 animate-pulse"/>
             </div>
         }
         {qrDataUrl && (
@@ -189,8 +189,8 @@ export const Referrals: React.FC = () => {
       exportValue: (r: any) => `${[r.referrer?.firstName, r.referrer?.name].filter(Boolean).join(' ')} (${r.referrer?.phone ?? ''})`,
       render: (r: any) => (
         <div>
-          <div className="font-semibold text-slate-200 text-sm">{[r.referrer?.firstName, r.referrer?.name].filter(Boolean).join(' ') || '—'}</div>
-          <div className="text-xs text-slate-500 font-mono">{r.referrer?.phone || '—'}</div>
+          <div className="font-semibold text-ink text-sm">{[r.referrer?.firstName, r.referrer?.name].filter(Boolean).join(' ') || '—'}</div>
+          <div className="text-xs text-ink3 font-mono">{r.referrer?.phone || '—'}</div>
         </div>
       ),
     },
@@ -201,8 +201,8 @@ export const Referrals: React.FC = () => {
       exportValue: (r: any) => `${[r.referee?.firstName, r.referee?.name].filter(Boolean).join(' ')} (${r.referee?.phone ?? ''})`,
       render: (r: any) => (
         <div>
-          <div className="font-semibold text-slate-200 text-sm">{[r.referee?.firstName, r.referee?.name].filter(Boolean).join(' ') || '—'}</div>
-          <div className="text-xs text-slate-500 font-mono">{r.referee?.phone || '—'}</div>
+          <div className="font-semibold text-ink text-sm">{[r.referee?.firstName, r.referee?.name].filter(Boolean).join(' ') || '—'}</div>
+          <div className="text-xs text-ink3 font-mono">{r.referee?.phone || '—'}</div>
         </div>
       ),
     },
@@ -215,13 +215,13 @@ export const Referrals: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.rewardedAt ? new Date(r.rewardedAt).getTime() : 0,
       exportValue: (r: any) => r.rewardedAt ?? '',
-      render: (r: any) => <span className="text-xs text-slate-400">{r.rewardedAt ? formatDateTime(r.rewardedAt) : '—'}</span>,
+      render: (r: any) => <span className="text-xs text-ink2">{r.rewardedAt ? formatDateTime(r.rewardedAt) : '—'}</span>,
     },
     { key: 'createdAt', label: 'Date',
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span> },
   ]
 
   return (
@@ -233,8 +233,8 @@ export const Referrals: React.FC = () => {
             <Users size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-100">{stats?.total ?? '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Total</div>
+            <div className="text-2xl font-black text-ink">{stats?.total ?? '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Total</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -242,8 +242,8 @@ export const Referrals: React.FC = () => {
             <Clock size={18} className="text-yellow-400"/>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-100">{stats?.pending ?? '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">En attente</div>
+            <div className="text-2xl font-black text-ink">{stats?.pending ?? '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">En attente</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -251,8 +251,8 @@ export const Referrals: React.FC = () => {
             <CheckCircle size={18} className="text-blue-400"/>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-100">{stats?.rewarded ?? '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Convertis</div>
+            <div className="text-2xl font-black text-ink">{stats?.rewarded ?? '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Convertis</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -260,8 +260,8 @@ export const Referrals: React.FC = () => {
             <TrendingUp size={18} className="text-purple-400"/>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-100">{stats?.conversionRate != null ? `${stats.conversionRate}%` : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Conversion</div>
+            <div className="text-2xl font-black text-ink">{stats?.conversionRate != null ? `${stats.conversionRate}%` : '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Conversion</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3 col-span-2 lg:col-span-1">
@@ -269,8 +269,8 @@ export const Referrals: React.FC = () => {
             <Gift size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{stats != null ? formatCFA(stats.totalCredits) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Crédits distribués</div>
+            <div className="text-xl font-black text-ink">{stats != null ? formatCFA(stats.totalCredits) : '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Crédits distribués</div>
           </div>
         </div>
       </div>
@@ -279,7 +279,7 @@ export const Referrals: React.FC = () => {
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
           <Gift size={16} className="text-brand-green"/>
-          <span className="font-black text-slate-100 text-sm">Configuration des récompenses</span>
+          <span className="font-black text-ink text-sm">Configuration des récompenses</span>
         </div>
         <div className="flex items-end gap-4 flex-wrap">
           <div className="flex-1 min-w-48">
@@ -295,11 +295,11 @@ export const Referrals: React.FC = () => {
             <label className="label">Parrainage actif</label>
             <button
               onClick={() => setEnabled(v => !v)}
-              className={`w-10 h-5 rounded-full transition-all relative ${enabled ? 'bg-brand-green' : 'bg-navy-600'}`}
+              className={`w-10 h-5 rounded-full transition-all relative ${enabled ? 'bg-brand-green' : 'bg-edge'}`}
             >
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${enabled ? 'left-5' : 'left-0.5'}`}/>
             </button>
-            <span className="text-xs font-semibold text-slate-400">{enabled ? 'Activé' : 'Désactivé'}</span>
+            <span className="text-xs font-semibold text-ink2">{enabled ? 'Activé' : 'Désactivé'}</span>
           </div>
           <button
             onClick={() => {
@@ -323,12 +323,12 @@ export const Referrals: React.FC = () => {
           { key: 'history', label: 'Historique',       icon: Clock },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === key ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === key ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
             <Icon size={14}/>{label}
           </button>
         ))}
         <button onClick={() => { refetch(); if (activeTab === 'links') refetchLinks() }}
-          className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-colors">
+          className="ml-auto p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-colors">
           <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''}/>
         </button>
       </div>
@@ -340,12 +340,12 @@ export const Referrals: React.FC = () => {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Trophy size={16} className="text-brand-yellow"/>
-              <span className="font-black text-slate-100 text-sm">Top Parrains</span>
+              <span className="font-black text-ink text-sm">Top Parrains</span>
             </div>
             {isLoading
               ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
               : topReferrers.length === 0
-                ? <div className="text-center py-8 text-slate-500 text-sm">Aucun parrain avec conversion</div>
+                ? <div className="text-center py-8 text-ink3 text-sm">Aucun parrain avec conversion</div>
                 : (
                   <div className="space-y-2">
                     {topReferrers.map((item: any, i: number) => {
@@ -353,18 +353,18 @@ export const Referrals: React.FC = () => {
                       return (
                         <div key={i} className="flex items-center gap-3 p-3 card-sm">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black
-                            ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-slate-500/20 text-slate-300' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-navy-700 text-slate-500'}`}>
+                            ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-slate-500/20 text-ink2' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-lift text-ink3'}`}>
                             {i + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-slate-200 truncate">
+                            <div className="text-sm font-bold text-ink truncate">
                               {[item.user?.firstName, item.user?.name].filter(Boolean).join(' ') || '—'}
                             </div>
-                            <div className="text-xs text-slate-500 font-mono">{item.user?.phone || '—'}</div>
+                            <div className="text-xs text-ink3 font-mono">{item.user?.phone || '—'}</div>
                           </div>
                           <div className="text-right flex-shrink-0">
                             <div className="text-sm font-black text-brand-green">{item.rewarded} converti{item.rewarded > 1 ? 's' : ''}</div>
-                            <div className="text-xs text-slate-500">{item.total} total · {rate}%</div>
+                            <div className="text-xs text-ink3">{item.total} total · {rate}%</div>
                           </div>
                         </div>
                       )
@@ -378,7 +378,7 @@ export const Referrals: React.FC = () => {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 size={16} className="text-brand-green"/>
-              <span className="font-black text-slate-100 text-sm">Tendance mensuelle</span>
+              <span className="font-black text-ink text-sm">Tendance mensuelle</span>
             </div>
             {isLoading
               ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
@@ -392,21 +392,21 @@ export const Referrals: React.FC = () => {
                     return (
                       <div key={m.month} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400 font-semibold w-16">{label}</span>
-                          <span className="text-slate-500">{m.created} parr. · <span className="text-brand-green">{m.rewarded} conv.</span> · {rewardedPct}%</span>
+                          <span className="text-ink2 font-semibold w-16">{label}</span>
+                          <span className="text-ink3">{m.created} parr. · <span className="text-brand-green">{m.rewarded} conv.</span> · {rewardedPct}%</span>
                         </div>
                         <div className="flex gap-1 h-2">
-                          <div className="flex-1 bg-navy-700 rounded-full overflow-hidden">
+                          <div className="flex-1 bg-lift rounded-full overflow-hidden">
                             <div className="h-full bg-slate-500/60 rounded-full transition-all" style={{ width: `${createdPct}%` }}/>
                           </div>
-                          <div className="flex-1 bg-navy-700 rounded-full overflow-hidden">
+                          <div className="flex-1 bg-lift rounded-full overflow-hidden">
                             <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${rewardedPct}%` }}/>
                           </div>
                         </div>
                       </div>
                     )
                   })}
-                  <div className="flex items-center gap-4 pt-2 text-[10px] text-slate-500 font-semibold">
+                  <div className="flex items-center gap-4 pt-2 text-[10px] text-ink3 font-semibold">
                     <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-slate-500/60 inline-block"/>Parrainages créés</span>
                     <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-brand-green inline-block"/>Conversions</span>
                   </div>
@@ -452,42 +452,42 @@ export const Referrals: React.FC = () => {
           {linksLoading
             ? <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
             : filteredLinks.length === 0
-              ? <div className="card p-10 text-center text-slate-500 text-sm">Aucun lien de parrainage actif</div>
+              ? <div className="card p-10 text-center text-ink3 text-sm">Aucun lien de parrainage actif</div>
               : (
                 <div className="card p-2">
-                  <div className="grid grid-cols-1 divide-y divide-navy-700">
+                  <div className="grid grid-cols-1 divide-y divide-edge2">
                     {filteredLinks.map((u: any) => {
                       const url = `${REFERRAL_BASE_URL}/${u.referralCode}`
                       const rate = u.totalReferrals > 0 ? Math.round((u.rewardedReferrals / u.totalReferrals) * 100) : 0
                       return (
-                        <div key={u.id} className="flex items-center gap-3 px-3 py-3 hover:bg-navy-800/50 transition-colors">
+                        <div key={u.id} className="flex items-center gap-3 px-3 py-3 hover:bg-card/50 transition-colors">
                           <div className="w-8 h-8 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
                             <span className="text-brand-green font-black text-xs">{(u.firstName || u.name || '?')[0].toUpperCase()}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-slate-200">{[u.firstName, u.name].filter(Boolean).join(' ') || '—'}</span>
+                              <span className="text-sm font-bold text-ink">{[u.firstName, u.name].filter(Boolean).join(' ') || '—'}</span>
                               <span className="text-[10px] font-black font-mono text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded-md">{u.referralCode}</span>
                             </div>
-                            <div className="text-xs text-slate-500 font-mono truncate">{url}</div>
+                            <div className="text-xs text-ink3 font-mono truncate">{url}</div>
                           </div>
                           <div className="hidden lg:flex items-center gap-4 flex-shrink-0 text-center">
                             <div>
-                              <div className="text-sm font-black text-slate-200">{u.totalReferrals}</div>
-                              <div className="text-[10px] text-slate-500">parrainages</div>
+                              <div className="text-sm font-black text-ink">{u.totalReferrals}</div>
+                              <div className="text-[10px] text-ink3">parrainages</div>
                             </div>
                             <div>
                               <div className="text-sm font-black text-brand-green">{u.rewardedReferrals}</div>
-                              <div className="text-[10px] text-slate-500">convertis</div>
+                              <div className="text-[10px] text-ink3">convertis</div>
                             </div>
                             <div>
                               <div className="text-sm font-black text-purple-400">{rate}%</div>
-                              <div className="text-[10px] text-slate-500">taux</div>
+                              <div className="text-[10px] text-ink3">taux</div>
                             </div>
                           </div>
                           <button
                             onClick={() => setSelectedLink(u)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-300 bg-navy-700 hover:bg-navy-600 rounded-lg transition-colors flex-shrink-0">
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-ink2 bg-lift hover:bg-edge rounded-lg transition-colors flex-shrink-0">
                             <QrCode size={13}/> QR
                           </button>
                         </div>
@@ -504,15 +504,15 @@ export const Referrals: React.FC = () => {
       {activeTab === 'history' && (
         <div className="space-y-4">
           <div className="card p-4 flex flex-wrap gap-3 items-center">
-            <Filter size={14} className="text-slate-500"/>
-            <span className="text-xs font-bold text-slate-500">Filtrer par statut :</span>
+            <Filter size={14} className="text-ink3"/>
+            <span className="text-xs font-bold text-ink3">Filtrer par statut :</span>
             {[
               { value: '',         label: 'Tous' },
               { value: 'PENDING',  label: 'En attente' },
               { value: 'REWARDED', label: 'Convertis' },
             ].map(opt => (
               <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
                 {opt.label}
                 {opt.value === '' && <span className="ml-1.5 text-[10px] opacity-70">({referrals.length})</span>}
                 {opt.value === 'PENDING' && <span className="ml-1.5 text-[10px] opacity-70">({stats?.pending ?? 0})</span>}

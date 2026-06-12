@@ -120,10 +120,10 @@ export const LocationPeriodFilters: React.FC<LocationPeriodFiltersProps> = ({
       </Field>
 
       <Field label="Période">
-        <div className="flex rounded-xl overflow-hidden border border-navy-600 h-9">
+        <div className="flex rounded-xl overflow-hidden border border-edge h-9">
           {PERIODS.map(p => (
             <button key={p.value} onClick={() => handlePeriodChange(p.value)}
-              className={`px-3 text-xs font-bold transition-colors ${period === p.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 hover:text-slate-200'}`}>
+              className={`px-3 text-xs font-bold transition-colors ${period === p.value ? 'bg-brand-green text-white' : 'bg-card text-ink2 hover:text-ink'}`}>
               {p.label}
             </button>
           ))}
@@ -177,7 +177,7 @@ export const LocationPeriodFilters: React.FC<LocationPeriodFiltersProps> = ({
 
 const Field: React.FC<{ label: string; icon?: any; children: React.ReactNode }> = ({ label, icon: Icon, children }) => (
   <div className="flex flex-col gap-1 min-w-[140px]">
-    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+    <span className="text-[10px] font-bold text-ink3 uppercase tracking-wider flex items-center gap-1">
       {Icon && <Icon size={11}/>} {label}
     </span>
     {children}

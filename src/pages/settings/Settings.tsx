@@ -133,7 +133,7 @@ const GeneralTab: React.FC = () => {
     finally { setSaving(false) }
   }
 
-  if (configLoading) return <div className="space-y-5 max-w-2xl animate-pulse">{[...Array(3)].map((_, i) => <div key={i} className="card p-5 h-24 bg-navy-700/40"/>)}</div>
+  if (configLoading) return <div className="space-y-5 max-w-2xl animate-pulse">{[...Array(3)].map((_, i) => <div key={i} className="card p-5 h-24 bg-lift/40"/>)}</div>
 
   return (
     <div className="space-y-5 max-w-2xl">
@@ -143,7 +143,7 @@ const GeneralTab: React.FC = () => {
           <div className="flex gap-2">
             {['SMS', 'WHATSAPP'].map(c => (
               <button key={c} onClick={() => setOtpChannel(c)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${otpChannel === c ? 'bg-brand-green text-white' : 'bg-navy-900 text-slate-400 border border-navy-700'}`}>
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${otpChannel === c ? 'bg-brand-green text-white' : 'bg-panel text-ink2 border border-edge2'}`}>
                 {c === 'SMS' ? '📱 SMS' : '💬 WhatsApp'}
               </button>
             ))}
@@ -164,12 +164,12 @@ const GeneralTab: React.FC = () => {
         { icon: Shield, title: 'Maintenance', content: (
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <div className="text-sm font-bold text-slate-200">Mode maintenance global</div>
-              <div className="text-xs text-slate-500">Suspend temporairement l'accès à la plateforme</div>
+              <div className="text-sm font-bold text-ink">Mode maintenance global</div>
+              <div className="text-xs text-ink3">Suspend temporairement l'accès à la plateforme</div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={maintenanceMode} onChange={e => handleMaintenanceToggle(e.target.checked)} className="sr-only peer"/>
-              <div className="w-11 h-6 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-red-500 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"/>
+              <div className="w-11 h-6 bg-lift rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-red-500 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"/>
             </label>
           </div>
         )},
@@ -179,7 +179,7 @@ const GeneralTab: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
               <Icon size={16} className="text-brand-green"/>
             </div>
-            <h3 className="text-base font-black text-slate-100">{title}</h3>
+            <h3 className="text-base font-black text-ink">{title}</h3>
           </div>
           {content}
         </div>
@@ -194,10 +194,10 @@ const GeneralTab: React.FC = () => {
           <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
             <Key size={16} className="text-brand-green"/>
           </div>
-          <h3 className="text-base font-black text-slate-100">Clés API — Canal OTP</h3>
-          <span className="ml-auto text-[10px] text-slate-500 bg-navy-700 px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
+          <h3 className="text-base font-black text-ink">Clés API — Canal OTP</h3>
+          <span className="ml-auto text-[10px] text-ink3 bg-lift px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
         </div>
-        <p className="text-xs text-slate-500">Laissez un champ vide pour conserver la valeur actuelle. Les valeurs affichées sont masquées.</p>
+        <p className="text-xs text-ink3">Laissez un champ vide pour conserver la valeur actuelle. Les valeurs affichées sont masquées.</p>
 
         <div className="space-y-3">
           {Object.entries(OTP_CRED_FIELDS).map(([channel, { label, fields }]) => {
@@ -207,27 +207,27 @@ const GeneralTab: React.FC = () => {
               return v && v !== '****'
             })
             return (
-              <div key={channel} className="bg-navy-900 rounded-xl border border-navy-700 overflow-hidden">
+              <div key={channel} className="bg-panel rounded-xl border border-edge2 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setExpandedOtp(p => ({ ...p, [channel]: !p[channel] }))}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-navy-800 transition-colors text-left">
+                  className="w-full flex items-center gap-3 p-3 hover:bg-card transition-colors text-left">
                   <span className="text-xl flex-shrink-0">{channel === 'SMS' ? '📱' : '💬'}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-200">{label}</div>
+                    <div className="text-sm font-bold text-ink">{label}</div>
                     {hasCreds
                       ? <div className="text-[10px] text-brand-green font-semibold">Clés configurées</div>
-                      : <div className="text-[10px] text-slate-500">Aucune clé enregistrée</div>
+                      : <div className="text-[10px] text-ink3">Aucune clé enregistrée</div>
                     }
                   </div>
                   {isExpanded
-                    ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0"/>
-                    : <ChevronRight size={14} className="text-slate-400 flex-shrink-0"/>
+                    ? <ChevronDown size={14} className="text-ink2 flex-shrink-0"/>
+                    : <ChevronRight size={14} className="text-ink2 flex-shrink-0"/>
                   }
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
+                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-edge2">
                     {fields.map(field => {
                       const fieldId = `${channel}__${field.key}`
                       const maskedVal = maskedOtpCreds[channel]?.[field.key] ?? ''
@@ -235,7 +235,7 @@ const GeneralTab: React.FC = () => {
                       const isVisible = showOtpFields[fieldId] ?? false
                       return (
                         <div key={field.key} className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-400">{field.label}</label>
+                          <label className="text-xs font-semibold text-ink2">{field.label}</label>
                           <div className="flex gap-2">
                             <input
                               type={field.type === 'url' ? 'url' : (field.type === 'password' && !isVisible ? 'password' : 'text')}
@@ -248,7 +248,7 @@ const GeneralTab: React.FC = () => {
                             {field.type === 'password' && (
                               <button type="button"
                                 onClick={() => setShowOtpFields(p => ({ ...p, [fieldId]: !p[fieldId] }))}
-                                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-navy-700 rounded-lg flex-shrink-0">
+                                className="p-2 text-ink2 hover:text-ink hover:bg-lift rounded-lg flex-shrink-0">
                                 {isVisible ? <EyeOff size={14}/> : <Eye size={14}/>}
                               </button>
                             )}
@@ -389,17 +389,17 @@ const SupportContactsCard: React.FC = () => {
         <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
           <HeadphonesIcon size={16} className="text-brand-green"/>
         </div>
-        <h3 className="text-base font-black text-slate-100">Contacts support</h3>
+        <h3 className="text-base font-black text-ink">Contacts support</h3>
         <button onClick={openCreate} className="ml-auto btn-primary text-xs px-3 py-1.5 gap-1.5">
           <Plus size={13}/> Ajouter
         </button>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink3">
         Numéros de téléphone, emails et WhatsApp affichés aux utilisateurs dans la section aide de l'application.
       </p>
 
       {contacts.length === 0 ? (
-        <div className="py-6 text-center text-sm text-slate-500">
+        <div className="py-6 text-center text-sm text-ink3">
           Aucun contact configuré — cliquez sur <strong>Ajouter</strong> pour en créer un.
         </div>
       ) : (
@@ -408,19 +408,19 @@ const SupportContactsCard: React.FC = () => {
             const { icon: Icon, label: typeLabel } = typeInfo(c.type)
             return (
               <div key={c.id}
-                className="flex items-center gap-3 px-4 py-3 bg-navy-900 rounded-xl border border-navy-700">
-                <div className="w-8 h-8 rounded-lg bg-navy-700 flex items-center justify-center flex-shrink-0">
+                className="flex items-center gap-3 px-4 py-3 bg-panel rounded-xl border border-edge2">
+                <div className="w-8 h-8 rounded-lg bg-lift flex items-center justify-center flex-shrink-0">
                   <Icon size={15} className="text-brand-green"/>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-black text-slate-400 uppercase tracking-wide">{c.label || typeLabel}</div>
-                  <div className="text-sm font-semibold text-slate-200 truncate">{c.value}</div>
+                  <div className="text-xs font-black text-ink2 uppercase tracking-wide">{c.label || typeLabel}</div>
+                  <div className="text-sm font-semibold text-ink truncate">{c.value}</div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-navy-700 text-slate-400 flex-shrink-0">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-lift text-ink2 flex-shrink-0">
                   {typeLabel}
                 </span>
                 <button onClick={() => openEdit(c)}
-                  className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg flex-shrink-0">
+                  className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg flex-shrink-0">
                   <Pencil size={13}/>
                 </button>
                 <button onClick={() => handleDelete(c)}
@@ -448,7 +448,7 @@ const SupportContactsCard: React.FC = () => {
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors
                     ${form.type === t.value
                       ? 'bg-brand-green text-white'
-                      : 'bg-navy-900 text-slate-400 border border-navy-700 hover:border-brand-green/40'}`}>
+                      : 'bg-panel text-ink2 border border-edge2 hover:border-brand-green/40'}`}>
                   <t.icon size={13}/> {t.label}
                 </button>
               ))}
@@ -456,7 +456,7 @@ const SupportContactsCard: React.FC = () => {
           </div>
           {/* Label */}
           <div>
-            <label className="label text-[10px]">Libellé <span className="text-slate-600 font-normal">(optionnel)</span></label>
+            <label className="label text-[10px]">Libellé <span className="text-ink3 font-normal">(optionnel)</span></label>
             <input
               className="input mt-1"
               value={form.label}
@@ -522,8 +522,8 @@ const WithdrawalNotificationCard: React.FC = () => {
           <Bell size={16} className="text-brand-green"/>
         </div>
         <div>
-          <h3 className="text-base font-black text-slate-100">Notifications virement</h3>
-          <p className="text-xs text-slate-500">Email qui reçoit les alertes lors d'une nouvelle demande de virement</p>
+          <h3 className="text-base font-black text-ink">Notifications virement</h3>
+          <p className="text-xs text-ink3">Email qui reçoit les alertes lors d'une nouvelle demande de virement</p>
         </div>
       </div>
       <div className="space-y-1">
@@ -535,7 +535,7 @@ const WithdrawalNotificationCard: React.FC = () => {
           placeholder="dgaservicesint@gmail.com"
           className="input text-sm w-full"
         />
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-ink3">
           Chaque demande de virement enverra un email à cette adresse (si le serveur SMTP est configuré) ainsi qu'une notification in-app aux administrateurs.
         </p>
       </div>
@@ -586,13 +586,13 @@ const CountriesTab: React.FC = () => {
   return (
     <div className="space-y-4 max-w-xl">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">Les pays désactivés n'apparaissent pas dans les filtres et l'app mobile.</p>
+        <p className="text-xs text-ink3">Les pays désactivés n'apparaissent pas dans les filtres et l'app mobile.</p>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <ArrowUpDown size={13} className="text-slate-500" />
+          <ArrowUpDown size={13} className="text-ink3" />
           <select
             value={sort}
             onChange={e => setSort(e.target.value as CountrySort)}
-            className="text-xs bg-navy-800 border border-navy-600 text-slate-300 rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:border-brand-green"
+            className="text-xs bg-card border border-edge text-ink2 rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:border-brand-green"
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -601,15 +601,15 @@ const CountriesTab: React.FC = () => {
       {isLoading
         ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
         : (
-          <div className="card divide-y divide-navy-700 overflow-hidden max-h-[520px] overflow-y-auto">
+          <div className="card divide-y divide-edge2 overflow-hidden max-h-[520px] overflow-y-auto">
             {sorted.map((c: any) => (
               <div key={c.code} className={`flex items-center gap-3 px-4 py-3 transition-colors ${c.isActive ? '' : 'opacity-50'}`}>
                 <span className="text-xl flex-shrink-0">{c.emoji ?? '🌍'}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-slate-200">{c.name}</div>
-                  <div className="text-xs text-slate-500">{c.code} · {c.currency}</div>
+                  <div className="text-sm font-bold text-ink">{c.name}</div>
+                  <div className="text-xs text-ink3">{c.code} · {c.currency}</div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mr-2 ${c.isActive ? 'bg-green-500/10 text-green-400' : 'bg-slate-700 text-slate-500'}`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mr-2 ${c.isActive ? 'bg-green-500/10 text-green-400' : 'bg-lift text-ink3'}`}>
                   {c.isActive ? 'Actif' : 'Inactif'}
                 </span>
                 <Toggle
@@ -728,8 +728,8 @@ const CurrenciesTab: React.FC = () => {
           <DollarSign size={16} className="text-brand-green"/>
         </div>
         <div>
-          <div className="text-sm font-black text-slate-100">Devise de base : XOF</div>
-          <div className="text-xs text-slate-500">Franc CFA Ouest-Africain — toutes les conversions sont relatives au XOF.</div>
+          <div className="text-sm font-black text-ink">Devise de base : XOF</div>
+          <div className="text-xs text-ink3">Franc CFA Ouest-Africain — toutes les conversions sont relatives au XOF.</div>
         </div>
       </div>
 
@@ -737,36 +737,36 @@ const CurrenciesTab: React.FC = () => {
       <div className="card p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Key size={15} className="text-brand-green"/>
-          <div className="text-sm font-black text-slate-100">Clé API taux de change</div>
+          <div className="text-sm font-black text-ink">Clé API taux de change</div>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink3">
           Service exchangerate-api.com — utilisé pour rafraîchir automatiquement les taux.
           Crée une clé gratuite sur le site puis colle-la ici.
         </p>
         <div>
-          <label className="text-xs font-semibold text-slate-400">Clé API</label>
+          <label className="text-xs font-semibold text-ink2">Clé API</label>
           <div className="relative mt-1">
             <input
               type={showKey ? 'text' : 'password'}
               value={keyEdited ? apiKey : apiKeyMasked}
               onChange={e => { setKeyEdited(true); setApiKey(e.target.value) }}
               placeholder="ex: 1a2b3c4d5e6f..."
-              className="w-full bg-navy-900 border border-navy-600 rounded-lg px-3 py-2 pr-10 text-sm text-slate-200 focus:outline-none focus:border-brand-green"
+              className="w-full bg-panel border border-edge rounded-lg px-3 py-2 pr-10 text-sm text-ink focus:outline-none focus:border-brand-green"
             />
             <button type="button" onClick={() => setShowKey(s => !s)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-ink3 hover:text-ink2">
               {showKey ? <EyeOff size={15}/> : <Eye size={15}/>}
             </button>
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-400">URL API (optionnel)</label>
+          <label className="text-xs font-semibold text-ink2">URL API (optionnel)</label>
           <input
             type="url"
             value={apiUrl}
             onChange={e => setApiUrl(e.target.value)}
             placeholder="https://v6.exchangerate-api.com/v6"
-            className="w-full mt-1 bg-navy-900 border border-navy-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-green"
+            className="w-full mt-1 bg-panel border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-brand-green"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -780,7 +780,7 @@ const CurrenciesTab: React.FC = () => {
           <button
             onClick={() => refreshRatesMutation.mutate()}
             disabled={refreshRatesMutation.isPending}
-            className="flex items-center gap-2 bg-navy-700 border border-navy-600 text-slate-300 hover:text-white text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 bg-lift border border-edge text-ink2 hover:text-ink text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors"
           >
             <RefreshCw size={15} className={refreshRatesMutation.isPending ? 'animate-spin' : ''}/>
             {refreshRatesMutation.isPending ? 'Rafraîchissement…' : 'Tester / Rafraîchir maintenant'}
@@ -790,11 +790,11 @@ const CurrenciesTab: React.FC = () => {
 
       <div className="flex justify-end">
         <div className="flex items-center gap-1.5">
-          <ArrowUpDown size={13} className="text-slate-500" />
+          <ArrowUpDown size={13} className="text-ink3" />
           <select
             value={sort}
             onChange={e => setSort(e.target.value as CurrencySort)}
-            className="text-xs bg-navy-800 border border-navy-600 text-slate-300 rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:border-brand-green"
+            className="text-xs bg-card border border-edge text-ink2 rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:border-brand-green"
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -804,16 +804,16 @@ const CurrenciesTab: React.FC = () => {
       {isLoading
         ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
         : (
-          <div className="card divide-y divide-navy-700 overflow-hidden max-h-[520px] overflow-y-auto">
+          <div className="card divide-y divide-edge2 overflow-hidden max-h-[520px] overflow-y-auto">
             {sorted.map((r: any) => (
               <div key={r.fromCurrency} className="flex items-center gap-4 px-4 py-3">
                 <div className="w-12 text-center">
-                  <span className="text-xs font-black text-slate-300 bg-navy-700 px-2 py-1 rounded-lg">{r.fromCurrency}</span>
+                  <span className="text-xs font-black text-ink2 bg-lift px-2 py-1 rounded-lg">{r.fromCurrency}</span>
                 </div>
-                <div className="flex-1 flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="flex-1 flex items-center gap-1.5 text-xs text-ink3">
                   <span>1 {r.fromCurrency}</span>
                   <ChevronRight size={12}/>
-                  <span className="font-bold text-slate-300">X XOF</span>
+                  <span className="font-bold text-ink2">X XOF</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -823,7 +823,7 @@ const CurrenciesTab: React.FC = () => {
                     className="input w-28 text-sm text-right"
                     placeholder="0.000"
                   />
-                  <span className="text-xs text-slate-500 font-semibold w-8">XOF</span>
+                  <span className="text-xs text-ink3 font-semibold w-8">XOF</span>
                 </div>
               </div>
             ))}
@@ -847,7 +847,7 @@ const LEVEL_COLORS: Record<string, string> = {
   ADMIN: 'text-brand-green bg-brand-green/10',
   SUPPORT: 'text-blue-400 bg-blue-400/10',
   MODERATOR: 'text-purple-400 bg-purple-400/10',
-  ANALYST: 'text-slate-400 bg-slate-700',
+  ANALYST: 'text-ink2 bg-lift',
 }
 
 type AdminForm = { name: string; firstName: string; email: string; phone: string; level: string; password: string }
@@ -912,34 +912,34 @@ const AdminsTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">Gérez les accès au dashboard administrateur.</p>
+        <p className="text-xs text-ink3">Gérez les accès au dashboard administrateur.</p>
         <button onClick={openCreate} className="btn-primary text-xs px-3 gap-1.5"><Plus size={13}/> Nouveau compte</button>
       </div>
 
       {isLoading
         ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
         : admins.length === 0
-          ? <div className="card p-8 text-center text-slate-500 text-sm">Aucun compte admin</div>
+          ? <div className="card p-8 text-center text-ink3 text-sm">Aucun compte admin</div>
           : (
-            <div className="card divide-y divide-navy-700 overflow-hidden">
+            <div className="card divide-y divide-edge2 overflow-hidden">
               {admins.map((a: any) => (
                 <div key={a.id} className={`flex items-center gap-3 px-4 py-3 ${a.status === 'SUSPENDED' ? 'opacity-50' : ''}`}>
-                  <div className="w-9 h-9 rounded-xl bg-navy-700 flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-lift flex items-center justify-center flex-shrink-0">
                     <span className="text-base font-black text-brand-green">{(a.name ?? '?')[0].toUpperCase()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-bold text-slate-200">{a.firstName ? `${a.firstName} ${a.name}` : a.name}</span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${LEVEL_COLORS[a.admin?.level] ?? 'text-slate-400 bg-navy-700'}`}>
+                      <span className="text-sm font-bold text-ink">{a.firstName ? `${a.firstName} ${a.name}` : a.name}</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${LEVEL_COLORS[a.admin?.level] ?? 'text-ink2 bg-lift'}`}>
                         {LEVEL_LABELS[a.admin?.level] ?? a.admin?.level ?? '—'}
                       </span>
                       {a.status === 'SUSPENDED' && <span className="text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">Suspendu</span>}
                     </div>
-                    <div className="text-xs text-slate-500 truncate">{a.email} · {a.phone}</div>
-                    <div className="text-[10px] text-slate-600">{formatDateTime(a.createdAt)}</div>
+                    <div className="text-xs text-ink3 truncate">{a.email} · {a.phone}</div>
+                    <div className="text-[10px] text-ink3">{formatDateTime(a.createdAt)}</div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button title="Modifier" onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+                    <button title="Modifier" onClick={() => openEdit(a)} className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg">
                       <Pencil size={13}/>
                     </button>
                     {a.status === 'SUSPENDED'
@@ -984,7 +984,7 @@ const AdminsTab: React.FC = () => {
           </div>
           {!editing && (
             <div>
-              <label className="label text-[10px]">Mot de passe * <span className="text-slate-600 font-normal">(min. 8 caractères)</span></label>
+              <label className="label text-[10px]">Mot de passe * <span className="text-ink3 font-normal">(min. 8 caractères)</span></label>
               <input type="password" autoComplete="new-password" className="input" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••"/>
             </div>
           )}
@@ -1021,16 +1021,16 @@ const ROLES_MATRIX = [
 
 const RolesTab: React.FC = () => (
   <div className="space-y-4 max-w-2xl">
-    <p className="text-xs text-slate-500">Les rôles définissent les sections accessibles dans le dashboard. Le rôle est attribué à la création du compte dans l'onglet "Comptes admin".</p>
+    <p className="text-xs text-ink3">Les rôles définissent les sections accessibles dans le dashboard. Le rôle est attribué à la création du compte dans l'onglet "Comptes admin".</p>
     {ROLES_MATRIX.map(r => (
       <div key={r.role} className={`card p-5 border ${r.color}`}>
         <div className="flex items-center gap-3 mb-3">
           <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${r.color}`}>{r.label}</span>
-          <span className="text-xs text-slate-400">{r.desc}</span>
+          <span className="text-xs text-ink2">{r.desc}</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {r.perms.map(p => (
-            <span key={p} className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-navy-700 text-slate-300 flex items-center gap-1">
+            <span key={p} className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-lift text-ink2 flex items-center gap-1">
               <CheckCircle size={10} className="text-brand-green flex-shrink-0"/> {p}
             </span>
           ))}
@@ -1129,7 +1129,7 @@ const MapsTab: React.FC = () => {
           <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
             <MapIcon size={16} className="text-brand-green"/>
           </div>
-          <h3 className="text-base font-black text-slate-100">Fournisseur de cartes actif</h3>
+          <h3 className="text-base font-black text-ink">Fournisseur de cartes actif</h3>
         </div>
         <div className="flex gap-2">
           {[
@@ -1137,7 +1137,7 @@ const MapsTab: React.FC = () => {
             { key: 'OPENSTREETMAP', label: '🌍 OpenStreetMap' },
           ].map(opt => (
             <button key={opt.key} onClick={() => setActiveProvider(opt.key)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${activeProvider === opt.key ? 'bg-brand-green text-white' : 'bg-navy-900 text-slate-400 border border-navy-700'}`}>
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${activeProvider === opt.key ? 'bg-brand-green text-white' : 'bg-panel text-ink2 border border-edge2'}`}>
               {opt.label}
             </button>
           ))}
@@ -1150,27 +1150,27 @@ const MapsTab: React.FC = () => {
           <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
             <Key size={16} className="text-brand-green"/>
           </div>
-          <h3 className="text-base font-black text-slate-100">Clés API & Configuration</h3>
-          <span className="ml-auto text-[10px] text-slate-500 bg-navy-700 px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
+          <h3 className="text-base font-black text-ink">Clés API & Configuration</h3>
+          <span className="ml-auto text-[10px] text-ink3 bg-lift px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
         </div>
-        <p className="text-xs text-slate-500">Laissez un champ vide pour conserver la valeur actuelle. Les valeurs affichées sont masquées.</p>
+        <p className="text-xs text-ink3">Laissez un champ vide pour conserver la valeur actuelle. Les valeurs affichées sont masquées.</p>
 
         <div className="space-y-3">
           {Object.entries(MAPS_CRED_FIELDS).map(([provider, { label, emoji, fields }]) => {
             const isExpanded = expanded[provider] ?? false
             const isActive = activeProvider === provider
             return (
-              <div key={provider} className={`bg-navy-900 rounded-xl border overflow-hidden ${isActive ? 'border-brand-green/40' : 'border-navy-700'}`}>
+              <div key={provider} className={`bg-panel rounded-xl border overflow-hidden ${isActive ? 'border-brand-green/40' : 'border-edge2'}`}>
                 <div
-                  className="w-full flex items-center gap-3 p-3 hover:bg-navy-800 transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-3 p-3 hover:bg-card transition-colors cursor-pointer"
                   onClick={() => setExpanded(p => ({ ...p, [provider]: !p[provider] }))}>
                   <span className="text-xl flex-shrink-0">{emoji}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-200">{label}</span>
+                      <span className="text-sm font-bold text-ink">{label}</span>
                       {isActive && <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-brand-green/20 text-brand-green">Actif</span>}
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">{enabledMap[provider] ? 'Activé' : 'Désactivé'}</div>
+                    <div className="text-[10px] text-ink3 mt-0.5">{enabledMap[provider] ? 'Activé' : 'Désactivé'}</div>
                   </div>
                   <div onClick={e => e.stopPropagation()}>
                     <Toggle
@@ -1191,15 +1191,15 @@ const MapsTab: React.FC = () => {
                     />
                   </div>
                   {isExpanded
-                    ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0 ml-1"/>
-                    : <ChevronRight size={14} className="text-slate-400 flex-shrink-0 ml-1"/>
+                    ? <ChevronDown size={14} className="text-ink2 flex-shrink-0 ml-1"/>
+                    : <ChevronRight size={14} className="text-ink2 flex-shrink-0 ml-1"/>
                   }
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
+                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-edge2">
                     {fields.length === 0 ? (
-                      <p className="text-xs text-slate-500">Aucune clé API requise. OpenStreetMap est entièrement gratuit et open-source.</p>
+                      <p className="text-xs text-ink3">Aucune clé API requise. OpenStreetMap est entièrement gratuit et open-source.</p>
                     ) : (
                       fields.map(field => {
                         const fieldId = `${provider}__${field.key}`
@@ -1208,9 +1208,9 @@ const MapsTab: React.FC = () => {
                         const isVisible = showFields[fieldId] ?? false
                         return (
                           <div key={field.key} className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-400">
+                            <label className="text-xs font-semibold text-ink2">
                               {field.label}
-                              {field.optional && <span className="text-slate-600 font-normal ml-1">(optionnel)</span>}
+                              {field.optional && <span className="text-ink3 font-normal ml-1">(optionnel)</span>}
                             </label>
                             <div className="flex gap-2">
                               <input
@@ -1224,7 +1224,7 @@ const MapsTab: React.FC = () => {
                               {field.type === 'password' && (
                                 <button type="button"
                                   onClick={() => setShowFields(p => ({ ...p, [fieldId]: !p[fieldId] }))}
-                                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-navy-700 rounded-lg flex-shrink-0">
+                                  className="p-2 text-ink2 hover:text-ink hover:bg-lift rounded-lg flex-shrink-0">
                                   {isVisible ? <EyeOff size={14}/> : <Eye size={14}/>}
                                 </button>
                               )}
@@ -1269,10 +1269,10 @@ export const Settings: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-navy-700 overflow-x-auto pb-0">
+      <div className="flex gap-1 border-b border-edge2 overflow-x-auto pb-0">
         {TABS.map(({ key, label, Icon }) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${tab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${tab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-ink2 hover:text-ink'}`}>
             <Icon size={14}/>
             {label}
           </button>

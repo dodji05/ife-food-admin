@@ -32,10 +32,10 @@ function MonthBar({ value, max, label }: { value: number; max: number; label: st
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-400 font-semibold w-14">{label}</span>
-        <span className="text-slate-300 font-bold">{formatCFA(value)}</span>
+        <span className="text-ink2 font-semibold w-14">{label}</span>
+        <span className="text-ink2 font-bold">{formatCFA(value)}</span>
       </div>
-      <div className="h-2 bg-navy-700 rounded-full overflow-hidden">
+      <div className="h-2 bg-lift rounded-full overflow-hidden">
         <div className="h-full bg-brand-green rounded-full transition-all" style={{ width: `${pct}%` }}/>
       </div>
     </div>
@@ -64,13 +64,13 @@ function TiersForm({ label, tiers, onChange }: { label: string; tiers: CommTier[
   }
   return (
     <div className="space-y-2">
-      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label} — Paliers RPO</div>
+      <div className="text-xs font-bold text-ink2 uppercase tracking-wider">{label} — Paliers RPO</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
         {TIER_LABELS.map((tierLabel, i) => (
-          <div key={i} className="card-sm p-3 space-y-2 border border-navy-600">
-            <div className="text-[11px] font-bold text-slate-300">{tierLabel}</div>
+          <div key={i} className="card-sm p-3 space-y-2 border border-edge">
+            <div className="text-[11px] font-bold text-ink2">{tierLabel}</div>
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-500 font-semibold">Taux (%)</label>
+              <label className="text-[10px] text-ink3 font-semibold">Taux (%)</label>
               <input
                 inputMode="decimal"
                 value={tiers[i]?.rate ?? ''}
@@ -80,7 +80,7 @@ function TiersForm({ label, tiers, onChange }: { label: string; tiers: CommTier[
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-500 font-semibold">Montant fixe / plat (FCFA)</label>
+              <label className="text-[10px] text-ink3 font-semibold">Montant fixe / plat (FCFA)</label>
               <input
                 inputMode="decimal"
                 value={tiers[i]?.fixedAmount ?? ''}
@@ -112,11 +112,11 @@ function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate
   const isDriver = label === 'Livreurs'
   return (
     <div className="space-y-2">
-      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
+      <div className="text-xs font-bold text-ink2 uppercase tracking-wider">{label}</div>
       <div className="flex gap-2">
         {(['PERCENTAGE', 'FIXED_PER_DISH'] as const).map(t => (
           <button key={t} type="button" onClick={() => onChange({ ...rate, type: t })}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${rate.type === t ? 'bg-brand-green text-white' : 'bg-navy-700 text-slate-400 border border-navy-600'}`}>
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${rate.type === t ? 'bg-brand-green text-white' : 'bg-lift text-ink2 border border-edge'}`}>
             {typeLabels[t].short}
           </button>
         ))}
@@ -128,7 +128,7 @@ function CommRateForm({ label, rate, onChange }: { label: string; rate: CommRate
         className="input w-full text-sm"
         placeholder={rate.type === 'PERCENTAGE' ? 'ex: 15' : 'ex: 500'}
       />
-      <p className="text-[10px] text-slate-500">{typeLabels[rate.type].desc}</p>
+      <p className="text-[10px] text-ink3">{typeLabels[rate.type].desc}</p>
       <p className="text-[11px] text-brand-green font-medium">
         {rate.type === 'PERCENTAGE'
           ? `→ ${rate.value || '…'}% ${isDriver ? 'des frais de livraison' : 'du sous-total'}`
@@ -260,14 +260,14 @@ const CommissionsTab: React.FC = () => {
     <div className="space-y-5">
       {/* Filtre pays */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs font-bold text-slate-500">Filtrer les stats par pays :</span>
+        <span className="text-xs font-bold text-ink3">Filtrer les stats par pays :</span>
         {[{ code: '', name: 'Tous' }, ...COUNTRIES].map(c => (
           <button key={c.code} onClick={() => setFilterCountry(c.code)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterCountry === c.code ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterCountry === c.code ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
             {c.name}
           </button>
         ))}
-        <button onClick={() => refetchStats()} className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+        <button onClick={() => refetchStats()} className="ml-auto p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg">
           <RefreshCw size={14} className={statsLoading ? 'animate-spin' : ''}/>
         </button>
       </div>
@@ -279,8 +279,8 @@ const CommissionsTab: React.FC = () => {
             <TrendingUp size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="text-lg font-black text-slate-100">{formatCFA(totalRevenue)}</div>
-            <div className="text-xs text-slate-500 font-semibold">CA {filterCountry || 'total'}</div>
+            <div className="text-lg font-black text-ink">{formatCFA(totalRevenue)}</div>
+            <div className="text-xs text-ink3 font-semibold">CA {filterCountry || 'total'}</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -288,8 +288,8 @@ const CommissionsTab: React.FC = () => {
             <Building2 size={18} className="text-yellow-400"/>
           </div>
           <div>
-            <div className="text-lg font-black text-slate-100">{formatCFA(totalPro)}</div>
-            <div className="text-xs text-slate-500 font-semibold">Commissions pros</div>
+            <div className="text-lg font-black text-ink">{formatCFA(totalPro)}</div>
+            <div className="text-xs text-ink3 font-semibold">Commissions pros</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -297,8 +297,8 @@ const CommissionsTab: React.FC = () => {
             <Truck size={18} className="text-blue-400"/>
           </div>
           <div>
-            <div className="text-lg font-black text-slate-100">{formatCFA(totalDriver)}</div>
-            <div className="text-xs text-slate-500 font-semibold">Commissions livreurs</div>
+            <div className="text-lg font-black text-ink">{formatCFA(totalDriver)}</div>
+            <div className="text-xs text-ink3 font-semibold">Commissions livreurs</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3 border border-brand-green/30">
@@ -307,7 +307,7 @@ const CommissionsTab: React.FC = () => {
           </div>
           <div>
             <div className="text-lg font-black text-brand-green">{formatCFA(totalPlatform)}</div>
-            <div className="text-xs text-slate-400 font-bold">= Plateforme total</div>
+            <div className="text-xs text-ink2 font-bold">= Plateforme total</div>
           </div>
         </div>
       </div>
@@ -317,9 +317,9 @@ const CommissionsTab: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarSign size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Configuration des commissions</span>
+            <span className="font-black text-ink text-sm">Configuration des commissions</span>
           </div>
-          <span className="text-[10px] text-slate-500 font-semibold bg-navy-700 px-2 py-1 rounded-lg">
+          <span className="text-[10px] text-ink3 font-semibold bg-lift px-2 py-1 rounded-lg">
             Commission plateforme = Pros + Livreurs
           </span>
         </div>
@@ -330,11 +330,11 @@ const CommissionsTab: React.FC = () => {
         </div>
 
         {/* Paliers RPO */}
-        <div className="space-y-4 pt-2 border-t border-navy-700">
+        <div className="space-y-4 pt-2 border-t border-edge2">
           <div className="flex items-center gap-2">
             <BarChart3 size={13} className="text-brand-green"/>
-            <span className="text-xs font-bold text-slate-300">Paliers par nombre de plats</span>
-            <span className="ml-2 text-[10px] text-slate-500 bg-navy-700 px-2 py-0.5 rounded-lg">RPO — optionnel par palier</span>
+            <span className="text-xs font-bold text-ink2">Paliers par nombre de plats</span>
+            <span className="ml-2 text-[10px] text-ink3 bg-lift px-2 py-0.5 rounded-lg">RPO — optionnel par palier</span>
           </div>
           <div className="card-sm p-4 space-y-3 border-l-2 border-yellow-500/50">
             <TiersForm label="Professionnels" tiers={proTiers} onChange={setProTiers}/>
@@ -344,8 +344,8 @@ const CommissionsTab: React.FC = () => {
         {/* Overrides par pays */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <MapPin size={13} className="text-slate-400"/>
-            <span className="text-xs font-bold text-slate-400">Surcharges par pays (optionnel)</span>
+            <MapPin size={13} className="text-ink2"/>
+            <span className="text-xs font-bold text-ink2">Surcharges par pays (optionnel)</span>
           </div>
           <div className="flex gap-2 items-center">
             <select
@@ -375,7 +375,7 @@ const CommissionsTab: React.FC = () => {
             return (
               <div key={code} className="card-sm p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-300">{cName} — taux spécifiques</span>
+                  <span className="text-xs font-black text-ink2">{cName} — taux spécifiques</span>
                   <button onClick={() => toggleCountryOverride(code)} className="text-xs text-red-400 hover:text-red-300 font-bold">Supprimer</button>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -403,7 +403,7 @@ const CommissionsTab: React.FC = () => {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Tendance — 6 mois</span>
+            <span className="font-black text-ink text-sm">Tendance — 6 mois</span>
           </div>
           {statsLoading
             ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
@@ -420,23 +420,23 @@ const CommissionsTab: React.FC = () => {
                   return (
                     <div key={m.month} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400 font-semibold w-14">{label}</span>
-                        <span className="text-slate-400 text-[10px]">
+                        <span className="text-ink2 font-semibold w-14">{label}</span>
+                        <span className="text-ink2 text-[10px]">
                           <span className="text-yellow-400">{formatCFA(pro)}</span>
                           {' + '}
                           <span className="text-blue-400">{formatCFA(driver)}</span>
                           {' = '}
-                          <span className="text-slate-200 font-bold">{formatCFA(total)}</span>
+                          <span className="text-ink font-bold">{formatCFA(total)}</span>
                         </span>
                       </div>
-                      <div className="h-2 bg-navy-700 rounded-full overflow-hidden flex">
+                      <div className="h-2 bg-lift rounded-full overflow-hidden flex">
                         <div className="h-full bg-yellow-500/70 transition-all" style={{ width: `${pct * proPct / 100}%` }}/>
                         <div className="h-full bg-blue-500/70 transition-all" style={{ width: `${pct * (100 - proPct) / 100}%` }}/>
                       </div>
                     </div>
                   )
                 })}
-                <div className="flex items-center gap-4 pt-1 text-[10px] text-slate-500 font-semibold">
+                <div className="flex items-center gap-4 pt-1 text-[10px] text-ink3 font-semibold">
                   <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-yellow-500/70 inline-block"/>Professionnels</span>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-blue-500/70 inline-block"/>Livreurs</span>
                 </div>
@@ -449,27 +449,27 @@ const CommissionsTab: React.FC = () => {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Top 5 — Établissements</span>
+            <span className="font-black text-ink text-sm">Top 5 — Établissements</span>
           </div>
           {statsLoading
             ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
             : topCommissioners.length === 0
-              ? <div className="text-center py-8 text-slate-500 text-sm">Aucune donnée</div>
+              ? <div className="text-center py-8 text-ink3 text-sm">Aucune donnée</div>
               : (
                 <div className="space-y-2">
                   {topCommissioners.map((item: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 p-3 card-sm">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black
-                        ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-slate-500/20 text-slate-300' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-navy-700 text-slate-500'}`}>
+                        ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-lift text-ink2' : i === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-lift text-ink3'}`}>
                         {i + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-slate-200 truncate">{item.professional?.businessName || '—'}</div>
-                        <div className="text-xs text-slate-500">{item.orders} cmd · CA {formatCFA(item.revenue)}</div>
+                        <div className="text-sm font-bold text-ink truncate">{item.professional?.businessName || '—'}</div>
+                        <div className="text-xs text-ink3">{item.orders} cmd · CA {formatCFA(item.revenue)}</div>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-sm font-black text-brand-green">{formatCFA(item.commissions)}</div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-ink3">
                           {item.revenue > 0 ? `${Math.round((item.commissions / item.revenue) * 100)}%` : '—'}
                         </div>
                       </div>
@@ -507,8 +507,8 @@ const DeliveryFeesTab: React.FC = () => {
             <Truck size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{stats ? formatCFA(stats.totalFees) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Frais collectés (total)</div>
+            <div className="text-xl font-black text-ink">{stats ? formatCFA(stats.totalFees) : '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Frais collectés (total)</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -516,8 +516,8 @@ const DeliveryFeesTab: React.FC = () => {
             <ArrowUpDown size={18} className="text-blue-400"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{stats ? formatCFA(stats.avgFee) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Frais moyen / commande</div>
+            <div className="text-xl font-black text-ink">{stats ? formatCFA(stats.avgFee) : '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Frais moyen / commande</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3 col-span-2 lg:col-span-1">
@@ -525,8 +525,8 @@ const DeliveryFeesTab: React.FC = () => {
             <ArrowUpDown size={18} className="text-purple-400"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{stats?.totalOrders ?? '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Commandes avec livraison</div>
+            <div className="text-xl font-black text-ink">{stats?.totalOrders ?? '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Commandes avec livraison</div>
           </div>
         </div>
       </div>
@@ -536,7 +536,7 @@ const DeliveryFeesTab: React.FC = () => {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Frais — 6 mois</span>
+            <span className="font-black text-ink text-sm">Frais — 6 mois</span>
           </div>
           {isLoading
             ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
@@ -555,20 +555,20 @@ const DeliveryFeesTab: React.FC = () => {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <MapPin size={15} className="text-brand-green"/>
-            <span className="font-black text-slate-100 text-sm">Top villes — Frais perçus</span>
+            <span className="font-black text-ink text-sm">Top villes — Frais perçus</span>
           </div>
           {isLoading
             ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
             : topCities.length === 0
-              ? <div className="text-center py-8 text-slate-500 text-sm">Aucune donnée</div>
+              ? <div className="text-center py-8 text-ink3 text-sm">Aucune donnée</div>
               : (
                 <div className="space-y-2">
                   {topCities.map((c: any, i: number) => (
                     <div key={c.city} className="flex items-center gap-3 p-3 card-sm">
-                      <div className="w-7 h-7 rounded-full bg-navy-700 flex items-center justify-center flex-shrink-0 text-xs font-black text-slate-400">{i + 1}</div>
+                      <div className="w-7 h-7 rounded-full bg-lift flex items-center justify-center flex-shrink-0 text-xs font-black text-ink2">{i + 1}</div>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-slate-200">{c.city}</div>
-                        <div className="text-xs text-slate-500">{c.orders} livraison{c.orders > 1 ? 's' : ''}</div>
+                        <div className="text-sm font-bold text-ink">{c.city}</div>
+                        <div className="text-xs text-ink3">{c.orders} livraison{c.orders > 1 ? 's' : ''}</div>
                       </div>
                       <div className="text-sm font-black text-brand-green">{formatCFA(c.fees)}</div>
                     </div>
@@ -581,8 +581,8 @@ const DeliveryFeesTab: React.FC = () => {
 
       <div className="card p-4 flex items-center justify-between gap-4">
         <div>
-          <div className="text-sm font-bold text-slate-200">Configurer les zones et tarifs</div>
-          <div className="text-xs text-slate-500">Gérez les zones, le mode de calcul (km/zone/ville) et le facteur météo</div>
+          <div className="text-sm font-bold text-ink">Configurer les zones et tarifs</div>
+          <div className="text-xs text-ink3">Gérez les zones, le mode de calcul (km/zone/ville) et le facteur météo</div>
         </div>
         <button onClick={() => navigate('/delivery-fees')} className="btn-secondary text-xs px-4 gap-2 flex-shrink-0">
           <ExternalLink size={13}/> Aller à la config
@@ -726,10 +726,10 @@ const GatewaysTab: React.FC = () => {
             <div key={g.gateway} className="card p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-lg">{GATEWAY_ICONS[g.gateway] ?? '💰'}</span>
-                <span className="text-xs font-black text-slate-300">{g.gateway}</span>
+                <span className="text-xs font-black text-ink2">{g.gateway}</span>
               </div>
-              <div className="text-base font-black text-slate-100">{formatCFA(g.total)}</div>
-              <div className="text-xs text-slate-500">{g.count} transaction{g.count > 1 ? 's' : ''}</div>
+              <div className="text-base font-black text-ink">{formatCFA(g.total)}</div>
+              <div className="text-xs text-ink3">{g.count} transaction{g.count > 1 ? 's' : ''}</div>
             </div>
           ))}
         </div>
@@ -739,19 +739,19 @@ const GatewaysTab: React.FC = () => {
       <div className="card p-5 space-y-4">
         <div className="flex items-center gap-2">
           <CreditCard size={15} className="text-brand-green"/>
-          <span className="font-black text-slate-100 text-sm">Activer / Désactiver les passerelles</span>
+          <span className="font-black text-ink text-sm">Activer / Désactiver les passerelles</span>
         </div>
         <div className="space-y-3">
           {Object.entries(gateways).map(([name, enabled]) => (
-            <div key={name} className={`flex items-center gap-3 p-3 bg-navy-900 rounded-xl border transition-colors ${enabled ? 'border-navy-600' : 'border-navy-800 opacity-60'}`}>
+            <div key={name} className={`flex items-center gap-3 p-3 bg-panel rounded-xl border transition-colors ${enabled ? 'border-edge' : 'border-edge2 opacity-60'}`}>
               <span className="text-xl flex-shrink-0">{GATEWAY_ICONS[name] ?? '💰'}</span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-slate-200">{GATEWAY_LABELS[name] ?? name}</div>
-                <div className="text-xs text-slate-500">{GATEWAY_NOTES[name] ?? name}</div>
+                <div className="text-sm font-bold text-ink">{GATEWAY_LABELS[name] ?? name}</div>
+                <div className="text-xs text-ink3">{GATEWAY_NOTES[name] ?? name}</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                 <input type="checkbox" checked={enabled} onChange={e => setGateways(g => ({ ...g, [name]: e.target.checked }))} className="sr-only peer"/>
-                <div className="w-10 h-5 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-brand-green after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
+                <div className="w-10 h-5 bg-lift rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-brand-green after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
               </label>
             </div>
           ))}
@@ -771,10 +771,10 @@ const GatewaysTab: React.FC = () => {
       <div className="card p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Key size={15} className="text-brand-green"/>
-          <span className="font-black text-slate-100 text-sm">Clés API & Configuration</span>
-          <span className="ml-auto text-[10px] text-slate-500 bg-navy-700 px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
+          <span className="font-black text-ink text-sm">Clés API & Configuration</span>
+          <span className="ml-auto text-[10px] text-ink3 bg-lift px-2 py-1 rounded-lg">SUPER_ADMIN uniquement</span>
         </div>
-        <p className="text-xs text-slate-500">Laissez un champ vide pour conserver la valeur actuelle. Les clés affichées sont masquées.</p>
+        <p className="text-xs text-ink3">Laissez un champ vide pour conserver la valeur actuelle. Les clés affichées sont masquées.</p>
 
         <div className="space-y-3">
           {Object.entries(CRED_FIELDS).map(([gw, fields]) => {
@@ -784,17 +784,17 @@ const GatewaysTab: React.FC = () => {
               return typeof v === 'string' && v && v !== '****'
             })
             return (
-              <div key={gw} className="bg-navy-900 rounded-xl border border-navy-700 overflow-hidden">
+              <div key={gw} className="bg-panel rounded-xl border border-edge2 overflow-hidden">
                 <div className="w-full flex items-center gap-3 p-3">
                   {/* Expand toggle */}
                   <button type="button" onClick={() => toggleExpand(gw)}
                     className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity text-left">
                     <span className="text-xl flex-shrink-0">{GATEWAY_ICONS[gw] ?? '💰'}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-200">{GATEWAY_LABELS[gw] ?? gw}</div>
+                      <div className="text-sm font-bold text-ink">{GATEWAY_LABELS[gw] ?? gw}</div>
                       {hasSavedCreds
                         ? <div className="text-[10px] text-brand-green font-semibold">Clés configurées</div>
-                        : <div className="text-[10px] text-slate-500">Aucune clé enregistrée</div>
+                        : <div className="text-[10px] text-ink3">Aucune clé enregistrée</div>
                       }
                     </div>
                   </button>
@@ -815,27 +815,27 @@ const GatewaysTab: React.FC = () => {
                   )}
 
                   <button type="button" onClick={() => toggleExpand(gw)}
-                    className="p-1 text-slate-400 hover:text-slate-200 flex-shrink-0">
+                    className="p-1 text-ink2 hover:text-ink flex-shrink-0">
                     {isExpanded ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
                   </button>
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-navy-700">
+                  <div className="px-4 pb-4 pt-1 space-y-3 border-t border-edge2">
                     {fields.map(field => {
                       const fieldId = `${gw}__${field.key}`
                       if (field.type === 'boolean') {
                         return (
                           <div key={field.key} className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-400">{field.label}</span>
+                            <span className="text-xs font-semibold text-ink2">{field.label}</span>
                             <label className="relative inline-flex items-center cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={getSandboxValue(gw)}
                                 onChange={e => setCredField(gw, field.key, e.target.checked)}
                                 className="sr-only peer"/>
-                              <div className="w-10 h-5 bg-navy-700 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-yellow-500 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
-                              <span className="ml-2 text-xs text-slate-400">{getSandboxValue(gw) ? 'Sandbox' : 'Live'}</span>
+                              <div className="w-10 h-5 bg-lift rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-yellow-500 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"/>
+                              <span className="ml-2 text-xs text-ink2">{getSandboxValue(gw) ? 'Sandbox' : 'Live'}</span>
                             </label>
                           </div>
                         )
@@ -845,7 +845,7 @@ const GatewaysTab: React.FC = () => {
                       const isVisible = showFields[fieldId]
                       return (
                         <div key={field.key} className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-400">{field.label}</label>
+                          <label className="text-xs font-semibold text-ink2">{field.label}</label>
                           <div className="flex gap-2">
                             <input
                               type={field.type === 'url' ? 'url' : (isVisible ? 'text' : 'password')}
@@ -856,7 +856,7 @@ const GatewaysTab: React.FC = () => {
                             />
                             {field.type !== 'url' && (
                               <button type="button" onClick={() => toggleShow(fieldId)}
-                                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-navy-700 rounded-lg flex-shrink-0">
+                                className="p-2 text-ink2 hover:text-ink hover:bg-lift rounded-lg flex-shrink-0">
                                 {isVisible ? <EyeOff size={14}/> : <Eye size={14}/>}
                               </button>
                             )}
@@ -915,10 +915,10 @@ const PayoutsTab: React.FC = () => {
       key: 'recipient', label: 'Destinataire',
       render: (r: any) => (
         <div>
-          <div className="text-sm font-bold text-slate-200">
+          <div className="text-sm font-bold text-ink">
             {r.professional?.businessName || r.driver?.user?.name || '—'}
           </div>
-          <div className="text-xs text-slate-500">{r.driver?.user?.phone || '—'}</div>
+          <div className="text-xs text-ink3">{r.driver?.user?.phone || '—'}</div>
         </div>
       ),
     },
@@ -926,7 +926,7 @@ const PayoutsTab: React.FC = () => {
       key: 'amount', label: 'Montant',
       sortable: true,
       sortValue: (r: any) => r.amount,
-      render: (r: any) => <span className="font-black text-slate-100">{formatCFA(r.amount)}</span>,
+      render: (r: any) => <span className="font-black text-ink">{formatCFA(r.amount)}</span>,
     },
     {
       key: 'status', label: 'Statut',
@@ -934,13 +934,13 @@ const PayoutsTab: React.FC = () => {
     },
     {
       key: 'reference', label: 'Référence', hideOnMobile: true,
-      render: (r: any) => <span className="text-xs font-mono text-slate-400">{r.reference || '—'}</span>,
+      render: (r: any) => <span className="text-xs font-mono text-ink2">{r.reference || '—'}</span>,
     },
     {
       key: 'createdAt', label: 'Date', hideOnMobile: true,
       sortable: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span>,
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span>,
     },
     {
       key: 'actions', label: '',
@@ -973,7 +973,7 @@ const PayoutsTab: React.FC = () => {
           { value: '',          label: 'Tous',        icon: ArrowUpDown, cls: 'text-slate-400' },
         ].map(opt => (
           <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
             <opt.icon size={12}/> {opt.label}
           </button>
         ))}
@@ -982,7 +982,7 @@ const PayoutsTab: React.FC = () => {
           <option value="">Tous les pays</option>
           {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
-        <button onClick={() => refetch()} className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+        <button onClick={() => refetch()} className="ml-auto p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg">
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/>
         </button>
       </div>
@@ -1033,10 +1033,10 @@ const WithdrawalsTab: React.FC = () => {
       key: 'recipient', label: 'Demandeur',
       render: (r: any) => (
         <div>
-          <div className="text-sm font-bold text-slate-200">
+          <div className="text-sm font-bold text-ink">
             {r.professional?.businessName || r.driver?.user?.name || '—'}
           </div>
-          <div className="text-xs text-slate-500">{r.driver?.user?.phone || '—'}</div>
+          <div className="text-xs text-ink3">{r.driver?.user?.phone || '—'}</div>
         </div>
       ),
     },
@@ -1045,7 +1045,7 @@ const WithdrawalsTab: React.FC = () => {
       sortable: true,
       sortValue: (r: any) => r.amount,
       exportValue: (r: any) => r.amount,
-      render: (r: any) => <span className="font-black text-slate-100">{formatCFA(r.amount)}</span>,
+      render: (r: any) => <span className="font-black text-ink">{formatCFA(r.amount)}</span>,
     },
     {
       key: 'status', label: 'Statut',
@@ -1055,7 +1055,7 @@ const WithdrawalsTab: React.FC = () => {
     {
       key: 'description', label: 'Détails', hideOnMobile: true,
       render: (r: any) => (
-        <span className="text-xs text-slate-400 max-w-[220px] block truncate" title={r.description ?? ''}>
+        <span className="text-xs text-ink2 max-w-[220px] block truncate" title={r.description ?? ''}>
           {r.description || '—'}
         </span>
       ),
@@ -1065,7 +1065,7 @@ const WithdrawalsTab: React.FC = () => {
       sortable: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span>,
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span>,
     },
     {
       key: 'actions', label: '',
@@ -1101,7 +1101,7 @@ const WithdrawalsTab: React.FC = () => {
           { value: '',          label: 'Tous',        icon: ArrowUpDown, cls: 'text-slate-400' },
         ].map(opt => (
           <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === opt.value ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
             <opt.icon size={12}/> {opt.label}
             {opt.value === 'PENDING' && pendingCount > 0 && statusFilter !== 'PENDING' && (
               <span className="ml-1 px-1.5 py-0.5 bg-yellow-500 text-navy-900 rounded-full text-[10px] font-black">{pendingCount}</span>
@@ -1113,7 +1113,7 @@ const WithdrawalsTab: React.FC = () => {
           <option value="">Tous les pays</option>
           {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
-        <button onClick={() => refetch()} className="ml-auto p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+        <button onClick={() => refetch()} className="ml-auto p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg">
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/>
         </button>
       </div>
@@ -1158,7 +1158,7 @@ const TransactionsTab: React.FC = () => {
       sortable: true,
       exportValue: (r: any) => TX_TYPE_LABELS[r.type] ?? r.type,
       render: (r: any) => (
-        <span className="text-xs font-bold px-2 py-1 rounded-lg bg-navy-700 text-slate-300">
+        <span className="text-xs font-bold px-2 py-1 rounded-lg bg-lift text-ink2">
           {TX_TYPE_LABELS[r.type] ?? r.type}
         </span>
       ),
@@ -1166,7 +1166,7 @@ const TransactionsTab: React.FC = () => {
     {
       key: 'recipient', label: 'Entité',
       render: (r: any) => (
-        <div className="text-sm text-slate-300">
+        <div className="text-sm text-ink2">
           {r.professional?.businessName || r.driver?.user?.name || '—'}
         </div>
       ),
@@ -1177,26 +1177,26 @@ const TransactionsTab: React.FC = () => {
       sortValue: (r: any) => r.amount,
       exportValue: (r: any) => r.amount,
       render: (r: any) => (
-        <span className={`font-black text-sm ${r.type === 'REFUND' ? 'text-red-400' : 'text-slate-100'}`}>
+        <span className={`font-black text-sm ${r.type === 'REFUND' ? 'text-red-400' : 'text-ink'}`}>
           {r.type === 'REFUND' ? '-' : ''}{formatCFA(r.amount)}
         </span>
       ),
     },
     { key: 'currency', label: 'Devise', hideOnMobile: true,
-      render: (r: any) => <span className="text-xs text-slate-500">{r.currency}</span> },
+      render: (r: any) => <span className="text-xs text-ink3">{r.currency}</span> },
     {
       key: 'status', label: 'Statut',
       exportValue: (r: any) => TX_STATUS_LABELS[r.status] ?? r.status,
       render: (r: any) => <Badge status={r.status}/>,
     },
     { key: 'reference', label: 'Référence', hideOnMobile: true,
-      render: (r: any) => <span className="text-xs font-mono text-slate-500">{r.reference || '—'}</span> },
+      render: (r: any) => <span className="text-xs font-mono text-ink3">{r.reference || '—'}</span> },
     {
       key: 'createdAt', label: 'Date', hideOnMobile: true,
       sortable: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span>,
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span>,
     },
   ]
 
@@ -1284,8 +1284,8 @@ export const Payments: React.FC = () => {
             <TrendingUp size={18} className="text-brand-green"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{payStats ? formatCFA(payStats.monthlyRevenue) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">CA ce mois</div>
+            <div className="text-xl font-black text-ink">{payStats ? formatCFA(payStats.monthlyRevenue) : '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">CA ce mois</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -1293,8 +1293,8 @@ export const Payments: React.FC = () => {
             <DollarSign size={18} className="text-yellow-400"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{payStats ? formatCFA(payStats.monthlyCommissions) : '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Commissions ce mois</div>
+            <div className="text-xl font-black text-ink">{payStats ? formatCFA(payStats.monthlyCommissions) : '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Commissions ce mois</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -1302,8 +1302,8 @@ export const Payments: React.FC = () => {
             <Clock size={18} className="text-orange-400"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{payStats?.pendingPayouts ?? '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Virements en attente</div>
+            <div className="text-xl font-black text-ink">{payStats?.pendingPayouts ?? '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Virements en attente</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -1311,8 +1311,8 @@ export const Payments: React.FC = () => {
             <ArrowUpDown size={18} className="text-blue-400"/>
           </div>
           <div>
-            <div className="text-xl font-black text-slate-100">{payStats?.totalTransactions ?? '—'}</div>
-            <div className="text-xs text-slate-500 font-semibold">Transactions totales</div>
+            <div className="text-xl font-black text-ink">{payStats?.totalTransactions ?? '—'}</div>
+            <div className="text-xs text-ink3 font-semibold">Transactions totales</div>
           </div>
         </div>
       </div>
@@ -1324,7 +1324,7 @@ export const Payments: React.FC = () => {
             key={key}
             onClick={() => setActiveTab(key)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0
-              ${activeTab === key ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+              ${activeTab === key ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
             <Icon size={14}/>{label}
             {badge > 0 && (
               <span className="ml-0.5 px-1.5 py-0.5 bg-yellow-500 text-navy-900 rounded-full text-[10px] font-black leading-none">

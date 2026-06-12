@@ -49,10 +49,10 @@ export const Modal: React.FC<Props> = ({ open, onClose, title, children, size = 
             tabIndex={-1}
             initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
             onClick={e => e.stopPropagation()}
-            className={`relative z-10 bg-navy-800 border border-navy-600 rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col outline-none ${widths[size]}`}>
-            <div className="flex items-center justify-between p-5 border-b border-navy-700 flex-shrink-0">
-              <h2 id={titleId} className="text-base font-black text-slate-100">{title}</h2>
-              <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-colors"><X size={18}/></button>
+            className={`relative z-10 bg-card border border-edge rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col outline-none ${widths[size]}`}>
+            <div className="flex items-center justify-between p-5 border-b border-edge2 flex-shrink-0">
+              <h2 id={titleId} className="text-base font-black text-ink">{title}</h2>
+              <button onClick={onClose} className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-colors"><X size={18}/></button>
             </div>
             <div className="p-5 overflow-y-auto flex-1">{children}</div>
           </motion.div>

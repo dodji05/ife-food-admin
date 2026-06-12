@@ -52,17 +52,17 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Prénom</label>
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider mb-1">Prénom</label>
           <input className="input w-full" placeholder="Prénom" value={form.firstName} onChange={set('firstName')}/>
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nom</label>
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider mb-1">Nom</label>
           <input className="input w-full" placeholder="Nom" value={form.name} onChange={set('name')}/>
         </div>
       </div>
       {!isEdit && (
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Téléphone *</label>
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider mb-1">Téléphone *</label>
           <input className="input w-full font-mono" placeholder="+22901020304" value={form.phone} onChange={set('phone')}/>
         </div>
       )}
@@ -72,7 +72,7 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pays</label>
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider mb-1">Pays</label>
           <select className="input w-full appearance-none cursor-pointer" value={form.countryCode}
             onChange={e => {
               const c = COUNTRIES.find(x => x.code === e.target.value)
@@ -82,7 +82,7 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
           </select>
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Rôle</label>
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider mb-1">Rôle</label>
           <select className="input w-full appearance-none cursor-pointer" value={form.role} onChange={set('role')}
             disabled={isEdit}>
             <option value="CLIENT">Client</option>
@@ -93,7 +93,7 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
       </div>
       {!isEdit && (
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider mb-1">
             Code PIN mobile (4-6 chiffres) — défaut : 0000
           </label>
           <input
@@ -208,17 +208,17 @@ export const Users: React.FC = () => {
         <div className="w-7 h-7 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
           <span className="text-brand-green font-black text-[10px]">{(r.firstName || r.name || 'C')[0].toUpperCase()}</span>
         </div>
-        <span className="font-semibold text-slate-200">{r.firstName} {r.name}</span>
+        <span className="font-semibold text-ink">{r.firstName} {r.name}</span>
       </div>
     )},
     { key: 'phone', label: 'Téléphone',
       sortable: true,
       exportValue: (r: any) => r.phone,
-      render: (r: any) => <span className="text-sm font-mono text-slate-300">{r.phone}</span> },
+      render: (r: any) => <span className="text-sm font-mono text-ink2">{r.phone}</span> },
     { key: 'countryCode', label: 'Pays',
       sortable: true, hideOnMobile: true,
       exportValue: (r: any) => `${r.countryCode ?? ''} ${r.currency ?? ''}`.trim(),
-      render: (r: any) => <span className="text-sm text-slate-400">{r.countryCode} · {r.currency}</span> },
+      render: (r: any) => <span className="text-sm text-ink2">{r.countryCode} · {r.currency}</span> },
     { key: 'status', label: 'Statut',
       sortable: true,
       exportValue: (r: any) => r.status,
@@ -227,10 +227,10 @@ export const Users: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span> },
     { key: 'actions', label: '', width: '80px', render: (r: any) => (
       <div className="flex gap-1">
-        <button onClick={(e) => { e.stopPropagation(); setSelected(r); setUserTab('info') }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg">
+        <button onClick={(e) => { e.stopPropagation(); setSelected(r); setUserTab('info') }} className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg">
           <ExternalLink size={14}/>
         </button>
         {r.status === 'ACTIVE'
@@ -274,7 +274,7 @@ export const Users: React.FC = () => {
           toolbar={
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink2 pointer-events-none"/>
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -305,9 +305,9 @@ export const Users: React.FC = () => {
                 <span className="text-brand-green font-black text-xl">{(selected.firstName || selected.name || 'C')[0].toUpperCase()}</span>
               </div>
               <div>
-                <div className="text-lg font-black text-slate-100">{selected.firstName} {selected.name}</div>
-                <div className="text-sm text-slate-400 font-mono">{selected.phone}</div>
-                {selected.email && <div className="text-xs text-slate-500">{selected.email}</div>}
+                <div className="text-lg font-black text-ink">{selected.firstName} {selected.name}</div>
+                <div className="text-sm text-ink2 font-mono">{selected.phone}</div>
+                {selected.email && <div className="text-xs text-ink3">{selected.email}</div>}
               </div>
               <div className="ml-auto"><Badge status={selected.status}/></div>
             </div>
@@ -325,7 +325,7 @@ export const Users: React.FC = () => {
             )}
 
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-navy-700 overflow-x-auto">
+            <div className="flex gap-1 border-b border-edge2 overflow-x-auto">
               {([
                 { key: 'info',     label: 'Informations' },
                 { key: 'edit',     label: 'Modifier' },
@@ -333,7 +333,7 @@ export const Users: React.FC = () => {
                 { key: 'referral', label: 'Parrainage' },
               ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected)).map(({ key, label }) => (
                 <button key={key} onClick={() => setUserTab(key)}
-                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${userTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${userTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-ink2 hover:text-ink'}`}>
                   {label}
                 </button>
               ))}
@@ -344,27 +344,27 @@ export const Users: React.FC = () => {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="card-sm p-3">
-                    <div className="text-xs text-slate-500 font-bold mb-1">Pays / Devise</div>
-                    <div className="font-semibold text-slate-200">{selected.countryCode} · {selected.currency}</div>
+                    <div className="text-xs text-ink3 font-bold mb-1">Pays / Devise</div>
+                    <div className="font-semibold text-ink">{selected.countryCode} · {selected.currency}</div>
                   </div>
                   <div className="card-sm p-3">
-                    <div className="text-xs text-slate-500 font-bold mb-1">Inscription</div>
-                    <div className="text-sm font-semibold text-slate-300">{formatDateTime(selected.createdAt)}</div>
+                    <div className="text-xs text-ink3 font-bold mb-1">Inscription</div>
+                    <div className="text-sm font-semibold text-ink2">{formatDateTime(selected.createdAt)}</div>
                   </div>
                   <div className="card-sm p-3">
-                    <div className="text-xs text-slate-500 font-bold mb-1">Dernière connexion</div>
-                    <div className="text-sm font-semibold text-slate-300">
-                      {selected.lastLoginAt ? formatDateTime(selected.lastLoginAt) : <span className="text-slate-500 italic">Jamais connecté</span>}
+                    <div className="text-xs text-ink3 font-bold mb-1">Dernière connexion</div>
+                    <div className="text-sm font-semibold text-ink2">
+                      {selected.lastLoginAt ? formatDateTime(selected.lastLoginAt) : <span className="text-ink3 italic">Jamais connecté</span>}
                     </div>
                   </div>
                   <div className="card-sm p-3">
-                    <div className="text-xs text-slate-500 font-bold mb-1">Langue</div>
+                    <div className="text-xs text-ink3 font-bold mb-1">Langue</div>
                     <div className="font-semibold text-slate-200 uppercase">{selected.lang ?? '—'}</div>
                   </div>
                 </div>
                 <div className="card-sm p-3">
                   <div className="text-xs text-slate-500 font-bold mb-1">ID compte</div>
-                  <div className="text-xs font-mono text-slate-400 break-all">{selected.id}</div>
+                  <div className="text-xs font-mono text-ink2 break-all">{selected.id}</div>
                 </div>
                 <div className="flex gap-3 pt-1">
                   {isEditableByAdmin(selected) && (
@@ -425,20 +425,20 @@ export const Users: React.FC = () => {
                     <Wallet size={18} className="text-brand-green"/>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-500 font-bold mb-0.5">Solde actuel</div>
-                    <div className="text-2xl font-black text-slate-100">{formatCFA(walletData?.balance ?? 0)}</div>
+                    <div className="text-xs text-ink3 font-bold mb-0.5">Solde actuel</div>
+                    <div className="text-2xl font-black text-ink">{formatCFA(walletData?.balance ?? 0)}</div>
                   </div>
                 </div>
 
                 <div className="card-sm p-4 space-y-3">
-                  <div className="text-xs text-slate-500 font-bold">Ajustement manuel</div>
+                  <div className="text-xs text-ink3 font-bold">Ajustement manuel</div>
                   <div className="flex gap-2">
                     <button onClick={() => setAdjustType('ADMIN_CREDIT')}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold border transition-all ${adjustType === 'ADMIN_CREDIT' ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'border-navy-600 text-slate-500 hover:text-slate-300'}`}>
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold border transition-all ${adjustType === 'ADMIN_CREDIT' ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'border-edge text-ink3 hover:text-ink2'}`}>
                       <TrendingUp size={14}/> Crédit
                     </button>
                     <button onClick={() => setAdjustType('ADMIN_DEBIT')}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold border transition-all ${adjustType === 'ADMIN_DEBIT' ? 'bg-red-500/15 border-red-500/40 text-red-400' : 'border-navy-600 text-slate-500 hover:text-slate-300'}`}>
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold border transition-all ${adjustType === 'ADMIN_DEBIT' ? 'bg-red-500/15 border-red-500/40 text-red-400' : 'border-edge text-ink3 hover:text-ink2'}`}>
                       <TrendingDown size={14}/> Débit
                     </button>
                   </div>
@@ -459,9 +459,9 @@ export const Users: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-xs text-slate-500 font-bold">Historique des transactions</div>
+                  <div className="text-xs text-ink3 font-bold">Historique des transactions</div>
                   {!walletData || walletData.transactions?.length === 0
-                    ? <div className="text-center py-6 text-slate-500 text-sm">Aucune transaction</div>
+                    ? <div className="text-center py-6 text-ink3 text-sm">Aucune transaction</div>
                     : (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                         {walletData.transactions?.map((tx: any) => (
@@ -474,15 +474,15 @@ export const Users: React.FC = () => {
                                   : <TrendingDown size={13} className="text-red-400 flex-shrink-0"/>
                               }
                               <div className="min-w-0">
-                                <div className="text-xs font-semibold text-slate-300 truncate">{TX_LABELS[tx.type] ?? tx.type}</div>
-                                {tx.description && <div className="text-[10px] text-slate-500 truncate">{tx.description}</div>}
+                                <div className="text-xs font-semibold text-ink2 truncate">{TX_LABELS[tx.type] ?? tx.type}</div>
+                                {tx.description && <div className="text-[10px] text-ink3 truncate">{tx.description}</div>}
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className={`text-sm font-black ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {tx.amount > 0 ? '+' : ''}{formatCFA(tx.amount)}
                               </span>
-                              <span className="text-[10px] text-slate-500">{formatDateTime(tx.createdAt)}</span>
+                              <span className="text-[10px] text-ink3">{formatDateTime(tx.createdAt)}</span>
                             </div>
                           </div>
                         ))}

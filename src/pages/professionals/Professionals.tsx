@@ -73,7 +73,7 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
     <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
       {!isEdit && (
         <>
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Propriétaire (nouveau compte)</div>
+          <div className="text-xs font-bold text-ink3 uppercase tracking-wider">Propriétaire (nouveau compte)</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Prénom</label>
@@ -103,7 +103,7 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
         </>
       )}
 
-      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">Établissement</div>
+      <div className="text-xs font-bold text-ink3 uppercase tracking-wider pt-2">Établissement</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2">
           <label className="label">Nom de l'établissement *</label>
@@ -339,7 +339,7 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
       {/* Formulaire produit (nouveau ou édition) */}
       {(showProductForm || editingProduct) && (
         <div className="card-sm p-4 space-y-3">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className="text-xs font-bold text-ink2 uppercase tracking-wider">
             {editingProduct ? `Modifier — ${typeof editingProduct.name === 'string' ? editingProduct.name : editingProduct.name?.fr}` : 'Nouveau produit'}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -367,13 +367,13 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
               <input
                 type="file" accept="image/jpeg,image/png,image/webp"
                 onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-                className="block w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-navy-700 file:text-slate-300 file:cursor-pointer cursor-pointer"
+                className="block w-full text-xs text-ink2 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-lift file:text-ink2 file:cursor-pointer cursor-pointer"
               />
               {(imageFile || productForm.imageUrl) && (
                 <div className="mt-2">
                   <img
                     src={imageFile ? URL.createObjectURL(imageFile) : productForm.imageUrl}
-                    alt="aperçu" className="h-16 w-16 rounded-lg object-cover border border-navy-600"
+                    alt="aperçu" className="h-16 w-16 rounded-lg object-cover border border-edge"
                   />
                 </div>
               )}
@@ -386,7 +386,7 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
               <button
                 type="button"
                 onClick={() => setProductForm((f: any) => ({ ...f, isAvailable: !f.isAvailable }))}
-                className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition-colors ${productForm.isAvailable ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-navy-700 border-navy-600 text-slate-400'}`}
+                className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition-colors ${productForm.isAvailable ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-lift border-edge text-ink2'}`}
               >
                 {productForm.isAvailable ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
                 {productForm.isAvailable ? 'Disponible' : 'Indisponible'}
@@ -404,16 +404,16 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
 
       {/* Liste des catégories + produits */}
       {categories.length === 0 && !showProductForm ? (
-        <div className="text-center py-10 text-slate-500 text-sm">Aucune catégorie — créez-en une ou ajoutez un produit directement</div>
+        <div className="text-center py-10 text-ink3 text-sm">Aucune catégorie — créez-en une ou ajoutez un produit directement</div>
       ) : (
         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
           {categories.map((cat: any) => (
             <div key={cat.id} className="card-sm overflow-hidden">
-              <div className="flex items-center justify-between p-3 hover:bg-navy-700/50 transition-colors">
+              <div className="flex items-center justify-between p-3 hover:bg-lift/50 transition-colors">
                 <button onClick={() => toggleCat(cat.id)} className="flex items-center gap-2 flex-1 text-left">
-                  <span className="text-sm font-bold text-slate-200">{cat.name}</span>
-                  <span className="text-xs text-slate-500 bg-navy-700 px-1.5 py-0.5 rounded-md">{cat.products?.length || 0}</span>
-                  {openCats.has(cat.id) ? <ChevronDown size={14} className="text-slate-500"/> : <ChevronRight size={14} className="text-slate-500"/>}
+                  <span className="text-sm font-bold text-ink">{cat.name}</span>
+                  <span className="text-xs text-ink3 bg-lift px-1.5 py-0.5 rounded-md">{cat.products?.length || 0}</span>
+                  {openCats.has(cat.id) ? <ChevronDown size={14} className="text-ink3"/> : <ChevronRight size={14} className="text-ink3"/>}
                 </button>
                 <button
                   onClick={async () => {
@@ -425,30 +425,30 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
                 </button>
               </div>
               {openCats.has(cat.id) && (
-                <div className="border-t border-navy-700 divide-y divide-navy-700">
+                <div className="border-t border-edge2 divide-y divide-edge2">
                   {cat.products?.length === 0 && (
-                    <div className="px-4 py-3 text-xs text-slate-500 italic">Aucun produit dans cette catégorie</div>
+                    <div className="px-4 py-3 text-xs text-ink3 italic">Aucun produit dans cette catégorie</div>
                   )}
                   {cat.products?.map((p: any) => (
                     <div key={p.id} className="flex items-center gap-3 px-4 py-2">
                       {p.imageUrl && (
-                        <img src={p.imageUrl} alt={p.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-navy-600"/>
+                        <img src={p.imageUrl} alt={p.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-edge"/>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-slate-300 font-semibold truncate">
+                        <div className="text-sm text-ink2 font-semibold truncate">
                           {typeof p.name === 'string' ? p.name : p.name?.fr || p.name?.en || '—'}
                         </div>
-                        <div className="text-xs text-slate-500">{formatCFA(p.price)}{p.stock != null ? ` · stock: ${p.stock}` : ''}</div>
+                        <div className="text-xs text-ink3">{formatCFA(p.price)}{p.stock != null ? ` · stock: ${p.stock}` : ''}</div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${p.isAvailable ? 'text-green-400 bg-green-500/10' : 'text-slate-500 bg-navy-700'}`}>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${p.isAvailable ? 'text-green-400 bg-green-500/10' : 'text-ink3 bg-lift'}`}>
                           {p.isAvailable ? 'Dispo' : 'Indispo'}
                         </span>
                         <button onClick={() => toggleMutation.mutate(p.id)}
-                          className={`p-1 rounded-lg ${p.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-slate-500 hover:bg-navy-700'}`}>
+                          className={`p-1 rounded-lg ${p.isAvailable ? 'text-green-400 hover:bg-green-500/10' : 'text-ink3 hover:bg-lift'}`}>
                           {p.isAvailable ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
                         </button>
-                        <button onClick={() => openEdit(p)} className="p-1 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg"><Edit2 size={13}/></button>
+                        <button onClick={() => openEdit(p)} className="p-1 text-ink2 hover:text-white hover:bg-lift rounded-lg"><Edit2 size={13}/></button>
                         <button onClick={async () => {
                           const ok = await confirm({ title: 'Supprimer ce produit ?', message: p.name, variant: 'danger', confirmLabel: 'Supprimer' })
                           if (ok) deleteProductMutation.mutate(p.id)
@@ -582,12 +582,12 @@ const PromotionsTab: React.FC<{ proId: string }> = ({ proId }) => {
         </button>
       )}
 
-      {showCreate && <div className="card-sm p-4"><div className="text-xs font-bold text-slate-400 mb-3">Nouvelle promotion</div>{promoFormJsx(false)}</div>}
+      {showCreate && <div className="card-sm p-4"><div className="text-xs font-bold text-ink2 mb-3">Nouvelle promotion</div>{promoFormJsx(false)}</div>}
 
-      {editPromo && <div className="card-sm p-4"><div className="text-xs font-bold text-slate-400 mb-3">Modifier — {editPromo.code}</div>{promoFormJsx(true)}</div>}
+      {editPromo && <div className="card-sm p-4"><div className="text-xs font-bold text-ink2 mb-3">Modifier — {editPromo.code}</div>{promoFormJsx(true)}</div>}
 
       {promos.length === 0 && !showCreate
-        ? <div className="text-center py-8 text-slate-500 text-sm">Aucune promotion créée</div>
+        ? <div className="text-center py-8 text-ink3 text-sm">Aucune promotion créée</div>
         : (
           <div className="space-y-2">
             {promos.map((p: any) => {
@@ -601,10 +601,10 @@ const PromotionsTab: React.FC<{ proId: string }> = ({ proId }) => {
                     <Tag size={14} className="text-brand-green flex-shrink-0"/>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-sm text-slate-100 font-mono">{p.code}</span>
+                        <span className="font-black text-sm text-ink font-mono">{p.code}</span>
                         {!p.isActive && <span className="text-[10px] bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-md font-bold">INACTIF</span>}
                       </div>
-                      <div className="text-xs text-slate-500">{typeLabel}{valueDisplay !== '—' ? ` · ${valueDisplay}` : ''} · {p.usesCount} util.</div>
+                      <div className="text-xs text-ink3">{typeLabel}{valueDisplay !== '—' ? ` · ${valueDisplay}` : ''} · {p.usesCount} util.</div>
                     </div>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
@@ -612,9 +612,9 @@ const PromotionsTab: React.FC<{ proId: string }> = ({ proId }) => {
                       setEditPromo(p)
                       setForm({ code: p.code, type: p.type, value: String(p.value), minOrder: String(p.minOrder || ''), maxUses: String(p.maxUses || ''), expiresAt: p.expiresAt ? p.expiresAt.slice(0,10) : '' })
                       setShowCreate(false)
-                    }} className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg"><Edit2 size={13}/></button>
+                    }} className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg"><Edit2 size={13}/></button>
                     <button onClick={() => toggleMutation.mutate(p.id)}
-                      className={`p-1.5 rounded-lg ${p.isActive ? 'text-green-400 hover:bg-green-500/10' : 'text-slate-500 hover:bg-navy-700'}`}>
+                      className={`p-1.5 rounded-lg ${p.isActive ? 'text-green-400 hover:bg-green-500/10' : 'text-ink3 hover:bg-lift'}`}>
                       {p.isActive ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
                     </button>
                     <button onClick={() => deleteMutation.mutate(p.id)}
@@ -748,8 +748,8 @@ export const Professionals: React.FC = () => {
             <Building2 size={13} className="text-brand-green"/>
           </div>
           <div>
-            <div className="font-semibold text-slate-200 text-sm">{r.businessName || '—'}</div>
-            <div className="text-xs text-slate-500">{r.user?.name || '—'} · {r.user?.phone || '—'}</div>
+            <div className="font-semibold text-ink text-sm">{r.businessName || '—'}</div>
+            <div className="text-xs text-ink3">{r.user?.name || '—'} · {r.user?.phone || '—'}</div>
           </div>
         </div>
       ),
@@ -757,12 +757,12 @@ export const Professionals: React.FC = () => {
     { key: 'category', label: 'Type',
       sortable: true, hideOnMobile: true,
       exportValue: (r: any) => r.category ?? '',
-      render: (r: any) => <span className="text-xs font-bold text-slate-400 bg-navy-700 px-2 py-1 rounded-lg">{CATEGORIES.find(c => c.value === r.category)?.label ?? r.category ?? '—'}</span> },
+      render: (r: any) => <span className="text-xs font-bold text-ink2 bg-lift px-2 py-1 rounded-lg">{CATEGORIES.find(c => c.value === r.category)?.label ?? r.category ?? '—'}</span> },
     { key: 'city', label: 'Ville',
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => `${r.city ?? ''} ${r.country ?? ''}`.toLowerCase(),
       exportValue: (r: any) => `${r.city ?? ''}, ${r.country ?? ''}`,
-      render: (r: any) => <span className="text-sm text-slate-300">{r.city}, {r.country}</span> },
+      render: (r: any) => <span className="text-sm text-ink2">{r.city}, {r.country}</span> },
     { key: 'status', label: 'Statut',
       sortable: true,
       exportValue: (r: any) => r.status ?? 'PENDING',
@@ -771,7 +771,7 @@ export const Professionals: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span> },
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span> },
   ]
 
   const pendingColumns = [
@@ -820,9 +820,9 @@ export const Professionals: React.FC = () => {
             { key: 'all',     label: 'Tous les pros', count: (allPros as any[]).length },
           ] as const).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${tab === t.key ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${tab === t.key ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
               {t.label}
-              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${tab === t.key ? 'bg-white/20' : 'bg-navy-700'}`}>{t.count}</span>
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${tab === t.key ? 'bg-white/20' : 'bg-lift'}`}>{t.count}</span>
             </button>
           ))}
         </div>
@@ -870,8 +870,8 @@ export const Professionals: React.FC = () => {
                   <Building2 size={20} className="text-brand-green"/>
                 </div>
                 <div>
-                  <div className="font-black text-slate-100 text-base">{selected.businessName || '—'}</div>
-                  <div className="text-sm text-slate-400">{CATEGORIES.find(c => c.value === selected.category)?.label ?? selected.category} · {selected.city}, {selected.country}</div>
+                  <div className="font-black text-ink text-base">{selected.businessName || '—'}</div>
+                  <div className="text-sm text-ink2">{CATEGORIES.find(c => c.value === selected.category)?.label ?? selected.category} · {selected.city}, {selected.country}</div>
                 </div>
               </div>
               <Badge status={selected.status || 'PENDING'}/>
@@ -879,7 +879,7 @@ export const Professionals: React.FC = () => {
 
             {/* Bannière lecture seule */}
             {!isEditableByAdmin(selected.user) && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-navy-700/40 border border-navy-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+              <div className="flex items-center gap-2 px-3 py-2 bg-lift/40 border border-edge/40 rounded-xl text-xs text-ink2 font-semibold">
                 <span>🔒</span>
                 <span>
                   {!selected.user?.createdByAdmin
@@ -909,7 +909,7 @@ export const Professionals: React.FC = () => {
             )}
 
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-navy-700 overflow-x-auto">
+            <div className="flex gap-1 border-b border-edge2 overflow-x-auto">
               {([
                 { key: 'info',       label: 'Informations' },
                 { key: 'edit',       label: 'Modifier' },
@@ -919,7 +919,7 @@ export const Professionals: React.FC = () => {
                 { key: 'referral',   label: 'Parrainage' },
               ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected.user)).map(({ key, label }) => (
                 <button key={key} onClick={() => setDetailTab(key)}
-                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-ink2 hover:text-ink'}`}>
                   {label}
                 </button>
               ))}
@@ -930,26 +930,26 @@ export const Professionals: React.FC = () => {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="card-sm p-3 flex items-center gap-2">
-                    <Phone size={14} className="text-slate-500 flex-shrink-0"/>
+                    <Phone size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Responsable</div>
-                      <div className="text-sm font-semibold text-slate-200">{selected.user?.name || '—'}</div>
-                      <div className="text-xs text-slate-500">{selected.user?.phone || '—'}</div>
+                      <div className="text-sm font-semibold text-ink">{selected.user?.name || '—'}</div>
+                      <div className="text-xs text-ink3">{selected.user?.phone || '—'}</div>
                     </div>
                   </div>
                   <div className="card-sm p-3 flex items-center gap-2">
-                    <Mail size={14} className="text-slate-500 flex-shrink-0"/>
+                    <Mail size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Email</div>
-                      <div className="text-sm font-semibold text-slate-200 truncate">{selected.user?.email || '—'}</div>
+                      <div className="text-sm font-semibold text-ink truncate">{selected.user?.email || '—'}</div>
                     </div>
                   </div>
                   <div className="card-sm p-3 flex items-center gap-2 col-span-2">
-                    <MapPin size={14} className="text-slate-500 flex-shrink-0"/>
+                    <MapPin size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Adresse</div>
-                      <div className="text-sm font-semibold text-slate-200">{selected.address || '—'}</div>
-                      <div className="text-xs text-slate-500">{selected.city}, {selected.country}</div>
+                      <div className="text-sm font-semibold text-ink">{selected.address || '—'}</div>
+                      <div className="text-xs text-ink3">{selected.city}, {selected.country}</div>
                     </div>
                   </div>
                 </div>
@@ -959,7 +959,7 @@ export const Professionals: React.FC = () => {
                     ? <div className="flex gap-2 flex-wrap">
                         {selected.documents.map((d: any) => (
                           <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer"
-                            className="text-xs bg-navy-700 text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg font-semibold transition-colors">
+                            className="text-xs bg-lift text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg font-semibold transition-colors">
                             {d.type}
                           </a>
                         ))}
@@ -970,10 +970,10 @@ export const Professionals: React.FC = () => {
                 {selected.adminNote && (
                   <div className="card-sm p-3">
                     <div className="label text-[10px] mb-1">Note admin</div>
-                    <div className="text-sm text-slate-300">{selected.adminNote}</div>
+                    <div className="text-sm text-ink2">{selected.adminNote}</div>
                   </div>
                 )}
-                <div className="text-xs text-slate-500 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
+                <div className="text-xs text-ink3 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
                 {isEditableByAdmin(selected.user) && (
                   <button onClick={async () => {
                     const ok = await confirm({ title: 'Supprimer cet établissement ?', message: `${selected.businessName} sera banni et le compte propriétaire désactivé. Action irréversible.`, variant: 'danger', confirmLabel: 'Supprimer' })
@@ -1007,30 +1007,30 @@ export const Professionals: React.FC = () => {
                       {orderStats && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="card-sm p-3 text-center">
-                            <div className="text-2xl font-black text-slate-100">{orderStats.total}</div>
-                            <div className="text-xs text-slate-500 font-semibold">Commandes totales</div>
+                            <div className="text-2xl font-black text-ink">{orderStats.total}</div>
+                            <div className="text-xs text-ink3 font-semibold">Commandes totales</div>
                           </div>
                           <div className="card-sm p-3 text-center">
                             <div className="text-2xl font-black text-brand-green">{formatCFA(orderStats.revenue)}</div>
-                            <div className="text-xs text-slate-500 font-semibold">Chiffre d'affaires</div>
+                            <div className="text-xs text-ink3 font-semibold">Chiffre d'affaires</div>
                           </div>
                         </div>
                       )}
                       {proOrders.length === 0
-                        ? <div className="text-center py-8 text-slate-500 text-sm">Aucune commande reçue</div>
+                        ? <div className="text-center py-8 text-ink3 text-sm">Aucune commande reçue</div>
                         : (
                           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                             {proOrders.map((o: any) => (
                               <div key={o.id} className="card-sm p-3 flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <ShoppingCart size={14} className="text-slate-500 flex-shrink-0"/>
+                                  <ShoppingCart size={14} className="text-ink3 flex-shrink-0"/>
                                   <div className="min-w-0">
-                                    <div className="text-sm font-semibold text-slate-200 truncate">{o.client?.name || '—'}</div>
-                                    <div className="text-xs text-slate-500">{formatDate(o.createdAt)}</div>
+                                    <div className="text-sm font-semibold text-ink truncate">{o.client?.name || '—'}</div>
+                                    <div className="text-xs text-ink3">{formatDate(o.createdAt)}</div>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                  <span className="text-xs font-bold text-slate-300">{formatCFA(o.totalAmount)}</span>
+                                  <span className="text-xs font-bold text-ink2">{formatCFA(o.totalAmount)}</span>
                                   <Badge status={o.status}/>
                                 </div>
                               </div>

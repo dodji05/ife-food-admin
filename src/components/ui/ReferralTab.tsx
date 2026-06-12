@@ -68,8 +68,8 @@ export const ReferralTab: React.FC<ReferralTabProps> = ({ userId }) => {
           <Gift size={28} className="text-brand-green"/>
         </div>
         <div className="text-center">
-          <div className="text-sm font-bold text-slate-200 mb-1">Aucun code de parrainage</div>
-          <div className="text-xs text-slate-500">Générez un code unique pour cet utilisateur.</div>
+          <div className="text-sm font-bold text-ink mb-1">Aucun code de parrainage</div>
+          <div className="text-xs text-ink3">Générez un code unique pour cet utilisateur.</div>
         </div>
         <button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}
           className="btn-primary">
@@ -82,37 +82,37 @@ export const ReferralTab: React.FC<ReferralTabProps> = ({ userId }) => {
   return (
     <div className="space-y-4">
       <div className="card-sm p-4">
-        <div className="text-xs text-slate-500 font-bold mb-2">Code de parrainage</div>
+        <div className="text-xs text-ink3 font-bold mb-2">Code de parrainage</div>
         <div className="flex items-center gap-3">
           <div className="flex-1 font-black text-2xl text-brand-green tracking-widest">{referralCode}</div>
           <button onClick={() => copyText(referralCode, 'code')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all">
+            className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-all">
             {copied === 'code' ? <Check size={16} className="text-brand-green"/> : <Copy size={16}/>}
           </button>
         </div>
       </div>
 
       <div className="card-sm p-4">
-        <div className="text-xs text-slate-500 font-bold mb-2">Lien de parrainage</div>
+        <div className="text-xs text-ink3 font-bold mb-2">Lien de parrainage</div>
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-xs font-mono text-slate-300 truncate">{referralUrl}</span>
+          <span className="flex-1 text-xs font-mono text-ink2 truncate">{referralUrl}</span>
           <button onClick={() => copyText(referralUrl, 'link')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all flex-shrink-0">
+            className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-all flex-shrink-0">
             {copied === 'link' ? <Check size={16} className="text-brand-green"/> : <Copy size={16}/>}
           </button>
           <button onClick={share}
-            className="p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-all flex-shrink-0">
+            className="p-2 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-all flex-shrink-0">
             <Share2 size={16}/>
           </button>
         </div>
       </div>
 
       <div className="card-sm p-4 flex flex-col items-center gap-3">
-        <div className="text-xs text-slate-500 font-bold self-start">QR Code</div>
+        <div className="text-xs text-ink3 font-bold self-start">QR Code</div>
         {qrDataUrl
           ? <img src={qrDataUrl} alt="QR Code parrainage" className="rounded-xl" width={160} height={160}/>
-          : <div className="w-40 h-40 rounded-xl bg-navy-700 flex items-center justify-center">
-              <QrCode size={40} className="text-slate-600 animate-pulse"/>
+          : <div className="w-40 h-40 rounded-xl bg-lift flex items-center justify-center">
+              <QrCode size={40} className="text-ink3 animate-pulse"/>
             </div>
         }
         {qrDataUrl && (

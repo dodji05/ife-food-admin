@@ -20,6 +20,16 @@ export default {
           500: '#2E4F80',
           400: '#4A6FA5',
         },
+        // ── Tokens sémantiques (light/dark via CSS vars) ──────────────────
+        page:  'rgb(var(--page)  / <alpha-value>)',
+        panel: 'rgb(var(--panel) / <alpha-value>)',
+        card:  'rgb(var(--card)  / <alpha-value>)',
+        lift:  'rgb(var(--lift)  / <alpha-value>)',
+        edge:  'rgb(var(--edge)  / <alpha-value>)',
+        edge2: 'rgb(var(--edge2) / <alpha-value>)',
+        ink:   'rgb(var(--ink)   / <alpha-value>)',
+        ink2:  'rgb(var(--ink2)  / <alpha-value>)',
+        ink3:  'rgb(var(--ink3)  / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Nunito', 'system-ui', 'sans-serif'],

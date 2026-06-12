@@ -11,7 +11,7 @@ export const Layout: React.FC = () => {
   useEffect(() => { setMobileMenuOpen(false) }, [pathname])
 
   return (
-    <div className="flex min-h-screen bg-navy-950">
+    <div className="flex min-h-screen bg-page">
       <Sidebar mobileOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={() => setMobileMenuOpen(true)} />

@@ -239,7 +239,7 @@ export function DataTable<T extends { id?: string }>({
           {toolbar && <div className="flex items-center gap-2 flex-wrap">{toolbar}</div>}
           {searchable && (
             <div className="relative flex-1 min-w-[160px] max-w-sm">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3"/>
               <input
                 value={query}
                 onChange={e => { setQuery(e.target.value); setPage(0) }}
@@ -265,26 +265,26 @@ export function DataTable<T extends { id?: string }>({
               {exportMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-1 z-30 bg-navy-800 border border-navy-600 rounded-xl overflow-hidden shadow-xl min-w-[140px]"
+                  className="absolute right-0 top-full mt-1 z-30 bg-card border border-edge rounded-xl overflow-hidden shadow-xl min-w-[140px]"
                 >
                   <button
                     role="menuitem"
                     onClick={() => handleExport('csv')}
-                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-navy-700 transition-colors"
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-ink2 hover:bg-lift transition-colors"
                   >
-                    <FileText size={13} className="text-slate-400"/> CSV
+                    <FileText size={13} className="text-ink2"/> CSV
                   </button>
                   <button
                     role="menuitem"
                     onClick={() => handleExport('xlsx')}
-                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-navy-700 transition-colors border-t border-navy-700"
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-ink2 hover:bg-lift transition-colors border-t border-edge2"
                   >
                     <FileSpreadsheet size={13} className="text-green-400"/> Excel
                   </button>
                   <button
                     role="menuitem"
                     onClick={() => handleExport('pdf')}
-                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-navy-700 transition-colors border-t border-navy-700"
+                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-ink2 hover:bg-lift transition-colors border-t border-edge2"
                   >
                     <File size={13} className="text-red-400"/> PDF
                   </button>
@@ -295,10 +295,10 @@ export function DataTable<T extends { id?: string }>({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-navy-700">
+      <div className="overflow-x-auto rounded-xl border border-edge2">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-navy-800 border-b border-navy-700">
+            <tr className="bg-card border-b border-edge2">
               {columns.map(col => {
                 const isSorted = sort?.key === col.key
                 const isSortable = !!col.sortable
@@ -307,8 +307,8 @@ export function DataTable<T extends { id?: string }>({
                     key={col.key}
                     style={{ width: col.width }}
                     onClick={isSortable ? () => handleSort(col.key) : undefined}
-                    className={`text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap
-                      ${isSortable ? 'cursor-pointer hover:text-slate-200 select-none transition-colors' : ''}
+                    className={`text-left px-4 py-3 text-xs font-bold text-ink2 uppercase tracking-wider whitespace-nowrap
+                      ${isSortable ? 'cursor-pointer hover:text-ink select-none transition-colors' : ''}
                       ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -330,13 +330,13 @@ export function DataTable<T extends { id?: string }>({
                 <tr key={i} className="border-b border-navy-800">
                   {columns.map(col => (
                     <td key={col.key} className={`px-4 py-3 ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}>
-                      <div className="h-4 bg-navy-700 rounded animate-pulse w-3/4"/>
+                      <div className="h-4 bg-lift rounded animate-pulse w-3/4"/>
                     </td>
                   ))}
                 </tr>
               ))
             ) : paged.length === 0 ? (
-              <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-slate-500 font-semibold">{emptyMessage}</td></tr>
+              <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-ink3 font-semibold">{emptyMessage}</td></tr>
             ) : (
               paged.map((row, i) => (
                 <tr
@@ -345,7 +345,7 @@ export function DataTable<T extends { id?: string }>({
                   className={`border-b border-navy-800 transition-colors ${onRowClick ? 'cursor-pointer hover:bg-navy-800/60' : ''}`}
                 >
                   {columns.map(col => (
-                    <td key={col.key} className={`px-4 py-3 text-slate-300 font-medium ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}>
+                    <td key={col.key} className={`px-4 py-3 text-ink2 font-medium ${col.hideOnMobile ? 'hidden sm:table-cell' : ''}`}>
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? '—')}
                     </td>
                   ))}
@@ -358,22 +358,22 @@ export function DataTable<T extends { id?: string }>({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <span className="text-xs text-slate-500 font-semibold">
+          <span className="text-xs text-ink3 font-semibold">
             {sorted.length} résultat{sorted.length !== 1 ? 's' : ''}
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-navy-700 rounded-lg transition-colors"
+              className="p-1.5 text-ink2 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-lift rounded-lg transition-colors"
             >
               <ChevronLeft size={16}/>
             </button>
-            <span className="text-xs font-bold text-slate-300">{page + 1} / {totalPages}</span>
+            <span className="text-xs font-bold text-ink2">{page + 1} / {totalPages}</span>
             <button
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-navy-700 rounded-lg transition-colors"
+              className="p-1.5 text-ink2 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-lift rounded-lg transition-colors"
             >
               <ChevronRight size={16}/>
             </button>

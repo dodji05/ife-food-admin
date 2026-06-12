@@ -125,10 +125,10 @@ function weatherLabel(code: number | null): string {
 
 function WeatherIcon({ code, size = 18 }: { code: number | null; size?: number }) {
   if (code === null || code <= 3) return <Sun size={size} className="text-yellow-400"/>
-  if (code <= 44)                 return <Cloud size={size} className="text-slate-400"/>
+  if (code <= 44)                 return <Cloud size={size} className="text-ink2"/>
   if (code >= 95)                 return <Zap size={size} className="text-yellow-300"/>
   if (code >= 51)                 return <CloudRain size={size} className="text-blue-400"/>
-  return <Wind size={size} className="text-slate-400"/>
+  return <Wind size={size} className="text-ink2"/>
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<WeatherState> {
@@ -181,7 +181,7 @@ const Toggle: React.FC<{
   return (
     <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer"/>
-      <div className={`${sm ? 'w-9 h-5' : 'w-11 h-6'} bg-navy-700 rounded-full peer
+      <div className={`${sm ? 'w-9 h-5' : 'w-11 h-6'} bg-lift rounded-full peer
         peer-checked:after:${sm ? 'translate-x-4' : 'translate-x-5'}
         peer-checked:bg-brand-green
         after:content-[''] after:absolute after:top-0.5 after:left-[2px]
@@ -328,11 +328,11 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
           Multiplicateur météo global actif : ×{globalMultiplier} — la valeur individuelle est ignorée.
         </div>
       ) : (
-        <div className="border border-navy-600 rounded-xl p-3 space-y-3">
+        <div className="border border-edge rounded-xl p-3 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CloudRain size={14} className="text-blue-400"/>
-              <span className="text-sm font-bold text-slate-300">Facteur météo (cette zone)</span>
+              <span className="text-sm font-bold text-ink2">Facteur météo (cette zone)</span>
             </div>
             <Toggle
               checked={form.weatherEnabled}
@@ -351,9 +351,9 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
                   placeholder="1.5"
                 />
               </F>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-ink3">
                 Frais effectifs si météo défavorable :{' '}
-                <span className="font-bold text-slate-300">
+                <span className="font-bold text-ink2">
                   {form.baseFee ? formatCFA(Number(form.baseFee) * Number(form.weatherMultiplier)) : '—'}
                 </span>
               </div>
@@ -367,7 +367,7 @@ const ZoneForm: React.FC<ZoneFormProps> = ({ mode, initial, onSave, saving, glob
         <input type="checkbox" id="zone-active" checked={form.isActive}
           onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
           className="w-4 h-4 rounded accent-brand-green"/>
-        <label htmlFor="zone-active" className="text-sm font-semibold text-slate-300 cursor-pointer">Zone active</label>
+        <label htmlFor="zone-active" className="text-sm font-semibold text-ink2 cursor-pointer">Zone active</label>
       </div>
 
       <button onClick={submit} disabled={saving} className="btn-primary w-full justify-center">
@@ -441,13 +441,13 @@ const GlobalKmConfigCard: React.FC = () => {
           <Settings2 size={15} className="text-brand-green"/>
         </div>
         <div>
-          <div className="text-sm font-black text-slate-200">Configuration globale — Par km</div>
-          <div className="text-[11px] text-slate-500">Unique pour toutes les livraisons en mode km</div>
+          <div className="text-sm font-black text-ink">Configuration globale — Par km</div>
+          <div className="text-[11px] text-ink3">Unique pour toutes les livraisons en mode km</div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-10 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+        <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-10 bg-card rounded-xl animate-pulse"/>)}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -480,10 +480,10 @@ const GlobalKmConfigCard: React.FC = () => {
           {/* Exemples de frais calculés */}
           <div className="flex flex-wrap gap-2">
             {[1, 3, 5, 10].map(km => (
-              <div key={km} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-navy-800 border border-navy-600 rounded-lg text-xs">
+              <div key={km} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border border-edge rounded-lg text-xs">
                 <Navigation size={10} className="text-brand-green"/>
-                <span className="text-slate-500">{km} km</span>
-                <span className="font-bold text-slate-200">→ {exampleFee(km)}</span>
+                <span className="text-ink3">{km} km</span>
+                <span className="font-bold text-ink">→ {exampleFee(km)}</span>
               </div>
             ))}
           </div>
@@ -688,7 +688,7 @@ export const DeliveryFees: React.FC = () => {
       {/* ── BLOC 1 : Filtre pays (mode city uniquement) ───── */}
       {mode === 'city' && (
         <div className="card p-4">
-          <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Filtre</div>
+          <div className="text-xs font-black text-ink3 uppercase tracking-widest mb-3">Filtre</div>
           <div className="flex gap-3 items-end">
             <div className="flex flex-col gap-1 min-w-[160px]">
               <label className="label text-[10px]">Pays</label>
@@ -700,7 +700,7 @@ export const DeliveryFees: React.FC = () => {
             {filterCountry && (
               <button onClick={() => setFilterCountry('')} className="btn-secondary text-xs px-3 self-end">Effacer</button>
             )}
-            <div className="ml-auto self-end text-xs text-slate-500 font-semibold">
+            <div className="ml-auto self-end text-xs text-ink3 font-semibold">
               {filtered.length} zone{filtered.length !== 1 ? 's' : ''}
             </div>
           </div>
@@ -709,7 +709,7 @@ export const DeliveryFees: React.FC = () => {
 
       {/* ── BLOC 2 : Modes de calcul ─────────────────────── */}
       <div className="card p-4 space-y-3">
-        <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Mode de calcul actif</div>
+        <div className="text-xs font-black text-ink3 uppercase tracking-widest">Mode de calcul actif</div>
 
         <div className="grid grid-cols-2 gap-2">
           {(['km', 'city'] as DeliveryMode[]).map(m => {
@@ -721,17 +721,17 @@ export const DeliveryFees: React.FC = () => {
                 className={`flex flex-col gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
                   isActive
                     ? 'bg-brand-green/15 border-brand-green/40'
-                    : 'bg-navy-800 border-navy-600 hover:bg-navy-700'
+                    : 'bg-card border-edge hover:bg-lift'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className={`flex items-center gap-2 text-sm font-bold ${isActive ? 'text-brand-green' : 'text-slate-400'}`}>
+                  <div className={`flex items-center gap-2 text-sm font-bold ${isActive ? 'text-brand-green' : 'text-ink2'}`}>
                     {MODE_ICONS[m]}
                     {MODE_LABELS[m]}
                   </div>
                   <Toggle checked={isActive} onChange={() => activateMode(m)} size="sm"/>
                 </div>
-                <div className="text-[10px] text-slate-500 leading-tight">{MODE_DESC[m]}</div>
+                <div className="text-[10px] text-ink3 leading-tight">{MODE_DESC[m]}</div>
                 {isActive && (
                   <div className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded w-fit">Actif</div>
                 )}
@@ -757,7 +757,7 @@ export const DeliveryFees: React.FC = () => {
                 {MODE_ICONS[mode]}
                 <span className="text-sm font-black">{MODE_LABELS[mode]}</span>
               </div>
-              <span className="text-xs text-slate-500 font-semibold">
+              <span className="text-xs text-ink3 font-semibold">
                 — {filtered.length} tarif{filtered.length !== 1 ? 's' : ''} configuré{filtered.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -770,9 +770,9 @@ export const DeliveryFees: React.FC = () => {
           </div>
 
           {isLoading ? (
-            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-navy-800 rounded-xl animate-pulse"/>)}</div>
+            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-card rounded-xl animate-pulse"/>)}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 text-sm">Aucun tarif configuré pour ce mode</div>
+            <div className="text-center py-8 text-ink3 text-sm">Aucun tarif configuré pour ce mode</div>
           ) : (
             <div key={mode} className="space-y-2">
               {filtered.map(z => {
@@ -782,27 +782,27 @@ export const DeliveryFees: React.FC = () => {
                   : 1
                 const weatherActive = weatherCfg.enabled && weather.isBad && multiplierUsed > 1
                 return (
-                  <div key={z.id} className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${z.isActive ? 'bg-navy-800 border-navy-600' : 'bg-navy-900 border-navy-700 opacity-60'}`}>
+                  <div key={z.id} className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${z.isActive ? 'bg-card border-edge' : 'bg-panel border-edge2 opacity-60'}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-200 text-sm truncate">{z.name}</span>
-                        <span className="text-[10px] font-bold text-slate-500 bg-navy-700 px-1.5 py-0.5 rounded">{z.country}</span>
+                        <span className="font-bold text-ink text-sm truncate">{z.name}</span>
+                        <span className="text-[10px] font-bold text-ink3 bg-lift px-1.5 py-0.5 rounded">{z.country}</span>
                         {!z.isActive && <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Inactif</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs text-slate-500">
-                          Base : <span className="font-bold text-slate-300">{formatCFA(z.baseFee)}</span>
+                        <span className="text-xs text-ink3">
+                          Base : <span className="font-bold text-ink2">{formatCFA(z.baseFee)}</span>
                           {z.perKmFee > 0 && ` + ${formatCFA(z.perKmFee)}/km`}
                         </span>
                         {weatherActive && (
                           <span className="flex items-center gap-1 text-xs font-bold text-blue-400">
                             <CloudRain size={11}/>
                             Effectif : {formatCFA(effective)}
-                            <span className="text-slate-500 font-normal">(×{multiplierUsed})</span>
+                            <span className="text-ink3 font-normal">(×{multiplierUsed})</span>
                           </span>
                         )}
                         {!weatherActive && z.weatherMultiplier > 1 && (
-                          <span className="text-xs text-slate-600">Météo ×{z.weatherMultiplier}</span>
+                          <span className="text-xs text-ink3">Météo ×{z.weatherMultiplier}</span>
                         )}
                       </div>
                     </div>
@@ -838,8 +838,8 @@ export const DeliveryFees: React.FC = () => {
               <CloudRain size={15} className="text-blue-400"/>
             </div>
             <div>
-              <div className="text-sm font-black text-slate-200">Facteur météo global</div>
-              <div className="text-[11px] text-slate-500">via Open-Meteo · invisible au client</div>
+              <div className="text-sm font-black text-ink">Facteur météo global</div>
+              <div className="text-[11px] text-ink3">via Open-Meteo · invisible au client</div>
             </div>
           </div>
           <Toggle
@@ -855,35 +855,35 @@ export const DeliveryFees: React.FC = () => {
         {weatherCfg.enabled && (
           <>
             {/* Météo courante */}
-            <div className={`flex items-center gap-4 p-3 rounded-xl border ${weather.isBad ? 'bg-blue-500/10 border-blue-500/30' : 'bg-navy-800 border-navy-600'}`}>
+            <div className={`flex items-center gap-4 p-3 rounded-xl border ${weather.isBad ? 'bg-blue-500/10 border-blue-500/30' : 'bg-card border-edge'}`}>
               <WeatherIcon code={weather.code} size={24}/>
               <div className="flex-1">
                 {weather.loading ? (
-                  <div className="text-sm text-slate-400">Chargement météo…</div>
+                  <div className="text-sm text-ink2">Chargement météo…</div>
                 ) : weather.code !== null ? (
                   <>
-                    <div className={`text-sm font-bold ${weather.isBad ? 'text-blue-300' : 'text-slate-200'}`}>
+                    <div className={`text-sm font-bold ${weather.isBad ? 'text-blue-300' : 'text-ink'}`}>
                       {weather.description}
                       {weather.isBad && <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">Météo défavorable</span>}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-xs text-ink3 mt-0.5">
                       Précipitations : {weather.precipitation} mm · Vent : {weather.windSpeed} km/h · {weather.fetchedAt}
                     </div>
                   </>
                 ) : (
-                  <div className="text-sm text-slate-500">Données non disponibles</div>
+                  <div className="text-sm text-ink3">Données non disponibles</div>
                 )}
               </div>
-              <div className="text-xs text-slate-500 font-semibold">{weatherCfg.city}</div>
+              <div className="text-xs text-ink3 font-semibold">{weatherCfg.city}</div>
               <button onClick={() => loadWeather()} disabled={weather.loading}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-colors">
+                className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-colors">
                 <RefreshCw size={14} className={weather.loading ? 'animate-spin' : ''}/>
               </button>
             </div>
 
             {/* Multiplicateur global */}
-            <div className="border border-navy-600 rounded-xl p-3 space-y-3">
-              <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Multiplicateur global</div>
+            <div className="border border-edge rounded-xl p-3 space-y-3">
+              <div className="text-xs font-black text-ink2 uppercase tracking-widest">Multiplicateur global</div>
               <div className="flex items-end gap-3">
                 <div className="flex-1">
                   <label className="label text-[10px]">Valeur (ex: 1.5 = +50%)</label>
@@ -901,7 +901,7 @@ export const DeliveryFees: React.FC = () => {
               </div>
 
               {weatherCfg.globalMultiplier > 1 && (
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-ink3">
                   Multiplicateur actif : <span className="font-bold text-blue-300">×{weatherCfg.globalMultiplier}</span>
                   {mode === 'city' && ' — prioritaire sur les valeurs individuelles des zones.'}
                 </div>
@@ -923,18 +923,18 @@ export const DeliveryFees: React.FC = () => {
 
             {/* Localisation météo */}
             <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Localisation météo</div>
+              <div className="text-xs font-bold text-ink3 uppercase tracking-widest">Localisation météo</div>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(COUNTRY_COORDS).map(([code, { city }]) => (
                   <button key={code} onClick={() => pickCountryPreset(code)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${weatherCfg.country === code ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${weatherCfg.country === code ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}>
                     {code} · {city}
                   </button>
                 ))}
               </div>
               {!weatherEditing ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500 font-mono">{weatherCfg.lat}, {weatherCfg.lon}</span>
+                  <span className="text-xs text-ink3 font-mono">{weatherCfg.lat}, {weatherCfg.lon}</span>
                   <button onClick={() => setWeatherEditing(true)} className="text-xs text-blue-400 hover:text-blue-300">
                     Coordonnées personnalisées
                   </button>

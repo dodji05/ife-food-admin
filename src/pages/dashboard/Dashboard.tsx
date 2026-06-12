@@ -37,8 +37,8 @@ const fmtDate = (d: string) =>
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-navy-800 border border-navy-600 rounded-xl p-3 shadow-xl">
-      <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
+    <div className="bg-card border border-edge rounded-xl p-3 shadow-xl">
+      <p className="text-xs font-bold text-ink2 mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name ?? p.dataKey} className="text-sm font-bold" style={{ color: p.color ?? p.fill }}>
           {p.name === 'revenue' ? formatCFA(p.value) : `${p.value} commande${p.value !== 1 ? 's' : ''}`}
@@ -260,23 +260,23 @@ export const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/>
-            <h3 className="text-base font-black text-slate-100">Commandes en temps réel</h3>
+            <h3 className="text-base font-black text-ink">Commandes en temps réel</h3>
           </div>
-          <span className="text-xs text-slate-500 font-semibold">Actualisation auto 15 s</span>
+          <span className="text-xs text-ink3 font-semibold">Actualisation auto 15 s</span>
         </div>
         <div className="space-y-2">
           {liveLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-12 bg-navy-800 rounded-xl animate-pulse"/>
+              <div key={i} className="h-12 bg-card rounded-xl animate-pulse"/>
             ))
           ) : liveOrders.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8 font-semibold">Aucune commande active en ce moment</p>
+            <p className="text-sm text-ink3 text-center py-8 font-semibold">Aucune commande active en ce moment</p>
           ) : (
             liveOrders.map((order: any) => (
-              <div key={order.id} className="flex items-center gap-3 py-3 border-b border-navy-700 last:border-0">
-                <span className="text-xs font-black text-slate-500 w-16">#{order.id?.substring(0,6).toUpperCase()}</span>
-                <span className="text-sm font-semibold text-slate-300 flex-1 truncate">{order.client?.name || '—'}</span>
-                <span className="text-xs text-slate-500 hidden sm:block">{order.professional?.businessName || '—'}</span>
+              <div key={order.id} className="flex items-center gap-3 py-3 border-b border-edge2 last:border-0">
+                <span className="text-xs font-black text-ink3 w-16">#{order.id?.substring(0,6).toUpperCase()}</span>
+                <span className="text-sm font-semibold text-ink2 flex-1 truncate">{order.client?.name || '—'}</span>
+                <span className="text-xs text-ink3 hidden sm:block">{order.professional?.businessName || '—'}</span>
                 <Badge status={order.status}/>
                 <span className="text-sm font-black text-brand-green w-20 text-right">{formatCFA(order.totalAmount)}</span>
               </div>
@@ -292,13 +292,13 @@ export const Dashboard: React.FC = () => {
 
 const ChartHeader: React.FC<{ title: string; subtitle: string }> = ({ title, subtitle }) => (
   <div className="mb-5">
-    <h3 className="text-base font-black text-slate-100">{title}</h3>
-    <p className="text-xs text-slate-500 font-semibold">{subtitle}</p>
+    <h3 className="text-base font-black text-ink">{title}</h3>
+    <p className="text-xs text-ink3 font-semibold">{subtitle}</p>
   </div>
 )
 
 const EmptyChart: React.FC<{ loading?: boolean }> = ({ loading }) => (
-  <div className="h-[240px] flex items-center justify-center text-slate-500 text-sm font-semibold">
+  <div className="h-[240px] flex items-center justify-center text-ink3 text-sm font-semibold">
     {loading ? <span className="animate-pulse">Chargement…</span> : 'Aucune donnée pour cette période'}
   </div>
 )
@@ -324,30 +324,30 @@ const RankCard: React.FC<{
           <Icon size={16}/>
         </div>
         <div>
-          <h3 className="text-sm font-black text-slate-100 leading-tight">{title}</h3>
-          <p className="text-xs text-slate-500 font-semibold">{subtitle}</p>
+          <h3 className="text-sm font-black text-ink leading-tight">{title}</h3>
+          <p className="text-xs text-ink3 font-semibold">{subtitle}</p>
         </div>
       </div>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 bg-navy-800 rounded-lg animate-pulse"/>
+            <div key={i} className="h-10 bg-card rounded-lg animate-pulse"/>
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-center py-6 text-sm text-slate-500 font-semibold">Aucune donnée</p>
+        <p className="text-center py-6 text-sm text-ink3 font-semibold">Aucune donnée</p>
       ) : (
         <ol className="space-y-1.5">
           {items.map((item, i) => (
-            <li key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-navy-700/40 transition-colors">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${i === 0 ? 'bg-brand-yellow/20 text-brand-yellow' : 'bg-navy-700 text-slate-400'}`}>
+            <li key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-lift/40 transition-colors">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${i === 0 ? 'bg-brand-yellow/20 text-brand-yellow' : 'bg-lift text-ink2'}`}>
                 {i === 0 ? <Trophy size={11}/> : i + 1}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-slate-200 truncate">{item.label}</div>
-                {item.sub && <div className="text-xs text-slate-500 truncate">{item.sub}</div>}
+                <div className="text-sm font-semibold text-ink truncate">{item.label}</div>
+                {item.sub && <div className="text-xs text-ink3 truncate">{item.sub}</div>}
               </div>
-              <span className="text-xs font-black text-slate-300 flex-shrink-0">{item.value}</span>
+              <span className="text-xs font-black text-ink2 flex-shrink-0">{item.value}</span>
             </li>
           ))}
         </ol>

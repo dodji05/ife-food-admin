@@ -114,7 +114,7 @@ export const Content: React.FC = () => {
   return (
     <div className="space-y-5">
       <div className="card p-5 space-y-4">
-        <h3 className="text-base font-black text-slate-100">📄 Pages légales</h3>
+        <h3 className="text-base font-black text-ink">📄 Pages légales</h3>
 
         {/* Filtres */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -129,7 +129,7 @@ export const Content: React.FC = () => {
             <div className="flex gap-1 flex-wrap">
               {LANGS.map(l => (
                 <button key={l} onClick={() => setLang(l)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-brand-green text-white' : 'bg-navy-700 text-slate-400 border border-navy-600 hover:text-slate-200'}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-brand-green text-white' : 'bg-lift text-ink2 border border-edge hover:text-ink'}`}>
                   {l.toUpperCase()}
                 </button>
               ))}
@@ -138,7 +138,7 @@ export const Content: React.FC = () => {
         </div>
 
         {isLoading
-          ? <div className="h-40 bg-navy-900 rounded-xl animate-pulse"/>
+          ? <div className="h-40 bg-panel rounded-xl animate-pulse"/>
           : (
             <div className="space-y-3">
               {/* Titre */}
@@ -148,18 +148,18 @@ export const Content: React.FC = () => {
               </div>
 
               {/* Onglets Édition / Prévisualisation */}
-              <div className="flex items-center gap-2 border-b border-navy-700 pb-1">
+              <div className="flex items-center gap-2 border-b border-edge2 pb-1">
                 <button
                   onClick={() => setTab('edit')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all ${tab === 'edit' ? 'text-brand-green border-b-2 border-brand-green' : 'text-slate-500 hover:text-slate-300'}`}>
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all ${tab === 'edit' ? 'text-brand-green border-b-2 border-brand-green' : 'text-ink3 hover:text-ink2'}`}>
                   <Code2 size={13}/> HTML
                 </button>
                 <button
                   onClick={() => setTab('preview')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all ${tab === 'preview' ? 'text-brand-green border-b-2 border-brand-green' : 'text-slate-500 hover:text-slate-300'}`}>
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all ${tab === 'preview' ? 'text-brand-green border-b-2 border-brand-green' : 'text-ink3 hover:text-ink2'}`}>
                   <Eye size={13}/> Prévisualisation
                 </button>
-                <span className="ml-auto text-[10px] text-slate-500">
+                <span className="ml-auto text-[10px] text-ink3">
                   Collez du HTML directement — la sanitisation s'applique automatiquement.
                 </span>
               </div>
@@ -184,7 +184,7 @@ export const Content: React.FC = () => {
                 </div>
               ) : (
                 <div
-                  className="min-h-[280px] bg-white text-gray-900 rounded-xl p-5 prose prose-sm max-w-none overflow-auto border border-navy-600"
+                  className="min-h-[280px] bg-white text-gray-900 rounded-xl p-5 prose prose-sm max-w-none overflow-auto border border-edge"
                   dangerouslySetInnerHTML={{ __html: sanitizedPreview }}
                 />
               )}

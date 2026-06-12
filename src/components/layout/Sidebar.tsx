@@ -70,14 +70,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
       )}
 
       <aside
-        className={`flex flex-col bg-navy-900 border-r border-navy-700 transition-transform duration-300
+        className={`flex flex-col bg-panel border-r border-edge2 transition-transform duration-300
           fixed inset-y-0 left-0 z-50 w-64
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:static lg:translate-x-0 lg:transition-all ${collapsed ? 'lg:w-16' : 'lg:w-64'}
           min-h-screen`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 p-4 border-b border-navy-700">
+        <div className="flex items-center gap-3 p-4 border-b border-edge2">
           <div className="w-9 h-9 bg-brand-green rounded-xl flex items-center justify-center flex-shrink-0">
             <span className="text-white font-black text-sm">ifè</span>
           </div>
@@ -88,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
           {/* Bouton collapse — desktop uniquement */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:block ml-auto p-1 text-slate-400 hover:text-white transition-colors"
+            className="hidden lg:block ml-auto p-1 text-ink2 hover:text-white transition-colors"
             aria-label={collapsed ? 'Déplier' : 'Replier'}
           >
             {collapsed ? <ChevronRight size={16}/> : <ChevronLeft size={16}/>}
@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
           {/* Bouton fermer — mobile uniquement */}
           <button
             onClick={onClose}
-            className="lg:hidden ml-auto p-1 text-slate-400 hover:text-white transition-colors"
+            className="lg:hidden ml-auto p-1 text-ink2 hover:text-white transition-colors"
             aria-label="Fermer le menu"
           >
             <X size={18}/>
@@ -110,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
             return (
               <NavLink key={to} to={to} className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150
-                 ${isActive ? 'bg-brand-green/15 text-brand-green border border-brand-green/30' : 'text-slate-400 hover:bg-navy-800 hover:text-slate-200'}`
+                 ${isActive ? 'bg-brand-green/15 text-brand-green border border-brand-green/30' : 'text-ink2 hover:bg-card hover:text-ink'}`
               }>
                 <div className="relative flex-shrink-0">
                   <Icon size={18}/>
@@ -130,14 +130,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
         </nav>
 
         {/* User */}
-        <div className="border-t border-navy-700 p-3">
+        <div className="border-t border-edge2 p-3">
           <div className={`flex items-center gap-3 mb-2 px-1 ${hideOnCollapsed}`}>
             <div className="w-8 h-8 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
               <span className="text-brand-green font-black text-xs">{user?.firstName?.[0] || 'A'}</span>
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-bold text-slate-200 truncate">{[user?.firstName, user?.name].filter(Boolean).join(' ') || 'Admin'}</div>
-              <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{user?.admin?.level || 'SUPER_ADMIN'}</div>
+              <div className="text-sm font-bold text-ink truncate">{[user?.firstName, user?.name].filter(Boolean).join(' ') || 'Admin'}</div>
+              <div className="text-[10px] text-ink3 font-semibold uppercase tracking-wider">{user?.admin?.level || 'SUPER_ADMIN'}</div>
             </div>
           </div>
           <button onClick={logout} className="flex items-center gap-2 w-full px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-xl text-sm font-semibold transition-colors">

@@ -94,7 +94,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 <v.Icon size={20}/>
               </div>
               {state.message && (
-                <div className="text-sm text-slate-300 leading-relaxed pt-1 whitespace-pre-wrap">
+                <div className="text-sm text-ink2 leading-relaxed pt-1 whitespace-pre-wrap">
                   {state.message}
                 </div>
               )}

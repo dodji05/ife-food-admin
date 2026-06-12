@@ -18,7 +18,7 @@ export const GlobalFilters: React.FC = () => {
 
   return (
     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-      <div className="flex rounded-xl overflow-hidden border border-navy-600">
+      <div className="flex rounded-xl overflow-hidden border border-edge">
         {PERIODS.map((p) => (
           <button
             key={p.value}
@@ -26,7 +26,7 @@ export const GlobalFilters: React.FC = () => {
             className={`px-3 py-1.5 text-xs font-bold transition-colors ${
               period === p.value
                 ? 'bg-brand-green text-white'
-                : 'bg-navy-800 text-slate-400 hover:text-slate-200'
+                : 'bg-card text-ink2 hover:text-ink'
             }`}
           >
             {p.label}
@@ -35,11 +35,11 @@ export const GlobalFilters: React.FC = () => {
       </div>
 
       <div className="relative flex items-center">
-        <Globe size={13} className="absolute left-2.5 text-slate-500 pointer-events-none"/>
+        <Globe size={13} className="absolute left-2.5 text-ink3 pointer-events-none"/>
         <select
           value={country}
           onChange={(e) => setCountry(e.target.value)}
-          className="pl-7 pr-2 py-1.5 text-xs font-bold bg-navy-800 border border-navy-600 rounded-xl text-slate-300 appearance-none cursor-pointer hover:border-navy-500 focus:outline-none focus:border-brand-green transition-colors"
+          className="pl-7 pr-2 py-1.5 text-xs font-bold bg-card border border-edge rounded-xl text-ink2 appearance-none cursor-pointer hover:border-edge focus:outline-none focus:border-brand-green transition-colors"
         >
           <option value="">Tous pays</option>
           {COUNTRIES.map((c) => (
@@ -57,7 +57,7 @@ export const GlobalFilters: React.FC = () => {
         className={`relative p-1.5 rounded-xl border transition-colors ${
           realtime
             ? 'bg-brand-green/15 border-brand-green/40 text-brand-green'
-            : 'bg-navy-800 border-navy-600 text-slate-500 hover:text-slate-300 hover:border-navy-500'
+            : 'bg-card border-edge text-ink3 hover:text-ink2 hover:border-edge'
         }`}
       >
         <Activity size={13}/>
@@ -71,7 +71,7 @@ export const GlobalFilters: React.FC = () => {
         <button
           onClick={reset}
           title="Réinitialiser les filtres"
-          className="p-1.5 rounded-xl bg-navy-800 border border-navy-600 text-slate-500 hover:text-slate-300 hover:border-navy-500 transition-colors"
+          className="p-1.5 rounded-xl bg-card border border-edge text-ink3 hover:text-ink2 hover:border-edge transition-colors"
         >
           <RotateCcw size={13}/>
         </button>

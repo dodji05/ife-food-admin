@@ -36,12 +36,12 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   })
 
   return (
-    <header className="bg-navy-900 border-b border-navy-700 px-4 sm:px-6 py-3 sm:py-4">
+    <header className="bg-panel border-b border-edge2 px-4 sm:px-6 py-3 sm:py-4">
       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
         {/* Hamburger — mobile uniquement */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden order-1 p-1.5 -ml-1 text-slate-400 hover:text-white hover:bg-navy-700 rounded-lg transition-colors"
+          className="lg:hidden order-1 p-1.5 -ml-1 text-ink2 hover:text-white hover:bg-lift rounded-lg transition-colors"
           aria-label="Ouvrir le menu"
         >
           <Menu size={20}/>
@@ -49,8 +49,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
         {/* Bloc titre */}
         <div className="flex-1 min-w-0 order-2">
-          <h1 className="text-base sm:text-lg font-black text-slate-100 truncate">{title}</h1>
-          <p className="hidden sm:block text-xs text-slate-500 font-semibold">
+          <h1 className="text-base sm:text-lg font-black text-ink truncate">{title}</h1>
+          <p className="hidden sm:block text-xs text-ink3 font-semibold">
             {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         {/* Cloche notifications */}
         <button
           onClick={() => navigate('/orders')}
-          className="order-3 md:order-5 relative p-2 text-slate-400 hover:text-white hover:bg-navy-700 rounded-xl transition-colors flex-shrink-0"
+          className="order-3 md:order-5 relative p-2 text-ink2 hover:text-white hover:bg-lift rounded-xl transition-colors flex-shrink-0"
           title="Notifications"
         >
           <Bell size={18}/>

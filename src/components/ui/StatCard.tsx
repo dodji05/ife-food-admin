@@ -18,7 +18,7 @@ export const StatCard: React.FC<Props> = ({ title, value, sub, icon: Icon, color
   const c = colorMap[color] || colorMap['brand-green']
 
   return (
-    <div className="card p-5 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-500">
+    <div className="card p-5 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-edge">
       <div className="flex items-start justify-between">
         <div className={`w-11 h-11 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center`}>
           <Icon size={20} className={c.text}/>
@@ -32,14 +32,14 @@ export const StatCard: React.FC<Props> = ({ title, value, sub, icon: Icon, color
       </div>
       {loading ? (
         <div className="space-y-2">
-          <div className="h-7 bg-navy-700 rounded animate-pulse w-24"/>
-          <div className="h-4 bg-navy-700 rounded animate-pulse w-32"/>
+          <div className="h-7 bg-lift rounded animate-pulse w-24"/>
+          <div className="h-4 bg-lift rounded animate-pulse w-32"/>
         </div>
       ) : (
         <div>
-          <div className="text-2xl font-black text-slate-100">{value}</div>
-          <div className="text-sm text-slate-400 font-semibold mt-0.5">{title}</div>
-          {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+          <div className="text-2xl font-black text-ink">{value}</div>
+          <div className="text-sm text-ink2 font-semibold mt-0.5">{title}</div>
+          {sub && <div className="text-xs text-ink3 mt-1">{sub}</div>}
         </div>
       )}
     </div>

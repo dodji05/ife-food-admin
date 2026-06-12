@@ -175,7 +175,7 @@ export const PromoCodes: React.FC = () => {
       sortValue: (r: PromoCode) => Number(r.value) || 0,
       exportValue: (r: PromoCode) => r.type === 'PERCENTAGE' ? `${r.value} %` : `${r.value} FCFA`,
       render: (r: PromoCode) => (
-        <span className="font-bold text-slate-200">
+        <span className="font-bold text-ink">
           {r.type === 'PERCENTAGE' ? `${r.value} %` : formatCFA(r.value)}
         </span>
       ),
@@ -186,8 +186,8 @@ export const PromoCodes: React.FC = () => {
       sortValue: (r: PromoCode) => (r.professional?.businessName ?? '').toLowerCase(),
       exportValue: (r: PromoCode) => r.professional?.businessName ?? '',
       render: (r: PromoCode) => (
-        <span className="text-sm text-slate-400 truncate max-w-[140px] block">
-          {r.professional?.businessName ?? <span className="text-slate-600 italic">Tous</span>}
+        <span className="text-sm text-ink2 truncate max-w-[140px] block">
+          {r.professional?.businessName ?? <span className="text-ink3 italic">Tous</span>}
         </span>
       ),
     },
@@ -196,8 +196,8 @@ export const PromoCodes: React.FC = () => {
       sortable: true, hideOnMobile: true,
       exportValue: (r: PromoCode) => resolveName(r.product?.name),
       render: (r: PromoCode) => (
-        <span className="text-sm text-slate-400 truncate max-w-[140px] block">
-          {r.product ? resolveName(r.product.name) : <span className="text-slate-600 italic">Tous</span>}
+        <span className="text-sm text-ink2 truncate max-w-[140px] block">
+          {r.product ? resolveName(r.product.name) : <span className="text-ink3 italic">Tous</span>}
         </span>
       ),
     },
@@ -206,7 +206,7 @@ export const PromoCodes: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: PromoCode) => Number(r.minOrder) || 0,
       exportValue: (r: PromoCode) => r.minOrder ?? 0,
-      render: (r: PromoCode) => <span className="text-sm text-slate-400">{r.minOrder > 0 ? formatCFA(r.minOrder) : '—'}</span>,
+      render: (r: PromoCode) => <span className="text-sm text-ink2">{r.minOrder > 0 ? formatCFA(r.minOrder) : '—'}</span>,
     },
     {
       key: 'uses', label: 'Usages',
@@ -214,7 +214,7 @@ export const PromoCodes: React.FC = () => {
       sortValue: (r: PromoCode) => Number(r.usesCount) || 0,
       exportValue: (r: PromoCode) => `${r.usesCount}${r.maxUses != null ? '/' + r.maxUses : ''}`,
       render: (r: PromoCode) => (
-        <span className="text-sm text-slate-300">
+        <span className="text-sm text-ink2">
           {r.usesCount}{r.maxUses != null ? ` / ${r.maxUses}` : ''}
         </span>
       ),
@@ -224,7 +224,7 @@ export const PromoCodes: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: PromoCode) => r.expiresAt ? new Date(r.expiresAt).getTime() : 0,
       exportValue: (r: PromoCode) => r.expiresAt ?? '',
-      render: (r: PromoCode) => <span className="text-xs text-slate-400">{formatDate(r.expiresAt)}</span>,
+      render: (r: PromoCode) => <span className="text-xs text-ink2">{formatDate(r.expiresAt)}</span>,
     },
     {
       key: 'isActive', label: 'Actif',
@@ -234,7 +234,7 @@ export const PromoCodes: React.FC = () => {
       render: (r: PromoCode) => (
         <button
           onClick={(e) => { e.stopPropagation(); toggleMutation.mutate(r.id) }}
-          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg transition-colors ${r.isActive ? 'text-green-400 bg-green-500/10 hover:bg-green-500/20' : 'text-slate-500 bg-navy-700 hover:bg-navy-600'}`}
+          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg transition-colors ${r.isActive ? 'text-green-400 bg-green-500/10 hover:bg-green-500/20' : 'text-ink3 bg-lift hover:bg-edge'}`}
         >
           {r.isActive ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
           {r.isActive ? 'Actif' : 'Inactif'}
@@ -275,8 +275,8 @@ export const PromoCodes: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-100">Codes promo</h1>
-          <p className="text-sm text-slate-400 mt-0.5">{codes.length} code{codes.length !== 1 ? 's' : ''} enregistré{codes.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-xl font-black text-ink">Codes promo</h1>
+          <p className="text-sm text-ink2 mt-0.5">{codes.length} code{codes.length !== 1 ? 's' : ''} enregistré{codes.length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={openCreate} className="btn-primary gap-2">
           <Plus size={16}/> Nouveau code
@@ -365,7 +365,7 @@ export const PromoCodes: React.FC = () => {
 
           {/* Établissement concerné */}
           <div>
-            <label className="label">Établissement concerné <span className="text-slate-600 font-normal">(optionnel)</span></label>
+            <label className="label">Établissement concerné <span className="text-ink3 font-normal">(optionnel)</span></label>
             <select
               className="input w-full"
               value={form.professionalId}
@@ -383,7 +383,7 @@ export const PromoCodes: React.FC = () => {
           {/* Produit concerné — visible seulement si un pro est sélectionné */}
           {form.professionalId && (
             <div>
-              <label className="label">Produit concerné <span className="text-slate-600 font-normal">(optionnel)</span></label>
+              <label className="label">Produit concerné <span className="text-ink3 font-normal">(optionnel)</span></label>
               <select
                 className="input w-full"
                 value={form.productId}
@@ -397,14 +397,14 @@ export const PromoCodes: React.FC = () => {
                 ))}
               </select>
               {proProducts.length === 0 && (
-                <p className="text-xs text-slate-600 mt-1 font-semibold italic">Aucun produit dans le catalogue de cet établissement</p>
+                <p className="text-xs text-ink3 mt-1 font-semibold italic">Aucun produit dans le catalogue de cet établissement</p>
               )}
             </div>
           )}
 
           {/* Pays */}
           <div>
-            <label className="label">Pays <span className="text-slate-600 font-normal">(vide = tous · Ctrl/Cmd+clic pour sélection multiple)</span></label>
+            <label className="label">Pays <span className="text-ink3 font-normal">(vide = tous · Ctrl/Cmd+clic pour sélection multiple)</span></label>
             <select
               multiple
               size={6}
@@ -427,7 +427,7 @@ export const PromoCodes: React.FC = () => {
                     </span>
                   )
                 })}
-                <button type="button" onClick={() => setForm(f => ({ ...f, countries: [] }))} className="text-xs text-slate-500 hover:text-slate-300 px-1">tout effacer</button>
+                <button type="button" onClick={() => setForm(f => ({ ...f, countries: [] }))} className="text-xs text-ink3 hover:text-ink2 px-1">tout effacer</button>
               </div>
             )}
           </div>
@@ -440,7 +440,7 @@ export const PromoCodes: React.FC = () => {
               onChange={e => setForm(f => ({ ...f, perUser: e.target.checked }))}
               className="w-4 h-4 rounded accent-brand-green"
             />
-            <span className="text-sm text-slate-300">Limiter à une utilisation par utilisateur</span>
+            <span className="text-sm text-ink2">Limiter à une utilisation par utilisateur</span>
           </label>
 
           <div className="flex gap-3 pt-2">

@@ -139,11 +139,11 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, zones, onSave, saving,
         <label className="label text-[11px]">
           Zones de livraison
           {filteredZones.length === 0 && form.zoneCountry && (
-            <span className="ml-2 text-slate-500 font-normal">— aucune zone configurée pour ce pays</span>
+            <span className="ml-2 text-ink3 font-normal">— aucune zone configurée pour ce pays</span>
           )}
         </label>
         {filteredZones.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 bg-navy-800/50 rounded-xl border border-navy-600">
+          <div className="flex flex-wrap gap-2 p-3 bg-card/50 rounded-xl border border-edge">
             {filteredZones.map(zone => {
               const selected = form.deliveryZoneIds.includes(zone.id)
               return (
@@ -154,7 +154,7 @@ const DriverForm: React.FC<DriverFormProps> = ({ initial, zones, onSave, saving,
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                     selected
                       ? 'bg-brand-green/20 border-brand-green text-brand-green'
-                      : 'bg-navy-700 border-navy-600 text-slate-400 hover:text-slate-200 hover:border-navy-500'
+                      : 'bg-lift border-edge text-ink2 hover:text-ink hover:border-edge'
                   }`}
                 >
                   {zone.name}
@@ -316,8 +316,8 @@ export const Drivers: React.FC = () => {
       exportValue: (r: any) => `${r.user?.name ?? ''} ${r.user?.phone ? '(' + r.user.phone + ')' : ''}`.trim(),
       render: (r: any) => (
         <div>
-          <div className="font-semibold text-slate-200">{r.user?.name || '—'}</div>
-          <div className="text-xs text-slate-500">{r.user?.phone}</div>
+          <div className="font-semibold text-ink">{r.user?.name || '—'}</div>
+          <div className="text-xs text-ink3">{r.user?.phone}</div>
         </div>
       ),
     },
@@ -325,13 +325,13 @@ export const Drivers: React.FC = () => {
       key: 'vehicleType', label: 'Véhicule',
       sortable: true,
       exportValue: (r: any) => r.vehicleType ?? '',
-      render: (r: any) => <span className="text-sm text-slate-300">{VEHICLE_LABELS[r.vehicleType] || r.vehicleType || '—'}</span>,
+      render: (r: any) => <span className="text-sm text-ink2">{VEHICLE_LABELS[r.vehicleType] || r.vehicleType || '—'}</span>,
     },
     {
       key: 'zoneCity', label: 'Zone',
       sortable: true, hideOnMobile: true,
       exportValue: (r: any) => r.zoneCity ?? '',
-      render: (r: any) => <span className="text-sm text-slate-400">{r.zoneCity || '—'}</span>,
+      render: (r: any) => <span className="text-sm text-ink2">{r.zoneCity || '—'}</span>,
     },
     {
       key: 'status', label: 'Statut',
@@ -344,7 +344,7 @@ export const Drivers: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => r.createdAt ? new Date(r.createdAt).getTime() : 0,
       exportValue: (r: any) => r.createdAt,
-      render: (r: any) => <span className="text-xs text-slate-400">{formatDateTime(r.createdAt)}</span>,
+      render: (r: any) => <span className="text-xs text-ink2">{formatDateTime(r.createdAt)}</span>,
     },
   ]
 
@@ -443,7 +443,7 @@ export const Drivers: React.FC = () => {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? 'bg-brand-green text-white' : 'bg-navy-800 text-slate-400 border border-navy-600 hover:text-slate-200'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? 'bg-brand-green text-white' : 'bg-card text-ink2 border border-edge hover:text-ink'}`}
           >
             {label}
           </button>
@@ -484,8 +484,8 @@ export const Drivers: React.FC = () => {
                   <Truck size={20} className="text-brand-green"/>
                 </div>
                 <div>
-                  <div className="font-black text-slate-100 text-base">{selected.user?.name || '—'}</div>
-                  <div className="text-sm text-slate-400">{VEHICLE_LABELS[selected.vehicleType] || selected.vehicleType || '—'} · {selected.zoneCity || '—'}</div>
+                  <div className="font-black text-ink text-base">{selected.user?.name || '—'}</div>
+                  <div className="text-sm text-ink2">{VEHICLE_LABELS[selected.vehicleType] || selected.vehicleType || '—'} · {selected.zoneCity || '—'}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -510,7 +510,7 @@ export const Drivers: React.FC = () => {
 
             {/* Bannière lecture seule */}
             {!isEditableByAdmin(selected.user) && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-navy-700/40 border border-navy-600/40 rounded-xl text-xs text-slate-400 font-semibold">
+              <div className="flex items-center gap-2 px-3 py-2 bg-lift/40 border border-edge/40 rounded-xl text-xs text-ink2 font-semibold">
                 <span>🔒</span>
                 <span>
                   {!selected.user?.createdByAdmin
@@ -544,7 +544,7 @@ export const Drivers: React.FC = () => {
             )}
 
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-navy-700 overflow-x-auto">
+            <div className="flex gap-1 border-b border-edge2 overflow-x-auto">
               {([
                 { key: 'info',     label: 'Informations' },
                 { key: 'edit',     label: 'Modifier' },
@@ -552,7 +552,7 @@ export const Drivers: React.FC = () => {
                 { key: 'referral', label: 'Parrainage' },
               ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected.user)).map(({ key, label }) => (
                 <button key={key} onClick={() => setDetailTab(key)}
-                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                  className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${detailTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-ink2 hover:text-ink'}`}>
                   {label}
                 </button>
               ))}
@@ -563,39 +563,39 @@ export const Drivers: React.FC = () => {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="card-sm p-3 flex items-center gap-2">
-                    <Phone size={14} className="text-slate-500 flex-shrink-0"/>
+                    <Phone size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Téléphone</div>
-                      <div className="text-sm font-semibold text-slate-200">{selected.user?.phone || '—'}</div>
+                      <div className="text-sm font-semibold text-ink">{selected.user?.phone || '—'}</div>
                     </div>
                   </div>
                   <div className="card-sm p-3 flex items-center gap-2">
-                    <Mail size={14} className="text-slate-500 flex-shrink-0"/>
+                    <Mail size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Email</div>
-                      <div className="text-sm font-semibold text-slate-200 truncate">{selected.user?.email || '—'}</div>
+                      <div className="text-sm font-semibold text-ink truncate">{selected.user?.email || '—'}</div>
                     </div>
                   </div>
                   <div className="card-sm p-3 flex items-center gap-2">
-                    <MapPin size={14} className="text-slate-500 flex-shrink-0"/>
+                    <MapPin size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Zone</div>
-                      <div className="text-sm font-semibold text-slate-200">{selected.zoneCity || '—'}{selected.zoneCountry ? ` (${selected.zoneCountry})` : ''}</div>
+                      <div className="text-sm font-semibold text-ink">{selected.zoneCity || '—'}{selected.zoneCountry ? ` (${selected.zoneCountry})` : ''}</div>
                     </div>
                   </div>
                   <div className="card-sm p-3 flex items-center gap-2">
-                    <Truck size={14} className="text-slate-500 flex-shrink-0"/>
+                    <Truck size={14} className="text-ink3 flex-shrink-0"/>
                     <div>
                       <div className="label text-[10px]">Véhicule</div>
-                      <div className="text-sm font-semibold text-slate-200">{VEHICLE_LABELS[selected.vehicleType] || selected.vehicleType || '—'}</div>
+                      <div className="text-sm font-semibold text-ink">{VEHICLE_LABELS[selected.vehicleType] || selected.vehicleType || '—'}</div>
                     </div>
                   </div>
                   {selected.licensePlate && (
                     <div className="card-sm p-3 flex items-center gap-2 col-span-2">
-                      <FileText size={14} className="text-slate-500 flex-shrink-0"/>
+                      <FileText size={14} className="text-ink3 flex-shrink-0"/>
                       <div>
                         <div className="label text-[10px]">Plaque</div>
-                        <div className="text-sm font-semibold text-slate-200">{selected.licensePlate}</div>
+                        <div className="text-sm font-semibold text-ink">{selected.licensePlate}</div>
                       </div>
                     </div>
                   )}
@@ -624,7 +624,7 @@ export const Drivers: React.FC = () => {
                     ? <div className="flex gap-2 flex-wrap">
                         {selected.documents.map((d: any) => (
                           <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer"
-                            className="text-xs bg-navy-700 text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg font-semibold transition-colors">
+                            className="text-xs bg-lift text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg font-semibold transition-colors">
                             {d.type}
                           </a>
                         ))}
@@ -638,12 +638,12 @@ export const Drivers: React.FC = () => {
                     <div className="label mb-2 flex items-center gap-1.5 text-yellow-400"><Gift size={13}/> Pourboires reçus</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="text-center">
-                        <div className="text-xs text-slate-500 font-bold mb-0.5">Total</div>
+                        <div className="text-xs text-ink3 font-bold mb-0.5">Total</div>
                         <div className="font-black text-yellow-300">{formatCFA(selected.tipStats?.totalTips ?? 0)}</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-xs text-slate-500 font-bold mb-0.5">Nombre</div>
-                        <div className="font-black text-slate-200">{selected.tipStats?.tipCount ?? 0}</div>
+                        <div className="text-xs text-ink3 font-bold mb-0.5">Nombre</div>
+                        <div className="font-black text-ink">{selected.tipStats?.tipCount ?? 0}</div>
                       </div>
                     </div>
                   </div>
@@ -652,11 +652,11 @@ export const Drivers: React.FC = () => {
                 {selected.adminNote && (
                   <div className="card-sm p-3">
                     <div className="label text-[10px] mb-1">Note admin</div>
-                    <div className="text-sm text-slate-300">{selected.adminNote}</div>
+                    <div className="text-sm text-ink2">{selected.adminNote}</div>
                   </div>
                 )}
 
-                <div className="text-xs text-slate-500 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
+                <div className="text-xs text-ink3 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
               </div>
             )}
 
@@ -677,20 +677,20 @@ export const Drivers: React.FC = () => {
                 {missionsLoading
                   ? <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-brand-green border-t-transparent rounded-full animate-spin"/></div>
                   : missions.length === 0
-                    ? <div className="text-center py-10 text-slate-500 text-sm">Aucune mission pour l'instant</div>
+                    ? <div className="text-center py-10 text-ink3 text-sm">Aucune mission pour l'instant</div>
                     : (
                       <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                         {missions.map((m: any) => (
                           <div key={m.id} className="card-sm p-3 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 min-w-0">
-                              <Package size={14} className="text-slate-500 flex-shrink-0"/>
+                              <Package size={14} className="text-ink3 flex-shrink-0"/>
                               <div className="min-w-0">
-                                <div className="text-sm font-semibold text-slate-200 truncate">{m.professional?.businessName || '—'}</div>
-                                <div className="text-xs text-slate-500">{m.client?.name || '—'} · {formatDate(m.createdAt)}</div>
+                                <div className="text-sm font-semibold text-ink truncate">{m.professional?.businessName || '—'}</div>
+                                <div className="text-xs text-ink3">{m.client?.name || '—'} · {formatDate(m.createdAt)}</div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className="text-xs font-bold text-slate-300">{formatCFA(m.totalAmount)}</span>
+                              <span className="text-xs font-bold text-ink2">{formatCFA(m.totalAmount)}</span>
                               {m.tipAmount > 0 && (
                                 <span className="text-[10px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                                   <Gift size={9}/> {formatCFA(m.tipAmount)}

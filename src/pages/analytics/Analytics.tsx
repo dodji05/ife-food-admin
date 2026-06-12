@@ -12,8 +12,8 @@ const COLORS = ['#1A6B3C','#F5C518','#3B82F6','#8B5CF6','#EF4444']
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) return (
-    <div className="bg-navy-800 border border-navy-600 rounded-xl p-3 shadow-xl">
-      <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
+    <div className="bg-card border border-edge rounded-xl p-3 shadow-xl">
+      <p className="text-xs font-bold text-ink2 mb-1">{label}</p>
       {payload.map((p: any) => <p key={p.name} style={{ color: p.color }} className="text-sm font-bold">{p.name === 'revenue' ? formatCFA(p.value) : p.value}</p>)}
     </div>
   )
@@ -60,7 +60,7 @@ export const Analytics: React.FC = () => {
     />
 
     {period === 'custom' && (!dateFrom || !dateTo) && (
-      <div className="card p-4 flex items-center gap-3 text-sm text-slate-400 font-semibold">
+      <div className="card p-4 flex items-center gap-3 text-sm text-ink2 font-semibold">
         <span className="text-brand-green">›</span>
         Sélectionnez une date de début et une date de fin pour charger les données.
       </div>
@@ -75,8 +75,8 @@ export const Analytics: React.FC = () => {
 
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 card p-5">
-        <h3 className="text-base font-black text-slate-100 mb-1">Revenus par pays</h3>
-        <p className="text-xs text-slate-500 mb-5 font-semibold">
+        <h3 className="text-base font-black text-ink mb-1">Revenus par pays</h3>
+        <p className="text-xs text-ink3 mb-5 font-semibold">
           {period === 'custom' && dateFrom && dateTo
             ? `${dateFrom} → ${dateTo}`
             : period === 'day' ? "Aujourd'hui" : period === 'week' ? '7 derniers jours' : '30 derniers jours'}
@@ -92,15 +92,15 @@ export const Analytics: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[240px] flex items-center justify-center text-slate-500 text-sm font-semibold">
+          <div className="h-[240px] flex items-center justify-center text-ink3 text-sm font-semibold">
             {isLoading ? <span className="animate-pulse">Chargement…</span> : 'Aucune donnée disponible'}
           </div>
         )}
       </div>
 
       <div className="card p-5">
-        <h3 className="text-base font-black text-slate-100 mb-1">Répartition par catégorie</h3>
-        <p className="text-xs text-slate-500 mb-5 font-semibold">% des commandes</p>
+        <h3 className="text-base font-black text-ink mb-1">Répartition par catégorie</h3>
+        <p className="text-xs text-ink3 mb-5 font-semibold">% des commandes</p>
         {categoryData.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -108,11 +108,11 @@ export const Analytics: React.FC = () => {
                 {categoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]}/>)}
               </Pie>
               <Tooltip formatter={(v: any) => [`${v}%`]}/>
-              <Legend iconSize={8} iconType="circle" formatter={(v) => <span className="text-xs font-semibold text-slate-400">{v}</span>}/>
+              <Legend iconSize={8} iconType="circle" formatter={(v) => <span className="text-xs font-semibold text-ink2">{v}</span>}/>
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm font-semibold">
+          <div className="h-[200px] flex items-center justify-center text-ink3 text-sm font-semibold">
             {isLoading ? <span className="animate-pulse">Chargement…</span> : 'Aucune donnée'}
           </div>
         )}
@@ -121,14 +121,14 @@ export const Analytics: React.FC = () => {
 
     {funnel.length > 0 && (
       <div className="card p-5">
-        <h3 className="text-base font-black text-slate-100 mb-1">Entonnoir de conversion</h3>
-        <p className="text-xs text-slate-500 mb-5 font-semibold">Inscription → Première commande → Client fidèle</p>
+        <h3 className="text-base font-black text-ink mb-1">Entonnoir de conversion</h3>
+        <p className="text-xs text-ink3 mb-5 font-semibold">Inscription → Première commande → Client fidèle</p>
         <div className="flex gap-4 items-end h-32">
           {funnel.map((item: any) => (
             <div key={item.label} className="flex-1 flex flex-col items-center gap-2">
-              <span className="text-xs font-black text-slate-300">{Number(item.value).toLocaleString('fr-FR')}</span>
+              <span className="text-xs font-black text-ink2">{Number(item.value).toLocaleString('fr-FR')}</span>
               <div className={`w-full ${item.color} rounded-t-lg transition-all`} style={{ height: `${item.pct}%` }}/>
-              <span className="text-[10px] font-bold text-slate-500 text-center">{item.label}</span>
+              <span className="text-[10px] font-bold text-ink3 text-center">{item.label}</span>
             </div>
           ))}
         </div>
