@@ -1,49 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import api from '../../services/api'
-import { Save, Globe, Eye, Code2, AlertTriangle } from 'lucide-react'
+import { Save, Globe, Eye, Code2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import DOMPurify from 'dompurify'
-
-// ─── Sanitisation HTML ────────────────────────────────────────────────────────
-// Autorise les balises/attributs nécessaires aux pages légales.
-// Bloque script, iframe, on*, style inline dangereux, etc.
-const PURIFY_CONFIG: DOMPurify.Config = {
-  ALLOWED_TAGS: [
-    'h1','h2','h3','h4','h5','h6',
-    'p','br','hr','div','section','article','blockquote','pre','code',
-    'ul','ol','li','dl','dt','dd',
-    'table','thead','tbody','tr','th','td','caption',
-    'strong','b','em','i','u','s','mark','small','sup','sub',
-    'a','span',
-    'img',
-    'style',
-  ],
-  ALLOWED_ATTR: [
-    'href','target','rel',
-    'src','alt','width','height',
-    'class','id',
-    'colspan','rowspan',
-    'style',
-  ],
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
-  ADD_ATTR: ['target'],
-  FORCE_BODY: true,
-  RETURN_DOM_FRAGMENT: false,
-  RETURN_DOM: false,
-}
-
-// Force rel="noopener noreferrer" sur les liens externes
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
-    node.setAttribute('target', '_blank')
-    node.setAttribute('rel', 'noopener noreferrer')
-  }
-})
-
-function sanitize(html: string): string {
-  return DOMPurify.sanitize(html, PURIFY_CONFIG) as string
-}
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const LEGAL_TYPES: Record<string, string> = {
@@ -84,32 +43,21 @@ export const Content: React.FC = () => {
   }, [legalData, isLoading])
 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    // Si le presse-papiers contient du HTML, l'injecter sanitisé
     const html = e.clipboardData.getData('text/html')
     if (html) {
       e.preventDefault()
-      const clean = sanitize(html)
       const target = e.currentTarget
       const start  = target.selectionStart
       const end    = target.selectionEnd
-      const next   = content.slice(0, start) + clean + content.slice(end)
-      setContent(next)
+      setContent(content.slice(0, start) + html + content.slice(end))
     }
-    // sinon : comportement natif (texte brut)
   }, [content])
 
   const saveMutation = useMutation({
-    mutationFn: () => api.put(`/admin/legal/${type}/${lang}`, {
-      title,
-      content: sanitize(content),
-      version,
-    }),
+    mutationFn: () => api.put(`/admin/legal/${type}/${lang}`, { title, content, version }),
     onSuccess: () => toast.success('Page légale enregistrée !'),
     onError: (e: any) => toast.error(e.message),
   })
-
-  const sanitizedPreview = sanitize(content)
-  const isDirty = sanitizedPreview !== content
 
   return (
     <div className="space-y-5">
@@ -160,31 +108,23 @@ export const Content: React.FC = () => {
                   <Eye size={13}/> Prévisualisation
                 </button>
                 <span className="ml-auto text-[10px] text-ink3">
-                  Collez du HTML directement — la sanitisation s'applique automatiquement.
+                  HTML/CSS conservé tel quel — la prévisualisation reflète le rendu final.
                 </span>
               </div>
 
               {tab === 'edit' ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    onPaste={handlePaste}
-                    rows={18}
-                    className="input resize-y font-mono text-xs leading-relaxed"
-                    placeholder="Collez ou saisissez le contenu HTML ici…"
-                    spellCheck={false}
-                  />
-                  {isDirty && (
-                    <div className="flex items-start gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2">
-                      <AlertTriangle size={13} className="flex-shrink-0 mt-0.5"/>
-                      <span>Certaines balises ou attributs non sécurisés ont été détectés et seront retirés à la sauvegarde. Consultez la prévisualisation pour vérifier le rendu final.</span>
-                    </div>
-                  )}
-                </div>
+                <textarea
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  onPaste={handlePaste}
+                  rows={18}
+                  className="input resize-y font-mono text-xs leading-relaxed"
+                  placeholder="Collez ou saisissez le contenu HTML ici…"
+                  spellCheck={false}
+                />
               ) : (
                 <iframe
-                  srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;padding:20px;margin:0;color:#111;}</style></head><body>${sanitizedPreview}</body></html>`}
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;padding:20px;margin:0;color:#111;}</style></head><body>${content}</body></html>`}
                   className="w-full rounded-xl border border-edge"
                   style={{ minHeight: 280, height: 480 }}
                   sandbox="allow-same-origin"
