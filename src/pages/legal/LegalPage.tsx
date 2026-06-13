@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
-import DOMPurify from 'dompurify'
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api/v1`
@@ -25,22 +24,6 @@ interface LegalData {
   version: string
   updatedAt: string
 }
-
-const PURIFY_CFG: DOMPurify.Config = {
-  ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','hr','div','section','article',
-    'blockquote','pre','code','ul','ol','li','dl','dt','dd','table','thead','tbody','tr',
-    'th','td','caption','strong','b','em','i','u','s','mark','small','sup','sub','a','span','img',
-    'style'],
-  ALLOWED_ATTR: ['href','target','rel','src','alt','width','height','class','id',
-    'colspan','rowspan','style'],
-  FORCE_BODY: true,
-}
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
-    node.setAttribute('target', '_blank')
-    node.setAttribute('rel', 'noopener noreferrer')
-  }
-})
 
 // Module-level cache: slug/lang → data (cleared on page reload)
 const legalCache = new Map<string, LegalData>()
@@ -197,23 +180,8 @@ export const LegalPage: React.FC = () => {
             </header>
 
             <div
-              className="prose prose-gray max-w-none leading-relaxed
-                prose-headings:font-black prose-headings:text-gray-900
-                prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
-                prose-p:text-gray-700 prose-p:leading-7
-                prose-a:text-green-700 prose-a:font-semibold hover:prose-a:underline
-                prose-strong:text-gray-900
-                prose-ul:list-disc prose-ol:list-decimal
-                prose-li:text-gray-700
-                prose-blockquote:border-green-400 prose-blockquote:text-gray-600
-                prose-hr:border-gray-200
-                prose-table:text-sm
-                [&_*]:text-gray-700 [&_h1]:text-gray-900 [&_h2]:text-gray-900
-                [&_h3]:text-gray-900 [&_h4]:text-gray-800 [&_strong]:text-gray-900
-                [&_a]:text-green-700"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(data.content, PURIFY_CFG) as string,
-              }}
+              className="max-w-none"
+              dangerouslySetInnerHTML={{ __html: data.content }}
             />
           </article>
         )}
