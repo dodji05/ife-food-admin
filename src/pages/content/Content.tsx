@@ -17,6 +17,7 @@ const PURIFY_CONFIG: DOMPurify.Config = {
     'strong','b','em','i','u','s','mark','small','sup','sub',
     'a','span',
     'img',
+    'style',
   ],
   ALLOWED_ATTR: [
     'href','target','rel',
@@ -25,7 +26,6 @@ const PURIFY_CONFIG: DOMPurify.Config = {
     'colspan','rowspan',
     'style',
   ],
-  // Limite les propriétés CSS autorisées dans l'attribut style
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
   ADD_ATTR: ['target'],
   FORCE_BODY: true,
@@ -183,9 +183,12 @@ export const Content: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div
-                  className="min-h-[280px] bg-white text-gray-900 rounded-xl p-5 prose prose-sm max-w-none overflow-auto border border-edge"
-                  dangerouslySetInnerHTML={{ __html: sanitizedPreview }}
+                <iframe
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;padding:20px;margin:0;color:#111;}</style></head><body>${sanitizedPreview}</body></html>`}
+                  className="w-full rounded-xl border border-edge"
+                  style={{ minHeight: 280, height: 480 }}
+                  sandbox="allow-same-origin"
+                  title="Prévisualisation"
                 />
               )}
 

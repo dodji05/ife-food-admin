@@ -29,7 +29,8 @@ interface LegalData {
 const PURIFY_CFG: DOMPurify.Config = {
   ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','hr','div','section','article',
     'blockquote','pre','code','ul','ol','li','dl','dt','dd','table','thead','tbody','tr',
-    'th','td','caption','strong','b','em','i','u','s','mark','small','sup','sub','a','span','img'],
+    'th','td','caption','strong','b','em','i','u','s','mark','small','sup','sub','a','span','img',
+    'style'],
   ALLOWED_ATTR: ['href','target','rel','src','alt','width','height','class','id',
     'colspan','rowspan','style'],
   FORCE_BODY: true,
@@ -38,15 +39,6 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
     node.setAttribute('target', '_blank')
     node.setAttribute('rel', 'noopener noreferrer')
-  }
-  // Strip inline color/background styles so prose CSS can control readability
-  const style = node.getAttribute('style')
-  if (style) {
-    const cleaned = style
-      .replace(/\bcolor\s*:[^;]+;?/gi, '')
-      .replace(/\bbackground(-color)?\s*:[^;]+;?/gi, '')
-      .trim()
-    cleaned ? node.setAttribute('style', cleaned) : node.removeAttribute('style')
   }
 })
 
