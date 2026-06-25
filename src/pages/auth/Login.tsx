@@ -231,7 +231,7 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-center gap-2 text-xs text-ink3 font-semibold">
-          <Shield size={12}/> Connexion sécurisée · Ets SWK FAKEYE
+          <Shield size={12}/> Connexion sécurisée · By FAKÊYÊ HORTENSE BANKOLÉ
         </div>
       </div>
     </div>
