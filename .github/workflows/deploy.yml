@@ -77,7 +77,7 @@ jobs:
             git reset --hard origin/main
 
             echo "⚙️ Inject env vars (not committed to git)..."
-            echo "VITE_API_URL=https://ifeapi.associationireni.org" > .env.production
+            echo "VITE_API_URL=https://api.ifefood.bj" > .env.production
 
             echo "📦 Installing dependencies..."
             npm install --legacy-peer-deps

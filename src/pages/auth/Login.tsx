@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth'
 import api from '../../services/api'
 import { Eye, EyeOff, Mail, Lock, Shield, ArrowLeft } from 'lucide-react'
+import logo from '../../assets/logo.png'
 import toast from 'react-hot-toast'
 
 type Step = 'login' | 'reset-request' | 'reset-confirm'
@@ -84,9 +85,7 @@ export const Login: React.FC = () => {
       <div className="w-full max-w-sm space-y-6">
         {/* Brand */}
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-brand-green rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-brand-green/30">
-            <span className="text-white font-black text-xl">ifè</span>
-          </div>
+          <img src={logo} alt="ifè FOOD" className="w-20 h-20 object-contain mx-auto" />
           <h1 className="text-2xl font-black text-ink">ifè FOOD Admin</h1>
           <p className="text-ink2 text-sm font-semibold">
             {step === 'login' ? 'Tableau de bord administrateur' : 'Réinitialisation du mot de passe'}
