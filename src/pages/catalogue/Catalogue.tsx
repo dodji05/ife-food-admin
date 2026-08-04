@@ -158,7 +158,9 @@ const ProductForm: React.FC<{
     fd.append('image', file)
     setUploading(true)
     try {
-      const res: any = await api.post('/admin/catalogue/upload-image', fd)
+      const res: any = await api.post('/admin/catalogue/upload-image', fd, {
+        headers: { 'Content-Type': undefined },
+      })
       const url = res?.data?.data?.url ?? res?.data?.url
       if (url) onChange({ ...form, imageUrl: url })
       else toast.error('URL introuvable dans la réponse')

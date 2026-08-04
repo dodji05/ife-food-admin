@@ -244,7 +244,9 @@ const CatalogueTab: React.FC<{ proId: string }> = ({ proId }) => {
     try {
       const fd = new FormData()
       fd.append('image', imageFile)
-      const res: any = await api.post('/admin/catalogue/upload-image', fd)
+      const res: any = await api.post('/admin/catalogue/upload-image', fd, {
+        headers: { 'Content-Type': undefined },
+      })
       return res?.data?.url ?? res?.url ?? null
     } catch (e: any) {
       toast.error('Erreur upload : ' + e.message)
@@ -762,7 +764,7 @@ export const Professionals: React.FC = () => {
       sortable: true, hideOnMobile: true,
       sortValue: (r: any) => `${r.city ?? ''} ${r.country ?? ''}`.toLowerCase(),
       exportValue: (r: any) => `${r.city ?? ''}, ${r.country ?? ''}`,
-      render: (r: any) => <span className="text-sm text-ink2">{r.city}, {r.country}</span> },
+      render: (r: any) => <span className="text-sm text-ink2">{r.city || '—'}, {r.country || '—'}</span> },
     { key: 'status', label: 'Statut',
       sortable: true,
       exportValue: (r: any) => r.status ?? 'PENDING',
