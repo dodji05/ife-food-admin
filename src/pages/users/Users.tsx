@@ -12,7 +12,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import { COUNTRIES } from '../../constants/countries'
 import {
   UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown,
-  Gift, Plus, Edit2, Search,
+  Gift, Plus, Edit2, Search, MapPin, Home, Check,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -120,6 +120,84 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
   )
 }
 
+// ─── Carte adresse — édition inline des coordonnées GPS ───────────────────────
+interface AddressGpsRowProps {
+  address: any
+  onSave: (lat: number, lng: number) => void
+  saving: boolean
+}
+
+const AddressGpsRow: React.FC<AddressGpsRowProps> = ({ address, onSave, saving }) => {
+  const [editing, setEditing] = useState(false)
+  const [lat, setLat] = useState(address.lat != null ? String(address.lat) : '')
+  const [lng, setLng] = useState(address.lng != null ? String(address.lng) : '')
+
+  const hasGps = address.lat != null && address.lng != null
+
+  const handleSave = () => {
+    const latNum = Number(lat), lngNum = Number(lng)
+    if (lat === '' || lng === '' || isNaN(latNum) || isNaN(lngNum)) {
+      toast.error('Coordonnées invalides')
+      return
+    }
+    onSave(latNum, lngNum)
+    setEditing(false)
+  }
+
+  return (
+    <div className="card-sm p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-brand-green/10 border border-brand-green/20 flex items-center justify-center flex-shrink-0">
+          {address.isDefault ? <Home size={16} className="text-brand-green"/> : <MapPin size={16} className="text-brand-green"/>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-ink text-sm">{address.label}</span>
+            {address.isDefault && (
+              <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-1.5 py-0.5 rounded-full">Par défaut</span>
+            )}
+          </div>
+          <div className="text-xs text-ink2 mt-0.5">{address.address}{address.city ? `, ${address.city}` : ''}</div>
+        </div>
+      </div>
+
+      {!editing ? (
+        <div className="flex items-center justify-between gap-3 pl-12">
+          <div className="text-xs font-mono text-ink3">
+            {hasGps ? `${address.lat.toFixed(5)}, ${address.lng.toFixed(5)}` : <span className="italic">Pas de coordonnées GPS</span>}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {hasGps && (
+              <a href={`https://www.google.com/maps?q=${address.lat},${address.lng}`} target="_blank" rel="noreferrer"
+                className="text-xs text-brand-green hover:underline font-semibold">
+                Voir sur la carte ↗
+              </a>
+            )}
+            <button onClick={() => setEditing(true)} className="p-1.5 text-ink2 hover:text-white hover:bg-lift rounded-lg">
+              <Edit2 size={13}/>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="pl-12 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <input className="input text-xs font-mono" type="number" step="any" value={lat}
+              onChange={e => setLat(e.target.value)} placeholder="Latitude"/>
+            <input className="input text-xs font-mono" type="number" step="any" value={lng}
+              onChange={e => setLng(e.target.value)} placeholder="Longitude"/>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setEditing(false)} className="btn-secondary text-xs px-3 py-1.5 flex-1 justify-center">Annuler</button>
+            <button onClick={handleSave} disabled={saving} className="btn-primary text-xs px-3 py-1.5 flex-1 justify-center">
+              <Check size={13}/> Enregistrer
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 export const Users: React.FC = () => {
   const qc = useQueryClient()
@@ -130,7 +208,7 @@ export const Users: React.FC = () => {
   const [search, setSearch] = useState('')
 
   const [selected, setSelected] = useState<any>(null)
-  const [userTab, setUserTab] = useState<'info' | 'wallet' | 'referral' | 'edit'>('info')
+  const [userTab, setUserTab] = useState<'info' | 'wallet' | 'referral' | 'edit' | 'addresses'>('info')
   const [adjustAmount, setAdjustAmount] = useState('')
   const [adjustType, setAdjustType] = useState<'ADMIN_CREDIT' | 'ADMIN_DEBIT'>('ADMIN_CREDIT')
   const [adjustNote, setAdjustNote] = useState('')
@@ -150,6 +228,22 @@ export const Users: React.FC = () => {
     queryKey: ['user-wallet', selected?.id],
     queryFn: () => api.get(`/admin/users/${selected.id}/wallet`).then((r: any) => r?.data?.data ?? r?.data ?? r),
     enabled: !!selected?.id && userTab === 'wallet',
+  })
+
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['user-addresses', selected?.id],
+    queryFn: () => api.get(`/admin/users/${selected.id}/addresses`).then((r: any) => r?.data?.data ?? r?.data ?? []),
+    enabled: !!selected?.id && userTab === 'addresses',
+  })
+
+  const updateAddressGpsMutation = useMutation({
+    mutationFn: ({ addressId, lat, lng }: { addressId: string; lat: number; lng: number }) =>
+      api.patch(`/admin/users/addresses/${addressId}/gps`, { lat, lng }),
+    onSuccess: () => {
+      toast.success('Coordonnées GPS mises à jour')
+      qc.invalidateQueries({ queryKey: ['user-addresses', selected?.id] })
+    },
+    onError: (e: any) => toast.error(e.message),
   })
 
   const adjustMutation = useMutation({
@@ -327,10 +421,11 @@ export const Users: React.FC = () => {
             {/* Onglets */}
             <div className="flex gap-1 border-b border-edge2 overflow-x-auto">
               {([
-                { key: 'info',     label: 'Informations' },
-                { key: 'edit',     label: 'Modifier' },
-                { key: 'wallet',   label: 'Wallet' },
-                { key: 'referral', label: 'Parrainage' },
+                { key: 'info',      label: 'Informations' },
+                { key: 'edit',      label: 'Modifier' },
+                { key: 'addresses', label: 'Adresses' },
+                { key: 'wallet',    label: 'Wallet' },
+                { key: 'referral',  label: 'Parrainage' },
               ] as const).filter(t => t.key !== 'edit' || isEditableByAdmin(selected)).map(({ key, label }) => (
                 <button key={key} onClick={() => setUserTab(key)}
                   className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all whitespace-nowrap ${userTab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-ink2 hover:text-ink'}`}>
@@ -415,6 +510,24 @@ export const Users: React.FC = () => {
                 onSubmit={(dto) => updateMutation.mutate(dto)}
                 loading={updateMutation.isPending}
               />
+            )}
+
+            {/* Onglet Adresses */}
+            {userTab === 'addresses' && (
+              <div className="space-y-3">
+                {addresses.length === 0 ? (
+                  <div className="text-center py-8 text-ink3 text-sm">Aucune adresse enregistrée</div>
+                ) : (
+                  addresses.map((addr: any) => (
+                    <AddressGpsRow
+                      key={addr.id}
+                      address={addr}
+                      onSave={(lat, lng) => updateAddressGpsMutation.mutate({ addressId: addr.id, lat, lng })}
+                      saving={updateAddressGpsMutation.isPending}
+                    />
+                  ))
+                )}
+              </div>
             )}
 
             {/* Onglet Wallet */}

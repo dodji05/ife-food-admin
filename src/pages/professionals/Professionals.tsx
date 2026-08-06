@@ -58,6 +58,8 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
     description:  initial?.description  ?? '',
     commissionRate:   initial?.commissionRate   ?? '',
     deliveryRadiusKm: initial?.deliveryRadiusKm ?? '10',
+    lat: initial?.lat != null ? String(initial.lat) : '',
+    lng: initial?.lng != null ? String(initial.lng) : '',
     // Owner fields (create only)
     ownerPhone:     '',
     ownerFirstName: '',
@@ -134,6 +136,26 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
           <input className="input w-full" value={form.address} onChange={set('address')} placeholder="123 rue du marché"/>
         </div>
         {isEdit && (
+          <>
+            <div>
+              <label className="label">Latitude GPS</label>
+              <input className="input w-full font-mono" type="number" step="any" value={form.lat} onChange={set('lat')} placeholder="6.3703"/>
+            </div>
+            <div>
+              <label className="label">Longitude GPS</label>
+              <input className="input w-full font-mono" type="number" step="any" value={form.lng} onChange={set('lng')} placeholder="2.3912"/>
+            </div>
+            {form.lat && form.lng && (
+              <div className="col-span-2 -mt-1">
+                <a href={`https://www.google.com/maps?q=${form.lat},${form.lng}`} target="_blank" rel="noreferrer"
+                  className="text-xs text-brand-green hover:underline font-semibold">
+                  Voir sur Google Maps ↗
+                </a>
+              </div>
+            )}
+          </>
+        )}
+        {isEdit && (
           <div>
             <label className="label">Commission (%)</label>
             <input className="input w-full" type="number" min="0" max="100" value={form.commissionRate} onChange={set('commissionRate')} placeholder="10"/>
@@ -155,6 +177,8 @@ const ProForm: React.FC<ProFormProps> = ({ initial, onSubmit, loading }) => {
             ...form,
             commissionRate:   form.commissionRate   ? Number(form.commissionRate)   : undefined,
             deliveryRadiusKm: form.deliveryRadiusKm ? Number(form.deliveryRadiusKm) : undefined,
+            lat: form.lat !== '' ? Number(form.lat) : undefined,
+            lng: form.lng !== '' ? Number(form.lng) : undefined,
           })
         }}
         disabled={loading}
