@@ -12,6 +12,21 @@ import {
 import toast from 'react-hot-toast'
 import { useConfirm } from '../../hooks/useConfirm'
 
+// Types d'établissement — même enum Prisma ProfessionalCategory que côté pro.
+// Une catégorie de catalogue rattachée à un type n'apparaît que pour les
+// pros de ce type (+ catégories non rattachées, visibles par tous en attendant
+// une réassignation manuelle par l'admin).
+const ESTABLISHMENT_TYPES = [
+  { value: 'RESTAURANT',  label: '🍽️ Restaurant' },
+  { value: 'GROCERY',     label: '🥬 Épicerie' },
+  { value: 'SUPERMARKET', label: '🛒 Supermarché' },
+  { value: 'BAKERY',      label: '🥖 Boulangerie' },
+  { value: 'PHARMACY',    label: '💊 Pharmacie' },
+  { value: 'OTHER',       label: '📦 Autre' },
+]
+const establishmentLabel = (v: string | null) =>
+  v ? (ESTABLISHMENT_TYPES.find(t => t.value === v)?.label ?? v) : 'Non assignée'
+
 // ─── Sélecteur de professionnel ──────────────────────────────────────────────
 
 const ProSelector: React.FC<{ onSelect: (pro: any) => void }> = ({ onSelect }) => {
@@ -149,6 +164,13 @@ const ProductForm: React.FC<{
     onChange({ ...form, proId: e.target.value, categoryId: '' })
   }
 
+  // Catégories visibles pour le pro sélectionné : celles rattachées à son
+  // type d'établissement + les non-assignées (legacy, en attente de tri admin).
+  const selectedPro = pros.find((p: any) => p.id === form.proId)
+  const visibleCategories = selectedPro
+    ? proCategories.filter((c: any) => !c.establishmentType || c.establishmentType === selectedPro.category)
+    : proCategories
+
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -228,7 +250,7 @@ const ProductForm: React.FC<{
           <label className="label">Catégorie <span className="text-red-400">*</span></label>
           <select value={form.categoryId} onChange={set('categoryId')} className={`input w-full ${!form.categoryId ? 'border-red-500/40' : ''}`}>
             <option value="">— Sélectionner une catégorie —</option>
-            {proCategories.map((c: any) => (
+            {visibleCategories.map((c: any) => (
               <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name?.fr || c.name?.en || c.name}</option>
             ))}
           </select>
@@ -625,7 +647,7 @@ const GlobalCategoriesPanel: React.FC = () => {
   const qKey = ['admin-global-categories']
 
   const [catModal, setCatModal]   = useState(false)
-  const [catForm, setCatForm]     = useState({ name: '', icon: '' })
+  const [catForm, setCatForm]     = useState({ name: '', icon: '', establishmentType: '' })
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: qKey,
@@ -640,13 +662,23 @@ const GlobalCategoriesPanel: React.FC = () => {
     mutationFn: () => api.post('/admin/catalogue/categories', {
       name: { fr: catForm.name, en: catForm.name },
       icon: catForm.icon || undefined,
+      establishmentType: catForm.establishmentType || undefined,
     }),
     onSuccess: () => {
       toast.success('Catégorie créée')
       qc.invalidateQueries({ queryKey: qKey })
       setCatModal(false)
-      setCatForm({ name: '', icon: '' })
+      setCatForm({ name: '', icon: '', establishmentType: '' })
     },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  // Réassignation manuelle du type d'établissement d'une catégorie existante
+  // (catégories historiques créées avant ce champ, establishmentType null).
+  const reassignMutation = useMutation({
+    mutationFn: ({ id, establishmentType }: { id: string; establishmentType: string }) =>
+      api.patch(`/admin/catalogue/categories/${id}`, { establishmentType: establishmentType || null }),
+    onSuccess: () => { toast.success('Catégorie rattachée'); qc.invalidateQueries({ queryKey: qKey }) },
     onError: (e: any) => toast.error(e.message),
   })
 
@@ -664,13 +696,13 @@ const GlobalCategoriesPanel: React.FC = () => {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-black text-ink flex items-center gap-2">
-            <Tag size={17} className="text-brand-green"/> Catégories générales
+            <Tag size={17} className="text-brand-green"/> Catégories de catalogue
           </h2>
           <p className="text-sm text-ink3 font-semibold mt-0.5">
-            Ces catégories sont disponibles pour tous les établissements
+            Rattachées à un type d'établissement — un restaurant ne voit que ses propres catégories
           </p>
         </div>
-        <button onClick={() => { setCatForm({ name: '', icon: '' }); setCatModal(true) }} className="btn-primary">
+        <button onClick={() => { setCatForm({ name: '', icon: '', establishmentType: '' }); setCatModal(true) }} className="btn-primary">
           <FolderPlus size={15}/> Nouvelle catégorie
         </button>
       </div>
@@ -684,45 +716,71 @@ const GlobalCategoriesPanel: React.FC = () => {
           <p className="text-ink3 text-xs mt-1">Crée des catégories générales (Plats, Boissons, Entrées…)</p>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          {categories.map((cat: any) => {
-            const productCount: number = cat._count?.products ?? 0
-            const hasProducts = productCount > 0
+        <div className="space-y-5">
+          {[...ESTABLISHMENT_TYPES.map(t => t.value), null].map((typeValue) => {
+            const group = categories.filter((c: any) => (c.establishmentType ?? null) === typeValue)
+            if (group.length === 0) return null
             return (
-              <div key={cat.id}
-                className="flex items-center gap-2 px-3 py-2 bg-card border border-edge rounded-xl text-sm font-semibold text-ink">
-                {cat.icon && <span className="text-base leading-none">{cat.icon}</span>}
-                <span>{cat.name?.fr || cat.name?.en || cat.name}</span>
-                {/* Badge produits — visible uniquement si la catégorie est utilisée */}
-                {hasProducts && (
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full leading-none">
-                    {productCount} produit{productCount > 1 ? 's' : ''}
-                  </span>
-                )}
-                {hasProducts ? (
-                  /* Bouton désactivé avec tooltip explicatif */
-                  <span
-                    title={`Impossible de supprimer : ${productCount} produit${productCount > 1 ? 's' : ''} utilise${productCount > 1 ? 'nt' : ''} cette catégorie`}
-                    className="ml-1 p-0.5 text-ink3 cursor-not-allowed rounded"
-                  >
-                    <X size={13}/>
-                  </span>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: 'Supprimer cette catégorie ?',
-                        message: `« ${cat.name?.fr ?? cat.name} » sera définitivement supprimée.`,
-                        variant: 'danger', confirmLabel: 'Supprimer',
-                      })
-                      if (ok) deleteMutation.mutate(cat.id)
-                    }}
-                    className="ml-1 p-0.5 text-ink3 hover:text-red-400 rounded transition-colors"
-                    title="Supprimer"
-                  >
-                    <X size={13}/>
-                  </button>
-                )}
+              <div key={typeValue ?? 'unassigned'}>
+                <div className="text-xs font-black text-ink3 uppercase tracking-wide mb-2 flex items-center gap-2">
+                  {establishmentLabel(typeValue)}
+                  {typeValue === null && (
+                    <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full normal-case">
+                      à rattacher manuellement
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {group.map((cat: any) => {
+                    const productCount: number = cat._count?.products ?? 0
+                    const hasProducts = productCount > 0
+                    return (
+                      <div key={cat.id}
+                        className="flex items-center gap-2 px-3 py-2 bg-card border border-edge rounded-xl text-sm font-semibold text-ink">
+                        {cat.icon && <span className="text-base leading-none">{cat.icon}</span>}
+                        <span>{cat.name?.fr || cat.name?.en || cat.name}</span>
+                        {hasProducts && (
+                          <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full leading-none">
+                            {productCount} produit{productCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {/* Réassignation manuelle du type d'établissement */}
+                        <select
+                          value={cat.establishmentType ?? ''}
+                          onChange={e => reassignMutation.mutate({ id: cat.id, establishmentType: e.target.value })}
+                          className="text-xs bg-transparent border border-edge2 rounded-lg px-1.5 py-0.5 text-ink2 cursor-pointer"
+                          title="Rattacher à un type d'établissement"
+                        >
+                          <option value="">— Non assignée —</option>
+                          {ESTABLISHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                        {hasProducts ? (
+                          <span
+                            title={`Impossible de supprimer : ${productCount} produit${productCount > 1 ? 's' : ''} utilise${productCount > 1 ? 'nt' : ''} cette catégorie`}
+                            className="ml-1 p-0.5 text-ink3 cursor-not-allowed rounded"
+                          >
+                            <X size={13}/>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              const ok = await confirm({
+                                title: 'Supprimer cette catégorie ?',
+                                message: `« ${cat.name?.fr ?? cat.name} » sera définitivement supprimée.`,
+                                variant: 'danger', confirmLabel: 'Supprimer',
+                              })
+                              if (ok) deleteMutation.mutate(cat.id)
+                            }}
+                            className="ml-1 p-0.5 text-ink3 hover:text-red-400 rounded transition-colors"
+                            title="Supprimer"
+                          >
+                            <X size={13}/>
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
@@ -740,6 +798,14 @@ const GlobalCategoriesPanel: React.FC = () => {
             <label className="label">Icône (emoji, optionnel)</label>
             <input value={catForm.icon} onChange={e => setCatForm(f => ({...f, icon: e.target.value}))}
               placeholder="🍕" className="input w-full"/>
+          </div>
+          <div>
+            <label className="label">Type d'établissement</label>
+            <select value={catForm.establishmentType} onChange={e => setCatForm(f => ({...f, establishmentType: e.target.value}))}
+              className="input w-full">
+              <option value="">— Non assignée —</option>
+              {ESTABLISHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
           </div>
           <div className="flex gap-3 pt-1">
             <button onClick={() => setCatModal(false)} className="btn-secondary flex-1 justify-center">Annuler</button>
