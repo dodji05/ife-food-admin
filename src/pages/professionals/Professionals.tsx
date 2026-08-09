@@ -36,7 +36,9 @@ const PROMO_TYPES = [
 ]
 
 
-const isEditableByAdmin = (user: any) => user?.createdByAdmin === true && !user?.lastLoginAt
+// Verrou "compte créé par admin + jamais connecté" retiré à la demande —
+// l'admin peut désormais éditer n'importe quel compte professionnel.
+const isEditableByAdmin = (_user: any) => true
 
 // ─── Formulaire Professionnel ──────────────────────────────────────────────────
 interface ProFormProps {

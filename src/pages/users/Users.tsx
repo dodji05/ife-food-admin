@@ -22,7 +22,9 @@ const TX_LABELS: Record<string, string> = {
   ADMIN_DEBIT: 'Débit admin',
 }
 
-const isEditableByAdmin = (u: any) => u?.createdByAdmin === true && !u?.lastLoginAt
+// Verrou "compte créé par admin + jamais connecté" retiré à la demande —
+// l'admin peut désormais éditer n'importe quel compte client.
+const isEditableByAdmin = (_u: any) => true
 
 
 // ─── Formulaire Créer / Modifier ──────────────────────────────────────────────

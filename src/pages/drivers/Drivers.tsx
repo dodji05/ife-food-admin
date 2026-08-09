@@ -25,7 +25,9 @@ const VEHICLE_LABELS: Record<string, string> = {
 
 const DRIVER_STATUSES = ['PENDING', 'VALIDATED', 'REJECTED', 'OFFLINE', 'ONLINE', 'BANNED']
 
-const isEditableByAdmin = (user: any) => user?.createdByAdmin === true && !user?.lastLoginAt
+// Verrou "compte créé par admin + jamais connecté" retiré à la demande —
+// l'admin peut désormais éditer n'importe quel compte livreur.
+const isEditableByAdmin = (_user: any) => true
 
 interface DriverFormProps {
   initial?: any
