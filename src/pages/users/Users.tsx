@@ -32,9 +32,15 @@ interface UserFormProps {
   initial?: any
   onSubmit: (data: any) => void
   loading: boolean
+  // GPS de l'adresse par défaut du client — édition optionnelle, uniquement
+  // en mode édition et si une adresse existe déjà (les coordonnées vivent
+  // sur UserAddress, pas sur User -> mise à jour via un appel séparé).
+  defaultAddress?: any
+  onSaveGps?: (lat: number, lng: number) => void
+  savingGps?: boolean
 }
 
-const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
+const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading, defaultAddress, onSaveGps, savingGps }) => {
   const isEdit = !!initial
   const [form, setForm] = useState({
     firstName: initial?.firstName ?? '',
@@ -46,9 +52,16 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
     role:        initial?.role        ?? 'CLIENT',
     pin:         '',
   })
+  const [gpsLat, setGpsLat] = useState(defaultAddress?.lat != null ? String(defaultAddress.lat) : '')
+  const [gpsLng, setGpsLng] = useState(defaultAddress?.lng != null ? String(defaultAddress.lng) : '')
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const gpsChanged = defaultAddress && (
+    gpsLat !== (defaultAddress.lat != null ? String(defaultAddress.lat) : '') ||
+    gpsLng !== (defaultAddress.lng != null ? String(defaultAddress.lng) : '')
+  )
 
   return (
     <div className="space-y-3">
@@ -118,6 +131,38 @@ const UserForm: React.FC<UserFormProps> = ({ initial, onSubmit, loading }) => {
         className="btn-primary w-full justify-center">
         {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer les modifications' : 'Créer le compte'}
       </button>
+
+      {/* Coordonnées GPS — adresse par défaut du client. Endpoint séparé
+          (UserAddress, pas User) donc bouton d'enregistrement distinct. */}
+      {isEdit && (
+        <div className="pt-3 mt-3 border-t border-edge2 space-y-3">
+          <label className="block text-[10px] font-bold text-ink3 uppercase tracking-wider">
+            Coordonnées GPS {defaultAddress ? `(${defaultAddress.label})` : ''}
+          </label>
+          {!defaultAddress ? (
+            <p className="text-xs text-ink3 italic">Aucune adresse enregistrée pour ce client — rien à géolocaliser.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <input className="input w-full font-mono text-sm" type="number" step="any"
+                  placeholder="Latitude" value={gpsLat} onChange={e => setGpsLat(e.target.value)}/>
+                <input className="input w-full font-mono text-sm" type="number" step="any"
+                  placeholder="Longitude" value={gpsLng} onChange={e => setGpsLng(e.target.value)}/>
+              </div>
+              <button
+                onClick={() => {
+                  const lat = Number(gpsLat), lng = Number(gpsLng)
+                  if (gpsLat === '' || gpsLng === '' || isNaN(lat) || isNaN(lng)) { toast.error('Coordonnées invalides'); return }
+                  onSaveGps?.(lat, lng)
+                }}
+                disabled={!gpsChanged || savingGps}
+                className="btn-secondary w-full justify-center text-sm">
+                {savingGps ? 'Enregistrement…' : 'Enregistrer les coordonnées GPS'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -235,8 +280,9 @@ export const Users: React.FC = () => {
   const { data: addresses = [] } = useQuery({
     queryKey: ['user-addresses', selected?.id],
     queryFn: () => api.get(`/admin/users/${selected.id}/addresses`).then((r: any) => r?.data?.data ?? r?.data ?? []),
-    enabled: !!selected?.id && userTab === 'addresses',
+    enabled: !!selected?.id && (userTab === 'addresses' || userTab === 'edit'),
   })
+  const defaultAddress = addresses.find((a: any) => a.isDefault) ?? addresses[0] ?? null
 
   const updateAddressGpsMutation = useMutation({
     mutationFn: ({ addressId, lat, lng }: { addressId: string; lat: number; lng: number }) =>
@@ -511,6 +557,9 @@ export const Users: React.FC = () => {
                 initial={selected}
                 onSubmit={(dto) => updateMutation.mutate(dto)}
                 loading={updateMutation.isPending}
+                defaultAddress={defaultAddress}
+                onSaveGps={(lat, lng) => updateAddressGpsMutation.mutate({ addressId: defaultAddress.id, lat, lng })}
+                savingGps={updateAddressGpsMutation.isPending}
               />
             )}
 
