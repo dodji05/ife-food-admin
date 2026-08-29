@@ -4,7 +4,7 @@ import {
   Save, Bell, Clock, Shield, Globe, DollarSign,
   Users, ChevronRight, Plus, Trash2, Pencil, CheckCircle, XCircle,
   Key, Eye, EyeOff, ChevronDown, ArrowUpDown, Map as MapIcon, RefreshCw,
-  Phone, Mail, MessageCircle, HeadphonesIcon,
+  Phone, Mail, MessageCircle, HeadphonesIcon, Truck,
 } from 'lucide-react'
 // génère un id local simple pour les nouveaux contacts avant sauvegarde
 const newId = () => Math.random().toString(36).slice(2, 10)
@@ -1060,6 +1060,104 @@ const MAPS_CRED_FIELDS: Record<string, { label: string; emoji: string; fields: M
   },
 }
 
+// ─── Dispatch (attribution automatique des missions livreurs) ─────────────────
+const VEHICLE_TYPES = [
+  { key: 'ON_FOOT',    label: 'À pied' },
+  { key: 'BICYCLE',    label: 'Vélo' },
+  { key: 'MOTORCYCLE', label: 'Moto' },
+  { key: 'TRICYCLE',   label: 'Tricycle' },
+  { key: 'CAR',        label: 'Voiture' },
+]
+
+const DispatchTab: React.FC = () => {
+  const qc = useQueryClient()
+  const [radiusKm, setRadiusKm] = useState(20)
+  const [timeoutSeconds, setTimeoutSeconds] = useState(30)
+  const [capacities, setCapacities] = useState<Record<string, number>>({})
+  const [loaded, setLoaded] = useState(false)
+
+  useQuery({
+    queryKey: ['dispatch-config'],
+    queryFn: () => api.get('/admin/config/dispatch').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: !loaded,
+    select: (d: any) => {
+      if (!loaded && d) {
+        setRadiusKm(d.radiusKm ?? 20)
+        setTimeoutSeconds(d.timeoutSeconds ?? 30)
+        setCapacities(d.vehicleCapacities ?? {})
+        setLoaded(true)
+      }
+      return d
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: () => api.put('/admin/config/dispatch', { radiusKm, timeoutSeconds, vehicleCapacities: capacities }),
+    onSuccess: () => {
+      toast.success('Paramètres de dispatch enregistrés !')
+      qc.invalidateQueries({ queryKey: ['dispatch-config'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+            <Truck size={16} className="text-brand-green"/>
+          </div>
+          <h3 className="text-base font-black text-ink">Attribution automatique des missions</h3>
+        </div>
+        <p className="text-xs text-ink3">
+          Dès qu'une commande est prête, elle est proposée aux livreurs éligibles. Le plus proche de l'établissement est notifié en priorité.
+        </p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-ink2 mb-1.5">Rayon d'éligibilité (km)</label>
+            <input type="number" min={1} value={radiusKm}
+              onChange={e => setRadiusKm(Number(e.target.value))}
+              className="input w-full"/>
+            <p className="text-[11px] text-ink3 mt-1">Distance max entre le livreur et l'établissement pour être notifié.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-ink2 mb-1.5">Délai d'acceptation (secondes)</label>
+            <input type="number" min={5} value={timeoutSeconds}
+              onChange={e => setTimeoutSeconds(Number(e.target.value))}
+              className="input w-full"/>
+            <p className="text-[11px] text-ink3 mt-1">Avant de réessayer avec d'autres livreurs si personne n'accepte.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-5 space-y-4">
+        <h3 className="text-base font-black text-ink">Missions simultanées par véhicule</h3>
+        <p className="text-xs text-ink3">Nombre max de livraisons actives en même temps, selon le type de véhicule.</p>
+        <div className="grid grid-cols-2 gap-4">
+          {VEHICLE_TYPES.map(({ key, label }) => (
+            <div key={key}>
+              <label className="block text-xs font-bold text-ink2 mb-1.5">{label}</label>
+              <input type="number" min={1} value={capacities[key] ?? ''}
+                placeholder="—"
+                onChange={e => setCapacities(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                className="input w-full"/>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+        className="btn-primary flex items-center gap-2">
+        <Save size={14}/>
+        {saveMutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
+      </button>
+    </div>
+  )
+}
+
 const MapsTab: React.FC = () => {
   const qc = useQueryClient()
   const [activeProvider, setActiveProvider] = useState<string>('GOOGLE_MAPS')
@@ -1252,7 +1350,7 @@ const MapsTab: React.FC = () => {
 }
 
 // ─── Page principale ──────────────────────────────────────────────────────────
-type Tab = 'general' | 'countries' | 'currencies' | 'admins' | 'roles' | 'maps'
+type Tab = 'general' | 'countries' | 'currencies' | 'admins' | 'roles' | 'maps' | 'dispatch'
 
 const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: 'general',    label: 'Général',          Icon: Shield },
@@ -1261,6 +1359,7 @@ const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: 'admins',     label: 'Comptes admin',    Icon: Users },
   { key: 'roles',      label: 'Rôles',            Icon: Shield },
   { key: 'maps',       label: 'Géolocalisation',  Icon: MapIcon },
+  { key: 'dispatch',   label: 'Dispatch',         Icon: Truck },
 ]
 
 export const Settings: React.FC = () => {
@@ -1285,6 +1384,7 @@ export const Settings: React.FC = () => {
       {tab === 'admins'     && <AdminsTab/>}
       {tab === 'roles'      && <RolesTab/>}
       {tab === 'maps'       && <MapsTab/>}
+      {tab === 'dispatch'   && <DispatchTab/>}
     </div>
   )
 }
