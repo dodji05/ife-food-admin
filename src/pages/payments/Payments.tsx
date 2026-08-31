@@ -683,8 +683,9 @@ const GatewaysTab: React.FC = () => {
         payload[gw] = {}
         for (const field of fields) {
           if (field.type === 'boolean') {
-            const edited = editedCreds[gw]?.[field.key]
-            payload[gw][field.key] = edited !== undefined ? edited : (maskedCreds[gw]?.[field.key] ?? true)
+            // Toujours un vrai booléen envoyé au backend, jamais une chaîne
+            // "true"/"false" — cf. commentaire de getSandboxValue ci-dessus.
+            payload[gw][field.key] = getSandboxValue(gw)
           } else {
             const val = editedCreds[gw]?.[field.key]
             payload[gw][field.key] = (val !== undefined && val !== '') ? val : '__keep__'
@@ -709,10 +710,20 @@ const GatewaysTab: React.FC = () => {
   const toggleShow = (fieldId: string) => setShowFields(prev => ({ ...prev, [fieldId]: !prev[fieldId] }))
   const toggleExpand = (gw: string) => setExpandedGw(prev => ({ ...prev, [gw]: !prev[gw] }))
 
+  // Coercition explicite : certaines passerelles (ex. FedaPay) peuvent avoir
+  // 'sandbox' stocké en base comme la chaîne "false" plutôt qu'un booléen
+  // (Boolean("false") vaut true en JS) — ce qui bloquait visuellement le
+  // toggle sur SANDBOX quel que soit le clic.
+  const toBool = (v: unknown, fallback: boolean): boolean => {
+    if (v === undefined || v === null) return fallback
+    if (typeof v === 'string') return v === 'true'
+    return Boolean(v)
+  }
+
   const getSandboxValue = (gw: string): boolean => {
     const edited = editedCreds[gw]?.sandbox
-    if (edited !== undefined) return edited as boolean
-    return maskedCreds[gw]?.sandbox ?? true
+    if (edited !== undefined) return toBool(edited, true)
+    return toBool(maskedCreds[gw]?.sandbox, true)
   }
 
   const gatewayStats: any[] = payStats?.gatewayStats ?? []
