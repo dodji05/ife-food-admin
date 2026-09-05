@@ -1158,6 +1158,80 @@ const DispatchTab: React.FC = () => {
   )
 }
 
+// ─── Inscriptions (validation auto livreurs/pros) ──────────────────────────────
+const RegistrationTab: React.FC = () => {
+  const qc = useQueryClient()
+  const [autoValidateDrivers, setAutoValidateDrivers] = useState(true)
+  const [autoValidateProfessionals, setAutoValidateProfessionals] = useState(true)
+  const [loaded, setLoaded] = useState(false)
+
+  useQuery({
+    queryKey: ['registration-config'],
+    queryFn: () => api.get('/admin/config/registration').then(unwrap),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: !loaded,
+    select: (d: any) => {
+      if (!loaded && d) {
+        setAutoValidateDrivers(d.autoValidateDrivers ?? true)
+        setAutoValidateProfessionals(d.autoValidateProfessionals ?? true)
+        setLoaded(true)
+      }
+      return d
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: () => api.put('/admin/config/registration', { autoValidateDrivers, autoValidateProfessionals }),
+    onSuccess: () => {
+      toast.success('Paramètres d\'inscription enregistrés !')
+      qc.invalidateQueries({ queryKey: ['registration-config'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-brand-green/10 border border-brand-green/20 flex items-center justify-center">
+            <Shield size={16} className="text-brand-green"/>
+          </div>
+          <h3 className="text-base font-black text-ink">Validation à l'inscription</h3>
+        </div>
+        <p className="text-xs text-ink3">
+          Quand activé, le compte devient actif immédiatement à la fin de l'inscription
+          (reçoit des commandes/missions tout de suite), sans validation admin préalable.
+          Désactivé = retour au contrôle manuel classique (statut "En attente" jusqu'à
+          validation dans Professionnels/Livreurs).
+        </p>
+
+        <div className="flex items-center justify-between py-2 border-t border-edge2">
+          <div>
+            <div className="text-sm font-bold text-ink">Professionnels</div>
+            <div className="text-[11px] text-ink3">Validation automatique à l'inscription</div>
+          </div>
+          <Toggle checked={autoValidateProfessionals} onChange={setAutoValidateProfessionals}/>
+        </div>
+
+        <div className="flex items-center justify-between py-2 border-t border-edge2">
+          <div>
+            <div className="text-sm font-bold text-ink">Livreurs</div>
+            <div className="text-[11px] text-ink3">Validation automatique à l'inscription</div>
+          </div>
+          <Toggle checked={autoValidateDrivers} onChange={setAutoValidateDrivers}/>
+        </div>
+      </div>
+
+      <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+        className="btn-primary flex items-center gap-2">
+        <Save size={14}/>
+        {saveMutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
+      </button>
+    </div>
+  )
+}
+
 const MapsTab: React.FC = () => {
   const qc = useQueryClient()
   const [activeProvider, setActiveProvider] = useState<string>('GOOGLE_MAPS')
@@ -1350,7 +1424,7 @@ const MapsTab: React.FC = () => {
 }
 
 // ─── Page principale ──────────────────────────────────────────────────────────
-type Tab = 'general' | 'countries' | 'currencies' | 'admins' | 'roles' | 'maps' | 'dispatch'
+type Tab = 'general' | 'countries' | 'currencies' | 'admins' | 'roles' | 'maps' | 'dispatch' | 'registration'
 
 const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: 'general',    label: 'Général',          Icon: Shield },
@@ -1360,6 +1434,7 @@ const TABS: { key: Tab; label: string; Icon: React.ElementType }[] = [
   { key: 'roles',      label: 'Rôles',            Icon: Shield },
   { key: 'maps',       label: 'Géolocalisation',  Icon: MapIcon },
   { key: 'dispatch',   label: 'Dispatch',         Icon: Truck },
+  { key: 'registration', label: 'Inscriptions',   Icon: CheckCircle },
 ]
 
 export const Settings: React.FC = () => {
@@ -1385,6 +1460,7 @@ export const Settings: React.FC = () => {
       {tab === 'roles'      && <RolesTab/>}
       {tab === 'maps'       && <MapsTab/>}
       {tab === 'dispatch'   && <DispatchTab/>}
+      {tab === 'registration' && <RegistrationTab/>}
     </div>
   )
 }
