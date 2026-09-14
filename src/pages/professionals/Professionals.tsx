@@ -9,6 +9,8 @@ import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
 import { useConfirm } from '../../hooks/useConfirm'
+import { usePasswordPrompt } from '../../hooks/usePasswordPrompt'
+import { useAuthStore } from '../../store/auth'
 import { unwrap } from '../../utils/api'
 import { COUNTRIES } from '../../constants/countries'
 import {
@@ -671,6 +673,8 @@ export const Professionals: React.FC = () => {
   const { country } = useFiltersStore()
   const qc = useQueryClient()
   const confirm = useConfirm()
+  const promptPassword = usePasswordPrompt()
+  const isSuperAdmin = useAuthStore(s => s.user?.admin?.level === 'SUPER_ADMIN')
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
     queryKey: ['pending-professionals'],
@@ -759,13 +763,14 @@ export const Professionals: React.FC = () => {
   })
 
   const hardDeleteMutation = useMutation({
-    mutationFn: (userId: string) => api.delete(`/admin/users/${userId}/permanent`),
+    mutationFn: ({ userId, password }: { userId: string; password: string }) =>
+      api.delete(`/admin/users/${userId}/permanent`, { data: { password } }),
     onSuccess: () => {
       toast.success('Compte supprimé définitivement')
       qc.invalidateQueries({ queryKey: ['all-professionals'] })
       setSelectedId(null)
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
   })
 
   const openDetail = (row: any) => {
@@ -1020,16 +1025,24 @@ export const Professionals: React.FC = () => {
                     }} disabled={deleteMutation.isPending} className="btn-secondary text-sm justify-center flex-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10">
                       <UserX size={14}/> Bannir
                     </button>
-                    <button onClick={async () => {
-                      const ok = await confirm({
-                        title: 'Supprimer définitivement cet établissement ?',
-                        message: `${selected.businessName} et toutes ses données (produits, commandes, paiements, avis…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
-                        variant: 'danger', confirmLabel: 'Supprimer définitivement',
-                      })
-                      if (ok) hardDeleteMutation.mutate(selected.user.id)
-                    }} disabled={hardDeleteMutation.isPending} className="btn-danger text-sm justify-center flex-1">
-                      <Trash2 size={14}/> Supprimer définitivement
-                    </button>
+                    {isSuperAdmin && (
+                      <button onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Supprimer définitivement cet établissement ?',
+                          message: `${selected.businessName} et toutes ses données (produits, commandes, paiements, avis…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
+                          variant: 'danger', confirmLabel: 'Supprimer définitivement',
+                        })
+                        if (!ok) return
+                        const password = await promptPassword({
+                          title: 'Confirmer votre identité',
+                          message: 'Entrez votre mot de passe pour confirmer la suppression définitive.',
+                          confirmLabel: 'Supprimer définitivement',
+                        })
+                        if (password) hardDeleteMutation.mutate({ userId: selected.user.id, password })
+                      }} disabled={hardDeleteMutation.isPending} className="btn-danger text-sm justify-center flex-1">
+                        <Trash2 size={14}/> Supprimer définitivement
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

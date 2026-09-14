@@ -9,6 +9,8 @@ import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatCFA } from '../../utils/format'
 import { useFiltersStore } from '../../store/filters'
 import { useConfirm } from '../../hooks/useConfirm'
+import { usePasswordPrompt } from '../../hooks/usePasswordPrompt'
+import { useAuthStore } from '../../store/auth'
 import { COUNTRIES } from '../../constants/countries'
 import {
   UserX, UserCheck, Trash2, ExternalLink, Wallet, TrendingUp, TrendingDown,
@@ -249,6 +251,8 @@ const AddressGpsRow: React.FC<AddressGpsRowProps> = ({ address, onSave, saving }
 export const Users: React.FC = () => {
   const qc = useQueryClient()
   const confirm = useConfirm()
+  const promptPassword = usePasswordPrompt()
+  const isSuperAdmin = useAuthStore(s => s.user?.admin?.level === 'SUPER_ADMIN')
   const { country } = useFiltersStore()
   const [region, setRegion] = useState('')
   const [city, setCity] = useState('')
@@ -313,9 +317,10 @@ export const Users: React.FC = () => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/admin/users/${id}/permanent`),
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      api.delete(`/admin/users/${id}/permanent`, { data: { password } }),
     onSuccess: () => { toast.success('Compte supprimé définitivement'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setSelected(null) },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
   })
 
   const createMutation = useMutation({
@@ -534,7 +539,7 @@ export const Users: React.FC = () => {
                         <UserCheck size={15}/> Réactiver
                       </button>
                   }
-                  {isEditableByAdmin(selected) && (
+                  {isEditableByAdmin(selected) && isSuperAdmin && (
                     <button onClick={async () => {
                       const ok = await confirm({
                         title: 'Supprimer définitivement ce compte ?',
@@ -542,7 +547,13 @@ export const Users: React.FC = () => {
                         variant: 'danger',
                         confirmLabel: 'Supprimer définitivement',
                       })
-                      if (ok) deleteMutation.mutate(selected.id)
+                      if (!ok) return
+                      const password = await promptPassword({
+                        title: 'Confirmer votre identité',
+                        message: 'Entrez votre mot de passe pour confirmer la suppression définitive.',
+                        confirmLabel: 'Supprimer définitivement',
+                      })
+                      if (password) deleteMutation.mutate({ id: selected.id, password })
                     }} disabled={deleteMutation.isPending} className="btn-danger justify-center px-4">
                       <Trash2 size={15}/>
                     </button>

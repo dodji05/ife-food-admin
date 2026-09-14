@@ -7,6 +7,8 @@ import { Modal } from '../../components/ui/Modal'
 import { ReferralTab } from '../../components/ui/ReferralTab'
 import { formatDateTime, formatDate, formatCFA } from '../../utils/format'
 import { useConfirm } from '../../hooks/useConfirm'
+import { usePasswordPrompt } from '../../hooks/usePasswordPrompt'
+import { useAuthStore } from '../../store/auth'
 import { unwrap } from '../../utils/api'
 import { COUNTRIES } from '../../constants/countries'
 import {
@@ -192,6 +194,8 @@ export const Drivers: React.FC = () => {
 
   const qc = useQueryClient()
   const confirm = useConfirm()
+  const promptPassword = usePasswordPrompt()
+  const isSuperAdmin = useAuthStore(s => s.user?.admin?.level === 'SUPER_ADMIN')
 
   const { data: deliveryZones = [] } = useQuery({
     queryKey: ['delivery-zones'],
@@ -291,7 +295,8 @@ export const Drivers: React.FC = () => {
   })
 
   const hardDeleteMutation = useMutation({
-    mutationFn: (userId: string) => api.delete(`/admin/users/${userId}/permanent`),
+    mutationFn: ({ userId, password }: { userId: string; password: string }) =>
+      api.delete(`/admin/users/${userId}/permanent`, { data: { password } }),
     onSuccess: () => {
       toast.success('Compte supprimé définitivement')
       qc.invalidateQueries({ queryKey: ['all-drivers'] })
@@ -517,19 +522,27 @@ export const Drivers: React.FC = () => {
                       }}
                       className="p-2 text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                     ><UserX size={15}/></button>
-                    <button
-                      title="Supprimer définitivement"
-                      onClick={async () => {
-                        const ok = await confirm({
-                          title: 'Supprimer définitivement ce livreur ?',
-                          message: `Le compte de ${selected.user?.name || 'ce livreur'} et toutes ses données (missions, paiements, avis, wallet…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
-                          variant: 'danger',
-                          confirmLabel: 'Supprimer définitivement',
-                        })
-                        if (ok) hardDeleteMutation.mutate(selected.user.id)
-                      }}
-                      className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    ><Trash2 size={15}/></button>
+                    {isSuperAdmin && (
+                      <button
+                        title="Supprimer définitivement"
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: 'Supprimer définitivement ce livreur ?',
+                            message: `Le compte de ${selected.user?.name || 'ce livreur'} et toutes ses données (missions, paiements, avis, wallet…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
+                            variant: 'danger',
+                            confirmLabel: 'Supprimer définitivement',
+                          })
+                          if (!ok) return
+                          const password = await promptPassword({
+                            title: 'Confirmer votre identité',
+                            message: 'Entrez votre mot de passe pour confirmer la suppression définitive.',
+                            confirmLabel: 'Supprimer définitivement',
+                          })
+                          if (password) hardDeleteMutation.mutate({ userId: selected.user.id, password })
+                        }}
+                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      ><Trash2 size={15}/></button>
+                    )}
                   </>
                 )}
               </div>

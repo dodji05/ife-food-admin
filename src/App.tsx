@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/auth'
 import { ConfirmProvider } from './hooks/useConfirm'
+import { PasswordPromptProvider } from './hooks/usePasswordPrompt'
 import { useThemeInit } from './hooks/useTheme'
 import { Layout } from './components/layout/Layout'
 import { Login } from './pages/auth/Login'
@@ -45,6 +46,7 @@ export default function App() {
   useThemeInit()
   return (
     <ConfirmProvider>
+      <PasswordPromptProvider>
       <Routes>
         <Route path="/login" element={<Login/>}/>
         <Route path="/legal/:pageSlug" element={<LegalPage/>}/>
@@ -68,6 +70,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace/>}/>
       </Routes>
+      </PasswordPromptProvider>
     </ConfirmProvider>
   )
 }
