@@ -11,7 +11,7 @@ import { unwrap } from '../../utils/api'
 import { COUNTRIES } from '../../constants/countries'
 import {
   CheckCircle, XCircle, AlertTriangle, Truck, Phone, Mail,
-  MapPin, FileText, Package, Plus, Trash2, Gift,
+  MapPin, FileText, Package, Plus, Trash2, Gift, UserX,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -283,7 +283,17 @@ export const Drivers: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/drivers/${id}`),
     onSuccess: () => {
-      toast.success('Livreur supprimé')
+      toast.success('Livreur banni')
+      qc.invalidateQueries({ queryKey: ['all-drivers'] })
+      setSelectedId(null)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const hardDeleteMutation = useMutation({
+    mutationFn: (userId: string) => api.delete(`/admin/users/${userId}/permanent`),
+    onSuccess: () => {
+      toast.success('Compte supprimé définitivement')
       qc.invalidateQueries({ queryKey: ['all-drivers'] })
       setSelectedId(null)
     },
@@ -493,19 +503,34 @@ export const Drivers: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Badge status={selected.status || 'PENDING'}/>
                 {isEditableByAdmin(selected.user) && (
-                  <button
-                    title="Supprimer"
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: 'Supprimer ce livreur ?',
-                        message: 'Le compte sera désactivé (BANNED). Cette action est irréversible.',
-                        variant: 'danger',
-                        confirmLabel: 'Supprimer',
-                      })
-                      if (ok) deleteMutation.mutate(selected.id)
-                    }}
-                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                  ><Trash2 size={15}/></button>
+                  <>
+                    <button
+                      title="Bannir (désactiver)"
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Bannir ce livreur ?',
+                          message: 'Le compte sera désactivé (BANNED) mais les données restent conservées. Réversible depuis l\'admin.',
+                          variant: 'danger',
+                          confirmLabel: 'Bannir',
+                        })
+                        if (ok) deleteMutation.mutate(selected.id)
+                      }}
+                      className="p-2 text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                    ><UserX size={15}/></button>
+                    <button
+                      title="Supprimer définitivement"
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Supprimer définitivement ce livreur ?',
+                          message: `Le compte de ${selected.user?.name || 'ce livreur'} et toutes ses données (missions, paiements, avis, wallet…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
+                          variant: 'danger',
+                          confirmLabel: 'Supprimer définitivement',
+                        })
+                        if (ok) hardDeleteMutation.mutate(selected.user.id)
+                      }}
+                      className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    ><Trash2 size={15}/></button>
+                  </>
                 )}
               </div>
             </div>

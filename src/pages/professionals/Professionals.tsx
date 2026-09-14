@@ -14,7 +14,7 @@ import { COUNTRIES } from '../../constants/countries'
 import {
   CheckCircle, XCircle, AlertTriangle, Building2, Phone, Mail, MapPin, FileText,
   ShoppingCart, ChevronDown, ChevronRight, Eye, Plus, Edit2, Trash2,
-  Tag, ToggleLeft, ToggleRight,
+  Tag, ToggleLeft, ToggleRight, UserX,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -751,7 +751,17 @@ export const Professionals: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/professionals/${id}`),
     onSuccess: () => {
-      toast.success('Établissement supprimé')
+      toast.success('Établissement banni')
+      qc.invalidateQueries({ queryKey: ['all-professionals'] })
+      setSelectedId(null)
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const hardDeleteMutation = useMutation({
+    mutationFn: (userId: string) => api.delete(`/admin/users/${userId}/permanent`),
+    onSuccess: () => {
+      toast.success('Compte supprimé définitivement')
       qc.invalidateQueries({ queryKey: ['all-professionals'] })
       setSelectedId(null)
     },
@@ -1003,12 +1013,24 @@ export const Professionals: React.FC = () => {
                 )}
                 <div className="text-xs text-ink3 text-right">Inscrit le {formatDate(selected.createdAt)}</div>
                 {isEditableByAdmin(selected.user) && (
-                  <button onClick={async () => {
-                    const ok = await confirm({ title: 'Supprimer cet établissement ?', message: `${selected.businessName} sera banni et le compte propriétaire désactivé. Action irréversible.`, variant: 'danger', confirmLabel: 'Supprimer' })
-                    if (ok) deleteMutation.mutate(selected.id)
-                  }} disabled={deleteMutation.isPending} className="btn-danger text-sm justify-center w-full">
-                    <Trash2 size={14}/> Supprimer l'établissement
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      const ok = await confirm({ title: 'Bannir cet établissement ?', message: `${selected.businessName} sera désactivé (BANNED) mais les données restent conservées. Réversible depuis l'admin.`, variant: 'danger', confirmLabel: 'Bannir' })
+                      if (ok) deleteMutation.mutate(selected.id)
+                    }} disabled={deleteMutation.isPending} className="btn-secondary text-sm justify-center flex-1 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10">
+                      <UserX size={14}/> Bannir
+                    </button>
+                    <button onClick={async () => {
+                      const ok = await confirm({
+                        title: 'Supprimer définitivement cet établissement ?',
+                        message: `${selected.businessName} et toutes ses données (produits, commandes, paiements, avis…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
+                        variant: 'danger', confirmLabel: 'Supprimer définitivement',
+                      })
+                      if (ok) hardDeleteMutation.mutate(selected.user.id)
+                    }} disabled={hardDeleteMutation.isPending} className="btn-danger text-sm justify-center flex-1">
+                      <Trash2 size={14}/> Supprimer définitivement
+                    </button>
+                  </div>
                 )}
               </div>
             )}

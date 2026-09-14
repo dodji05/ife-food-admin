@@ -313,8 +313,8 @@ export const Users: React.FC = () => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/admin/users/${id}`),
-    onSuccess: () => { toast.success('Compte supprimé'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setSelected(null) },
+    mutationFn: (id: string) => api.delete(`/admin/users/${id}/permanent`),
+    onSuccess: () => { toast.success('Compte supprimé définitivement'); qc.invalidateQueries({ queryKey: ['admin-users'] }); setSelected(null) },
     onError: (e: any) => toast.error(e.message),
   })
 
@@ -538,9 +538,9 @@ export const Users: React.FC = () => {
                     <button onClick={async () => {
                       const ok = await confirm({
                         title: 'Supprimer définitivement ce compte ?',
-                        message: `Le compte de ${[selected.firstName, selected.name].filter(Boolean).join(' ') || selected.phone} sera effacé. Cette action est irréversible.`,
+                        message: `Le compte de ${[selected.firstName, selected.name].filter(Boolean).join(' ') || selected.phone} et toutes ses données (commandes, paiements, avis, wallet…) seront définitivement effacés. Cette action est IRRÉVERSIBLE.`,
                         variant: 'danger',
-                        confirmLabel: 'Supprimer',
+                        confirmLabel: 'Supprimer définitivement',
                       })
                       if (ok) deleteMutation.mutate(selected.id)
                     }} disabled={deleteMutation.isPending} className="btn-danger justify-center px-4">
