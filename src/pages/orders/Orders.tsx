@@ -81,6 +81,14 @@ export const Orders: React.FC = () => {
       sortable: true,
       exportValue: (r: any) => r.status,
       render: (r: any) => <Badge status={r.status}/> },
+    { key: 'orderType', label: 'Type',
+      sortable: true, hideOnMobile: true,
+      exportValue: (r: any) => r.orderType ?? 'DELIVERY',
+      render: (r: any) => {
+        const t = r.orderType ?? 'DELIVERY'
+        const label = t === 'DINE_IN' ? '🍽️ Sur place' : t === 'PICKUP' ? '🛍️ À récupérer' : '🛵 Livraison'
+        return <span className="text-xs font-semibold text-ink2">{label}</span>
+      } },
     { key: 'totalAmount', label: 'Montant',
       sortable: true,
       sortValue: (r: any) => Number(r.totalAmount) || 0,
@@ -184,7 +192,14 @@ export const Orders: React.FC = () => {
             {/* Adresse de livraison */}
             <div className="card-sm p-3 flex items-center gap-3">
               <MapPin size={16} className="text-brand-green flex-shrink-0"/>
-              <span className="text-sm text-ink2">{selectedOrder.deliveryAddress || '—'}</span>
+              <div>
+                <div className="text-xs text-ink3 font-bold mb-0.5">
+                  {selectedOrder.orderType === 'DINE_IN' ? '🍽️ Sur place'
+                    : selectedOrder.orderType === 'PICKUP' ? '🛍️ À récupérer'
+                    : '🛵 Livraison'}
+                </div>
+                <span className="text-sm text-ink2">{selectedOrder.deliveryAddress || '—'}</span>
+              </div>
             </div>
 
             {/* Articles */}
