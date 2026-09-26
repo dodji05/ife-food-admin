@@ -49,6 +49,26 @@ const resolveName = (name: any): string => {
 }
 
 export const PromoCodes: React.FC = () => {
+  const [tab, setTab] = useState<'codes' | 'product'>('codes')
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 border-b border-edge2">
+        {([
+          { key: 'codes', label: 'Codes promo' },
+          { key: 'product', label: 'Offres produit' },
+        ] as const).map(({ key, label }) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition-all ${tab === key ? 'border-brand-green text-brand-green' : 'border-transparent text-ink2 hover:text-ink'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'codes' ? <PromoCodesTab/> : <ProductPromotionsTab/>}
+    </div>
+  )
+}
+
+const PromoCodesTab: React.FC = () => {
   const qc = useQueryClient()
   const confirm = useConfirm()
   const [modalOpen, setModalOpen] = useState(false)
@@ -447,6 +467,245 @@ export const PromoCodes: React.FC = () => {
             <button onClick={closeModal} className="btn-secondary flex-1 justify-center">Annuler</button>
             <button onClick={handleSubmit} disabled={isPending} className="btn-primary flex-1 justify-center">
               {editing ? 'Enregistrer' : 'Créer'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+// ── Offres produit "N achetés = 1 offert" ────────────────────────────────
+// Distinctes des codes promo : automatiques (pas de code à saisir), liées à
+// un produit précis. Un seul produit ne peut avoir qu'une offre active.
+interface ProductPromotion {
+  id: string
+  buyQuantity: number
+  isActive: boolean
+  expiresAt: string | null
+  createdAt: string
+  professionalId: string
+  productId: string
+  professional?: { id: string; businessName: string } | null
+  product?: { id: string; name: any } | null
+}
+
+const EMPTY_PRODUCT_PROMO_FORM = {
+  professionalId: '',
+  productId: '',
+  buyQuantity: '1',
+  expiresAt: '',
+}
+
+const ProductPromotionsTab: React.FC = () => {
+  const qc = useQueryClient()
+  const confirm = useConfirm()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [form, setForm] = useState({ ...EMPTY_PRODUCT_PROMO_FORM })
+
+  const { data: promos = [], isLoading } = useQuery({
+    queryKey: ['product-promotions'],
+    queryFn: () => api.get('/admin/product-promotions').then((r: any) => {
+      if (Array.isArray(r)) return r
+      if (Array.isArray(r?.data?.data)) return r.data.data
+      if (Array.isArray(r?.data)) return r.data
+      return []
+    }),
+  })
+
+  const { data: pros = [] } = useQuery({
+    queryKey: ['all-professionals-selector'],
+    queryFn: () => api.get('/admin/professionals?limit=500').then((r: any) => r?.data?.data ?? r?.data ?? []),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: proProducts = [] } = useQuery({
+    queryKey: ['promo-pro-products', form.professionalId],
+    queryFn: () => api.get(`/admin/catalogue/${form.professionalId}`).then((r: any) => {
+      const d = r?.data?.data ?? r?.data
+      const cats: any[] = d?.categories ?? []
+      return cats.flatMap((c: any) => c.products ?? [])
+    }),
+    enabled: !!form.professionalId,
+    staleTime: 30_000,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (dto: any) => api.post('/admin/product-promotions', dto),
+    onSuccess: () => { toast.success('Offre créée'); qc.invalidateQueries({ queryKey: ['product-promotions'] }); closeModal() },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => api.patch(`/admin/product-promotions/${id}`, { isActive }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['product-promotions'] }),
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/product-promotions/${id}`),
+    onSuccess: () => { toast.success('Offre supprimée'); qc.invalidateQueries({ queryKey: ['product-promotions'] }) },
+    onError: (e: any) => toast.error(e.message),
+  })
+
+  const closeModal = () => { setModalOpen(false); setForm({ ...EMPTY_PRODUCT_PROMO_FORM }) }
+
+  const handleSubmit = () => {
+    if (!form.productId) return toast.error('Produit requis')
+    const qty = Number(form.buyQuantity)
+    if (!Number.isInteger(qty) || qty < 1) return toast.error('Nombre d\'articles invalide')
+    createMutation.mutate({
+      productId: form.productId,
+      buyQuantity: qty,
+      expiresAt: form.expiresAt || null,
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-black text-ink">Offres produit</h1>
+          <p className="text-sm text-ink2 mt-0.5">
+            {promos.length} offre{promos.length !== 1 ? 's' : ''} — «N achetés = 1 offert», automatique, sans code
+          </p>
+        </div>
+        <button onClick={() => setModalOpen(true)} className="btn-primary gap-2">
+          <Plus size={16}/> Nouvelle offre
+        </button>
+      </div>
+
+      <div className="card p-5">
+        <DataTable
+          columns={[
+            {
+              key: 'product', label: 'Produit',
+              exportValue: (r: ProductPromotion) => resolveName(r.product?.name),
+              render: (r: ProductPromotion) => <span className="text-sm font-semibold text-ink">{resolveName(r.product?.name)}</span>,
+            },
+            {
+              key: 'professional', label: 'Établissement', hideOnMobile: true,
+              exportValue: (r: ProductPromotion) => r.professional?.businessName ?? '',
+              render: (r: ProductPromotion) => <span className="text-sm text-ink2">{r.professional?.businessName ?? '—'}</span>,
+            },
+            {
+              key: 'buyQuantity', label: 'Offre',
+              exportValue: (r: ProductPromotion) => `${r.buyQuantity} achetés = 1 offert`,
+              render: (r: ProductPromotion) => (
+                <span className="font-mono font-black text-brand-green text-sm bg-brand-green/10 px-2 py-1 rounded-lg">
+                  {r.buyQuantity} achetés = 1 offert
+                </span>
+              ),
+            },
+            {
+              key: 'expiresAt', label: 'Expiration', hideOnMobile: true,
+              exportValue: (r: ProductPromotion) => r.expiresAt ?? '',
+              render: (r: ProductPromotion) => <span className="text-xs text-ink2">{formatDate(r.expiresAt)}</span>,
+            },
+            {
+              key: 'isActive', label: 'Actif',
+              exportValue: (r: ProductPromotion) => r.isActive ? 'Oui' : 'Non',
+              render: (r: ProductPromotion) => (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleMutation.mutate({ id: r.id, isActive: !r.isActive }) }}
+                  className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg transition-colors ${r.isActive ? 'text-green-400 bg-green-500/10 hover:bg-green-500/20' : 'text-ink3 bg-lift hover:bg-edge'}`}
+                >
+                  {r.isActive ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}
+                  {r.isActive ? 'Actif' : 'Inactif'}
+                </button>
+              ),
+            },
+            {
+              key: 'actions', label: '', width: '60px',
+              render: (r: ProductPromotion) => (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    const ok = await confirm({
+                      title: 'Supprimer cette offre ?',
+                      message: `L'offre «${r.buyQuantity} achetés = 1 offert» sur ${resolveName(r.product?.name)} sera supprimée.`,
+                      variant: 'danger',
+                      confirmLabel: 'Supprimer',
+                    })
+                    if (ok) deleteMutation.mutate(r.id)
+                  }}
+                  className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg"
+                >
+                  <Trash2 size={14}/>
+                </button>
+              ),
+            },
+          ]}
+          data={promos}
+          loading={isLoading}
+          exportable
+          exportFilename="offres-produit"
+        />
+      </div>
+
+      <Modal open={modalOpen} onClose={closeModal} title="Nouvelle offre produit" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="label">Établissement *</label>
+            <select
+              className="input w-full"
+              value={form.professionalId}
+              onChange={e => setForm(f => ({ ...f, professionalId: e.target.value, productId: '' }))}
+            >
+              <option value="">— Choisir un établissement —</option>
+              {pros.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.businessName}{p.city ? ` · ${p.city}` : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          {form.professionalId && (
+            <div>
+              <label className="label">Produit *</label>
+              <select
+                className="input w-full"
+                value={form.productId}
+                onChange={e => setForm(f => ({ ...f, productId: e.target.value }))}
+              >
+                <option value="">— Choisir un produit —</option>
+                {proProducts.map((p: any) => (
+                  <option key={p.id} value={p.id}>{resolveName(p.name)}{p.price ? ` — ${formatCFA(p.price)}` : ''}</option>
+                ))}
+              </select>
+              {proProducts.length === 0 && (
+                <p className="text-xs text-ink3 mt-1 font-semibold italic">Aucun produit dans le catalogue de cet établissement</p>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="label">Articles achetés pour 1 offert *</label>
+            <input
+              className="input"
+              inputMode="numeric"
+              placeholder="Ex: 1 (1 acheté = 1 offert) ou 3 (3 achetés = le 4ᵉ offert)"
+              value={form.buyQuantity}
+              onChange={e => setForm(f => ({ ...f, buyQuantity: e.target.value }))}
+            />
+            <p className="text-xs text-ink3 mt-1">
+              Ex: «1» → 1 acheté = 1 offert. «3» → 3 achetés = le 4ᵉ offert (et s'applique autant de fois que la quantité le permet).
+            </p>
+          </div>
+
+          <div>
+            <label className="label">Date d'expiration <span className="text-ink3 font-normal">(optionnel)</span></label>
+            <input
+              className="input"
+              type="date"
+              value={form.expiresAt}
+              onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={closeModal} className="btn-secondary flex-1 justify-center">Annuler</button>
+            <button onClick={handleSubmit} disabled={createMutation.isPending} className="btn-primary flex-1 justify-center">
+              Créer
             </button>
           </div>
         </div>
